@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
@@ -89,21 +89,21 @@ export class EventStore {
     return join(this.baseDir, "runs", safeSegment(runId, "runId"));
   }
 
-  append(event: VistaEvent): void {
+  async append(event: VistaEvent): Promise<void> {
     try {
       const redacted = redactAll(event) as VistaEvent;
       const runId = safeSegment(redacted.run_id, "runId");
       const directory = this.runDir(runId);
-      mkdirSync(directory, { recursive: true });
-      appendFileSync(join(directory, EVENTS_FILE), `${JSON.stringify(redacted)}\n`, "utf8");
+      await mkdir(directory, { recursive: true });
+      await appendFile(join(directory, EVENTS_FILE), `${JSON.stringify(redacted)}\n`, "utf8");
     } catch {
       reportFailure("event append");
     }
   }
 
-  readRun(runId: string): VistaEvent[] {
+  async readRun(runId: string): Promise<VistaEvent[]> {
     try {
-      const contents = readFileSync(join(this.runDir(runId), EVENTS_FILE), "utf8");
+      const contents = await readFile(join(this.runDir(runId), EVENTS_FILE), "utf8");
       return parseJsonLines(contents)
         .map(parseEvent)
         .filter((event): event is VistaEvent => event !== undefined);
@@ -112,9 +112,10 @@ export class EventStore {
     }
   }
 
-  listRuns(): string[] {
+  async listRuns(): Promise<string[]> {
     try {
-      return readdirSync(join(this.baseDir, "runs"), { withFileTypes: true })
+      const entries = await readdir(join(this.baseDir, "runs"), { withFileTypes: true });
+      return entries
         .filter((entry) => entry.isDirectory() && /^[A-Za-z0-9._-]+$/u.test(entry.name))
         .map((entry) => entry.name)
         .sort();
@@ -143,39 +144,44 @@ export class CheckpointStore {
     return join(this.runDir(runId), CHECKPOINTS_DIR);
   }
 
-  save(checkpoint: VistaCheckpoint): void {
+  async save(checkpoint: VistaCheckpoint): Promise<void> {
     try {
       const redacted = redactAll(checkpoint) as VistaCheckpoint;
       const runId = safeSegment(redacted.run_id, "runId");
       const stepId = safeSegment(redacted.step_id, "stepId");
       const directory = join(this.baseDir, "runs", runId, CHECKPOINTS_DIR);
-      mkdirSync(directory, { recursive: true });
-      writeFileSync(join(directory, `${stepId}.json`), `${JSON.stringify(redacted, null, 2)}\n`, "utf8");
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, `${stepId}.json`), `${JSON.stringify(redacted, null, 2)}\n`, "utf8");
     } catch {
       reportFailure("checkpoint save");
     }
   }
 
-  load(runId: string, stepId: string): VistaCheckpoint | undefined {
+  async load(runId: string, stepId: string): Promise<VistaCheckpoint | undefined> {
     try {
-      const contents = readFileSync(join(this.checkpointsDir(runId), `${safeSegment(stepId, "stepId")}.json`), "utf8");
+      const contents = await readFile(join(this.checkpointsDir(runId), `${safeSegment(stepId, "stepId")}.json`), "utf8");
       return parseCheckpoint(JSON.parse(contents) as unknown);
     } catch {
       return undefined;
     }
   }
 
-  listCheckpoints(runId: string): VistaCheckpoint[] {
+  async listCheckpoints(runId: string): Promise<VistaCheckpoint[]> {
     try {
-      return readdirSync(this.checkpointsDir(runId), { withFileTypes: true })
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-        .map((entry) => {
-          try {
-            return parseCheckpoint(JSON.parse(readFileSync(join(this.checkpointsDir(runId), entry.name), "utf8")) as unknown);
-          } catch {
-            return undefined;
-          }
-        })
+      const entries = await readdir(this.checkpointsDir(runId), { withFileTypes: true });
+      const checkpoints = await Promise.all(
+        entries
+          .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+          .map(async (entry) => {
+            try {
+              const contents = await readFile(join(this.checkpointsDir(runId), entry.name), "utf8");
+              return parseCheckpoint(JSON.parse(contents) as unknown);
+            } catch {
+              return undefined;
+            }
+          }),
+      );
+      return checkpoints
         .filter((checkpoint): checkpoint is VistaCheckpoint => checkpoint !== undefined)
         .sort((left, right) => left.ts - right.ts);
     } catch {

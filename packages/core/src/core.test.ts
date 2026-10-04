@@ -1,5 +1,5 @@
-import { deepStrictEqual, doesNotThrow, match, strictEqual } from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { deepStrictEqual, doesNotReject, match, strictEqual } from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -14,8 +14,8 @@ import {
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
 
-function temporaryDirectory(): string {
-  return mkdtempSync(join(tmpdir(), "pi-vista-core-"));
+async function temporaryDirectory(): Promise<string> {
+  return mkdtemp(join(tmpdir(), "pi-vista-core-"));
 }
 
 function sampleEvent(): VistaEvent {
@@ -47,24 +47,24 @@ function sampleCheckpoint(): VistaCheckpoint {
   };
 }
 
-test("event and checkpoint stores round-trip redacted records", () => {
-  const baseDir = temporaryDirectory();
+test("event and checkpoint stores round-trip redacted records", async () => {
+  const baseDir = await temporaryDirectory();
   try {
     const eventStore = new EventStore({ baseDir });
     const checkpointStore = new CheckpointStore({ baseDir });
 
-    eventStore.append(sampleEvent());
-    checkpointStore.save(sampleCheckpoint());
+    await eventStore.append(sampleEvent());
+    await checkpointStore.save(sampleCheckpoint());
 
-    deepStrictEqual(eventStore.readRun("run-round-trip"), [sampleEvent()]);
-    deepStrictEqual(eventStore.listRuns(), ["run-round-trip"]);
-    deepStrictEqual(checkpointStore.load("run-round-trip", "run-round-trip_s0"), sampleCheckpoint());
-    deepStrictEqual(checkpointStore.listCheckpoints("run-round-trip"), [sampleCheckpoint()]);
+    deepStrictEqual(await eventStore.readRun("run-round-trip"), [sampleEvent()]);
+    deepStrictEqual(await eventStore.listRuns(), ["run-round-trip"]);
+    deepStrictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s0"), sampleCheckpoint());
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), [sampleCheckpoint()]);
 
-    const jsonl = readFileSync(join(baseDir, "runs", "run-round-trip", "events.jsonl"), "utf8");
+    const jsonl = await readFile(join(baseDir, "runs", "run-round-trip", "events.jsonl"), "utf8");
     match(jsonl, /"action":"test:round_trip"/u);
   } finally {
-    rmSync(baseDir, { recursive: true, force: true });
+    await rm(baseDir, { recursive: true, force: true });
   }
 });
 
@@ -85,16 +85,16 @@ test("redaction removes paths, credentials, and commands", () => {
   strictEqual(isRedacted(value), true);
 });
 
-test("emitVistaEvent is fail-open when the store fails", () => {
+test("emitVistaEvent is fail-open when the store fails", async () => {
   const failingStore = {
-    append(): void {
+    async append(): Promise<void> {
       throw new Error("store unavailable");
     },
   };
 
   let event: VistaEvent | undefined;
-  doesNotThrow(() => {
-    event = emitVistaEvent(
+  await doesNotReject(async () => {
+    event = await emitVistaEvent(
       {
         component: "test",
         action: "test:fail_open",

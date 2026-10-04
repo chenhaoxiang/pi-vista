@@ -20,7 +20,7 @@ export type VistaEventInput = Partial<VistaEvent>;
 export type VistaEmitter = (
   partial: VistaEventInput,
   options?: EmitOptions,
-) => VistaEvent | undefined;
+) => Promise<VistaEvent | undefined>;
 
 const nextSequences = new Map<string, number>();
 
@@ -42,7 +42,7 @@ function reportFailure(): void {
  * Build, redact, and persist one VistaEvent. This function is deliberately
  * fail-open: an unavailable store never interrupts the observed operation.
  */
-export function emitVistaEvent(partial: VistaEventInput, options: EmitOptions = {}): VistaEvent | undefined {
+export async function emitVistaEvent(partial: VistaEventInput, options: EmitOptions = {}): Promise<VistaEvent | undefined> {
   try {
     if (partial === null || typeof partial !== "object") {
       throw new TypeError("event input must be an object");
@@ -81,7 +81,7 @@ export function emitVistaEvent(partial: VistaEventInput, options: EmitOptions = 
 
     const store = options.store ?? new EventStore(options.baseDir);
     try {
-      store.append(event);
+      await store.append(event);
     } catch {
       reportFailure();
     }
@@ -97,7 +97,7 @@ export function createEmitter(
   defaults: Partial<VistaEvent>,
   options: EmitOptions = {},
 ): VistaEmitter {
-  return (partial, callOptions = {}) => {
+  return async (partial, callOptions = {}) => {
     const mergedOptions: EmitOptions = { ...options, ...callOptions };
     return emitVistaEvent(
       { ...defaults, ...partial } as VistaEventInput,
