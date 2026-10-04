@@ -1,0 +1,32 @@
+{
+  "name": "pi-vista",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Model-agnostic execution augmentation and experience system for Pi",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "keywords": [
+    "ai-agent",
+    "observability",
+    "trajectory",
+    "experience-replay",
+    "llm-agents",
+    "pi",
+    "hindsight"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  }
+}
