@@ -38,6 +38,8 @@ effective_capability =
     └── experience.jsonl           # experience promotion log (append-only)
 ```
 
+Checkpoint storage is fail-open and redacts before writing. `CheckpointStore.load(runId, stepId)` returns the checkpoint or `null` when it is missing or corrupt; `listCheckpoints(runId)` returns checkpoint step IDs in stable lexicographic order.
+
 ### Layer 2: Hindsight (primary long-term memory)
 
 Hindsight provides the semantic memory layer. pi-vista writes to it only when an experience passes promotion criteria:

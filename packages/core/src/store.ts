@@ -16,7 +16,13 @@ export function defaultBaseDir(): string {
 }
 
 function safeSegment(value: string, label: string): string {
-  if (typeof value !== "string" || value.length === 0 || !/^[A-Za-z0-9._-]+$/u.test(value)) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value === "." ||
+    value === ".." ||
+    !/^[A-Za-z0-9._-]+$/u.test(value)
+  ) {
     throw new TypeError(`${label} must be a path-safe identifier`);
   }
   return value;
@@ -157,33 +163,32 @@ export class CheckpointStore {
     }
   }
 
-  async load(runId: string, stepId: string): Promise<VistaCheckpoint | undefined> {
+  /** Return a checkpoint, or null when it is missing or cannot be parsed. */
+  async load(runId: string, stepId: string): Promise<VistaCheckpoint | null> {
     try {
       const contents = await readFile(join(this.checkpointsDir(runId), `${safeSegment(stepId, "stepId")}.json`), "utf8");
-      return parseCheckpoint(JSON.parse(contents) as unknown);
+      return parseCheckpoint(JSON.parse(contents) as unknown) ?? null;
     } catch {
-      return undefined;
+      return null;
     }
   }
 
-  async listCheckpoints(runId: string): Promise<VistaCheckpoint[]> {
+  /** Return stored checkpoint step IDs in stable lexicographic order. */
+  async listCheckpoints(runId: string): Promise<string[]> {
     try {
       const entries = await readdir(this.checkpointsDir(runId), { withFileTypes: true });
-      const checkpoints = await Promise.all(
-        entries
-          .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-          .map(async (entry) => {
-            try {
-              const contents = await readFile(join(this.checkpointsDir(runId), entry.name), "utf8");
-              return parseCheckpoint(JSON.parse(contents) as unknown);
-            } catch {
-              return undefined;
-            }
-          }),
-      );
-      return checkpoints
-        .filter((checkpoint): checkpoint is VistaCheckpoint => checkpoint !== undefined)
-        .sort((left, right) => left.ts - right.ts);
+      return entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map((entry) => entry.name.slice(0, -".json".length))
+        .filter((stepId) => {
+          try {
+            safeSegment(stepId, "stepId");
+            return true;
+          } catch {
+            return false;
+          }
+        })
+        .sort();
     } catch {
       return [];
     }

@@ -1,5 +1,5 @@
 import { deepStrictEqual, doesNotReject, match, strictEqual } from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -59,12 +59,88 @@ test("event and checkpoint stores round-trip redacted records", async () => {
     deepStrictEqual(await eventStore.readRun("run-round-trip"), [sampleEvent()]);
     deepStrictEqual(await eventStore.listRuns(), ["run-round-trip"]);
     deepStrictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s0"), sampleCheckpoint());
-    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), [sampleCheckpoint()]);
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), ["run-round-trip_s0"]);
 
     const jsonl = await readFile(join(baseDir, "runs", "run-round-trip", "events.jsonl"), "utf8");
     match(jsonl, /"action":"test:round_trip"/u);
   } finally {
     await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("CheckpointStore.listCheckpoints returns step IDs in lexicographic order, not timestamp order", async () => {
+  const baseDir = await temporaryDirectory();
+  try {
+    const checkpointStore = new CheckpointStore({ baseDir });
+
+    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "step-z", ts: 1_700_000_000_000 });
+    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "step-a", ts: 1_700_000_000_001 });
+
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), ["step-a", "step-z"]);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("CheckpointStore.load returns null for missing or corrupt records", async () => {
+  const baseDir = await temporaryDirectory();
+  try {
+    const checkpointStore = new CheckpointStore({ baseDir });
+
+    strictEqual(await checkpointStore.load("run-round-trip", "missing"), null);
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), []);
+
+    await checkpointStore.save(sampleCheckpoint());
+    strictEqual(await checkpointStore.load("run-round-trip", "missing"), null);
+    const checkpointDir = join(baseDir, "runs", "run-round-trip", "checkpoints");
+    await writeFile(join(checkpointDir, "corrupt.json"), "not-json", "utf8");
+    await writeFile(join(checkpointDir, "invalid.json"), JSON.stringify({ run_id: "run-round-trip" }), "utf8");
+
+    strictEqual(await checkpointStore.load("run-round-trip", "corrupt"), null);
+    strictEqual(await checkpointStore.load("run-round-trip", "invalid"), null);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("EventStore.append and CheckpointStore.save reject unsafe path segments without filesystem writes", async () => {
+  const sandbox = await temporaryDirectory();
+  const baseDir = join(sandbox, "vista");
+  try {
+    await mkdir(baseDir);
+    const eventStore = new EventStore({ baseDir });
+    const checkpointStore = new CheckpointStore({ baseDir });
+    const invalidSegments = [
+      ".",
+      "..",
+      "",
+      "../outside",
+      "../../outside",
+      "nested/run",
+      "nested\\run",
+      join(sandbox, "outside"),
+      "invalid segment",
+      "invalid:segment",
+      "nul\u0000segment",
+    ];
+
+    for (const runId of invalidSegments) {
+      await doesNotReject(() => eventStore.append({ ...sampleEvent(), run_id: runId }));
+      await doesNotReject(() => checkpointStore.save({ ...sampleCheckpoint(), run_id: runId }));
+      deepStrictEqual(await eventStore.readRun(runId), []);
+      strictEqual(await checkpointStore.load(runId, sampleCheckpoint().step_id), null);
+      deepStrictEqual(await checkpointStore.listCheckpoints(runId), []);
+      deepStrictEqual(await readdir(baseDir), [], `unexpected write for runId ${JSON.stringify(runId)}`);
+      deepStrictEqual(await readdir(sandbox), ["vista"], `write escaped baseDir for runId ${JSON.stringify(runId)}`);
+    }
+    for (const stepId of invalidSegments) {
+      await doesNotReject(() => checkpointStore.save({ ...sampleCheckpoint(), step_id: stepId }));
+      strictEqual(await checkpointStore.load(sampleCheckpoint().run_id, stepId), null);
+      deepStrictEqual(await readdir(baseDir), [], `unexpected write for stepId ${JSON.stringify(stepId)}`);
+      deepStrictEqual(await readdir(sandbox), ["vista"], `write escaped baseDir for stepId ${JSON.stringify(stepId)}`);
+    }
+  } finally {
+    await rm(sandbox, { recursive: true, force: true });
   }
 });
 
