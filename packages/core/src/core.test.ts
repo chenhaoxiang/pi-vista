@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
+import type { VistaCheckpoint, VistaCheckFunction, VistaEvent } from "@pi-vista/protocol";
 import { emitVistaEvent, type VistaEventInput } from "./emit.js";
 import {
   isRedacted,
@@ -14,7 +14,7 @@ import {
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
 import { generateRunId, generateStepId, isSafeSegment } from "./run-id.js";
-import { isSafeCustomComponent } from "./safe-fields.js";
+import { BARE_COMMAND_WORDS, isSafeCustomComponent } from "./safe-fields.js";
 import { isVistaComponent, isVistaEvent, VistaProtocolError } from "./validation.js";
 
 async function temporaryDirectory(): Promise<string> {
@@ -167,6 +167,44 @@ test("redaction removes paths, credentials, and commands", () => {
   strictEqual(serialized.includes("password@example"), false);
   strictEqual(serialized.includes("secret-token"), false);
   strictEqual(isRedacted(value), true);
+});
+
+test("redactAll drops unsafe property names while retaining protocol metadata and safe stats", () => {
+  const unsafeProperties: Record<string, unknown> = {
+    "/Users/alice/private.txt": "path-key-value",
+    "nested/key": "slash-key-value",
+    "nested\\\\key": "backslash-key-value",
+    "bad\u0000key": "control-key-value",
+    CLIENT_SECRET: "credential-key-value",
+    "private-key": "private-key-value",
+    shell_command: "echo shell-key-value",
+    echo: "bare-command-key-value",
+    unknown_payload: "unknown value",
+  };
+  const value = redactAll({
+    ...unsafeProperties,
+    action: "guard:A:block",
+    repo: "vista",
+    artifact_refs: [{
+      type: "test_result",
+      ref: "receipt-1",
+      stats: { passed: 1, suite: "unit", token: "stats-secret" },
+    }],
+    nested: unsafeProperties,
+  }) as Record<string, unknown>;
+
+  for (const key of Object.keys(unsafeProperties).filter((key) => key !== "unknown_payload")) {
+    strictEqual(Object.hasOwn(value, key), false, `unsafe root key ${JSON.stringify(key)} was retained`);
+    strictEqual(JSON.stringify(value).includes(key), false, `unsafe key ${JSON.stringify(key)} was serialized`);
+  }
+  strictEqual(value.unknown_payload, "[REDACTED]");
+  strictEqual(value.action, "guard:A:block");
+  deepStrictEqual((value.artifact_refs as Array<{ stats: Record<string, unknown> }>)[0]?.stats, {
+    passed: 1,
+    suite: "unit",
+  });
+  strictEqual(JSON.stringify(value).includes("path-key-value"), false);
+  strictEqual(JSON.stringify(value).includes("credential-key-value"), false);
 });
 
 test("redactAll uses an allowlist and handles encoded URL secrets", () => {
@@ -437,6 +475,78 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
   }
 });
 
+test("emitter and stores do not persist unsafe property names", async () => {
+  const unsafeProperties: Record<string, unknown> = {
+    "/Users/alice/private.txt": "path-key-value",
+    "nested/key": "slash-key-value",
+    "nested\\\\key": "backslash-key-value",
+    "bad\u0000key": "control-key-value",
+    API_TOKEN: "credential-key-value",
+    "private-key": "private-key-value",
+    shell_command: "echo shell-key-value",
+    awk: "bare-command-key-value",
+  };
+  const eventInput = {
+    ...sampleEvent(),
+    ...unsafeProperties,
+    artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { passed: 1, token: "stats-secret" } }],
+  } as unknown as VistaEvent;
+  const checkpointInput = {
+    ...sampleCheckpoint(),
+    ...unsafeProperties,
+  } as unknown as VistaCheckpoint;
+  const assertSafeJson = (serialized: string): void => {
+    for (const [key, value] of Object.entries(unsafeProperties)) {
+      strictEqual(serialized.includes(key), false, `unsafe key ${JSON.stringify(key)} was persisted`);
+      strictEqual(serialized.includes(String(value)), false, `unsafe value for ${JSON.stringify(key)} was persisted`);
+    }
+    strictEqual(serialized.includes("stats-secret"), false);
+  };
+
+  let emitted: VistaEvent | undefined;
+  const emittedStore = {
+    async append(event: VistaEvent): Promise<void> {
+      emitted = event;
+    },
+  };
+  await emitVistaEvent(eventInput, { store: emittedStore, runId: sampleEvent().run_id, seq: 0, now: 123 });
+  strictEqual(emitted !== undefined, true);
+  assertSafeJson(JSON.stringify(emitted));
+
+  const baseDir = await temporaryDirectory();
+  try {
+    const eventStore = new EventStore({ baseDir });
+    const checkpointStore = new CheckpointStore({ baseDir });
+    await eventStore.append(eventInput);
+    await checkpointStore.save(checkpointInput);
+
+    const eventFile = await readFile(join(baseDir, "runs", sampleEvent().run_id, "events.jsonl"), "utf8");
+    const checkpointFile = await readFile(
+      join(baseDir, "runs", sampleCheckpoint().run_id, "checkpoints", `${sampleCheckpoint().step_id}.json`),
+      "utf8",
+    );
+    assertSafeJson(eventFile);
+    assertSafeJson(checkpointFile);
+    assertSafeJson(JSON.stringify((await eventStore.readRun(sampleEvent().run_id))[0]));
+    assertSafeJson(JSON.stringify(await checkpointStore.load(sampleCheckpoint().run_id, sampleCheckpoint().step_id)));
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("check-function repair contracts carry only an opaque policy key", () => {
+  const check: VistaCheckFunction = {
+    check_id: "check-worktree",
+    type: "worktree_clean",
+    params: {},
+    on_fail: "REPAIR",
+    repair_action_id: "policy:repair_worktree",
+  };
+  strictEqual(check.repair_action_id, "policy:repair_worktree");
+  strictEqual(Object.hasOwn(check, "repair_action"), false);
+  strictEqual(JSON.stringify(check).includes("shell"), false);
+});
+
 test("validator rejects unsafe versions and preserves unknown slash versions", async () => {
   const invalidStats = {
     ...sampleEvent(),
@@ -459,11 +569,12 @@ test("validator rejects unsafe versions and preserves unknown slash versions", a
     "/tmp/vista",
     "TOKEN=secret",
     "https://example.test/future/1",
-    "pwd",
+    ...BARE_COMMAND_WORDS,
   ]) {
-    strictEqual(isVistaEvent({ ...sampleEvent(), vista_version }), false);
+    strictEqual(isVistaEvent({ ...sampleEvent(), vista_version }), false, vista_version);
   }
   deepStrictEqual(redactAll({ vista_version: "future/1" }), { vista_version: "future/1" });
+  deepStrictEqual(redactAll({ vista_version: "awk" }), { vista_version: "[REDACTED_COMMAND]" });
   deepStrictEqual(redactAll({ vista_version: "future|1" }), { vista_version: "[REDACTED_COMMAND]" });
 
   const baseDir = await temporaryDirectory();

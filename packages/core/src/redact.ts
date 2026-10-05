@@ -1,6 +1,8 @@
 import { isSafeSegment } from "./path-safe.js";
 import {
+  isBareCommandWord,
   isBareCustomComponentCommand,
+  isCommandInvocation,
   isRetainedStatsKey,
   isSafeCustomComponent,
   isSafeStatsValue,
@@ -25,9 +27,6 @@ const WINDOWS_PATH_PATTERN = /(?:\b[A-Za-z]:[\\/]+|\\\\[A-Za-z0-9._-]+[\\/]+)[^\
 const POSIX_PATH_PATTERN = /(?<![\w:/])(?:\/[A-Za-z0-9._~@%+\-]+)+/g;
 const ROOT_PATH_PATTERN = /(?<![\w:/])\/(?=$|[\s"'`<>|;&])/g;
 const HOME_PATH_PATTERN = /~[\\/][^\s"'`<>|;&]+/g;
-const COMMAND_WORDS = "bash|cat|cd|chmod|chown|command|cp|curl|docker|echo|env|export|false|find|git|grep|kill|kubectl|ls|make|mkdir|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|pwd|pytest|python(?:3)?|read|rm|scp|sed|set|sh|sleep|source|ssh|tar|test|touch|true|tsc|uname|unset|wait|wget|which|whoami|xargs|yarn|zip|zsh";
-const COMMAND_PATTERN = new RegExp(`(?:^|\\b)(?:sudo\\s+)?(?:${COMMAND_WORDS})\\s+[^\\n]*`, "iu");
-const BARE_COMMAND_PATTERN = new RegExp(`^(?:sudo\\s+)?(?:${COMMAND_WORDS})$`, "iu");
 const SHELL_SYNTAX_PATTERN = /(?:&&|\|\||\||[;`]|\$\(|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\r?\n|(?:^|\s)[<>](?:\s|\S))/u;
 const SAFE_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+$/u;
 const SAFE_SLASH_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+(?:\/[A-Za-z0-9._:@+\-]+)*$/u;
@@ -37,7 +36,7 @@ const CONTROL_CHARACTER_PATTERN = /[\p{Cc}\p{Cf}]/u;
 const SAFE_IDENTIFIER_KEYS = new Set([
   "runid", "stepid", "sessionid", "traceid", "checkid", "failureid",
   "experienceid", "hindsightdocid", "supersededby", "sourcesha", "verifiedsha",
-  "worktreeid", "envfingerprint", "sha",
+  "worktreeid", "envfingerprint", "repairactionid", "sha",
 ]);
 const SAFE_IDENTIFIER_ARRAY_KEYS = new Set([
   "completedsteps", "pendingsteps", "checkfnids", "resumerequires", "dependson",
@@ -74,7 +73,14 @@ function isCommandKey(key: string | undefined): boolean {
   if (normalized.length === 0) {
     return false;
   }
-  const commandTokens = ["arg", "args", "argv", "command", "cmd", "script", "shell", "stdin", "commandline", "shellcommand"];
+  if (normalized === "repairactionid") {
+    return false;
+  }
+  const commandTokens = [
+    "arg", "args", "argv", "command", "cmd", "cmdline", "script", "shell", "stdin", "stdout", "stderr",
+    "exec", "executable", "powershell", "bash", "pipe", "redirect", "heredoc",
+    "commandline", "shellcommand", "repairaction",
+  ];
   return commandTokens.some((token) =>
     normalized === token || normalized.startsWith(token) || normalized.endsWith(token),
   );
@@ -100,6 +106,39 @@ function isModelDataKey(key: string | undefined): boolean {
 function isIdentityKey(key: string | undefined): boolean {
   const normalized = normalizedKey(key);
   return normalized.length > 0 && /(?:email|home|login|user|userid|username)/u.test(normalized);
+}
+
+const PROPERTY_KEY_SHELL_PATTERN = /[\s!*?\[\]{};&|`$<>()=#%]/u;
+
+/**
+ * Property names are metadata too. Unknown names that look like paths,
+ * credentials, commands, or shell syntax are dropped rather than copied into
+ * the persisted object. Protocol field names and stats are handled by their
+ * explicit allowlists before this predicate is consulted.
+ */
+function isUnsafePropertyKey(key: string): boolean {
+  const normalized = normalizedKey(key);
+  const isKnownSafeKey =
+    SAFE_IDENTIFIER_KEYS.has(normalized) ||
+    SAFE_IDENTIFIER_ARRAY_KEYS.has(normalized) ||
+    SAFE_METADATA_KEYS.has(normalized) ||
+    URL_KEYS.has(normalized) ||
+    normalized === "artifactrefs" ||
+    normalized === "ref" ||
+    normalized === "stats";
+  if (isKnownSafeKey) {
+    return false;
+  }
+  return (
+    CONTROL_CHARACTER_PATTERN.test(key) ||
+    /[\\/]/u.test(key) ||
+    key.startsWith("~") ||
+    isPathKey(key) ||
+    isCredentialKey(key) ||
+    isCommandKey(key) ||
+    isBareCommandWord(key) ||
+    PROPERTY_KEY_SHELL_PATTERN.test(key)
+  );
 }
 
 function redactPathFragments(value: string): string {
@@ -200,8 +239,12 @@ function sanitizeFragments(value: string, key: string | undefined): string {
   );
   result = redactPathFragments(redactCredentialFragments(result));
   if (
-    (normalizedKey(key) === "action" && (BARE_COMMAND_PATTERN.test(result) || /\s/u.test(result))) ||
-    COMMAND_PATTERN.test(result) || SHELL_SYNTAX_PATTERN.test(result)
+    ((normalizedKey(key) === "action" || normalizedKey(key) === "vistaversion") && (
+      isBareCommandWord(result) ||
+      (normalizedKey(key) === "vistaversion" && result.split("/").some((segment) => isBareCommandWord(segment))) ||
+      (normalizedKey(key) === "action" && /\s/u.test(result))
+    )) ||
+    isCommandInvocation(result) || SHELL_SYNTAX_PATTERN.test(result)
   ) {
     return REDACTED_COMMAND_MARKER;
   }
@@ -348,6 +391,11 @@ function cloneAndRedact(
       }
       retainedStatsEntries += 1;
       result[property] = cloneAndRedact(propertyValue, seen, property, true, true);
+    } else if (isUnsafePropertyKey(property)) {
+      // A property name can disclose a path or credential even when its value
+      // is redacted. Traverse it for fail-closed handling, but never copy the
+      // original name into the persisted object.
+      cloneAndRedact(propertyValue, seen, property, false);
     } else {
       result[property] = cloneAndRedact(propertyValue, seen, property, allowProperties);
     }

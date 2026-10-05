@@ -40,10 +40,20 @@ effective_capability =
 
 Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins (last-writer-wins). A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
 
+Check-function repair is an opaque contract: `VistaCheckFunction` may carry only a
+`repair_action_id`, never a shell command, command template, or executable text.
+A trusted policy registry must validate and resolve that identifier to an
+allowlisted repair action before execution. Unregistered or untrusted protocol
+input cannot select arbitrary shell behavior. This registry boundary is
+separate from fail-open event/checkpoint observation and does not change the
+safety authority of workspace-guard or ai-gate.
+
 `ArtifactRef.stats` is limited to finite numbers and short metadata strings.
 The core redactor retains at most 32 entries and at most 64 characters per
 string, and applies credential/path/URL/shell redaction before retaining text;
-stats do not contain artifact content.
+stats do not contain artifact content. Unknown object property names that look
+like paths, credentials, tokens, or shell syntax are dropped before persistence;
+protocol fields, legal metadata, and safe stats keys remain discoverable.
 
 Custom components are structured identifiers, not shell command fields. The
 runtime grammar rejects a recognized shell command word when it is the complete

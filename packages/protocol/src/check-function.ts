@@ -21,7 +21,8 @@ export type CheckFunctionType =
  *
  * - STOP: halt execution and report environment mismatch
  * - WARN: continue but flag for human review
- * - REPAIR: attempt repair_action, then re-check; STOP if still failing
+ * - REPAIR: resolve the opaque repair_action_id through trusted policy, then
+ *   re-check; STOP if still failing
  */
 export type CheckFunctionOnFail = "STOP" | "WARN" | "REPAIR";
 
@@ -47,11 +48,12 @@ export interface VistaCheckFunction {
   on_fail: CheckFunctionOnFail;
 
   /**
-   * Shell command to run when on_fail is "REPAIR".
-   * Must be a safe, idempotent operation.
-   * REDACTION: must not reference credentials or sensitive paths.
+   * Opaque policy-registry key to resolve when on_fail is "REPAIR".
+   * This is an identifier only, never shell text or a command template.
+   * Only a trusted policy registry may resolve and execute the corresponding
+   * approved action.
    */
-  repair_action?: string | undefined;
+  repair_action_id?: string | undefined;
 
   /** Human-readable description of what this check verifies. */
   description?: string | undefined;

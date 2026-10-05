@@ -7,15 +7,29 @@ const CUSTOM_COMPONENT_NAME_PATTERN = /^[^\s\p{Cc}\p{Cf}]+$/u;
 const CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
 const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:[\\|?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
 const CUSTOM_COMPONENT_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/u;
-// A component suffix is an identifier/namespace, not a command position. Only
-// an exact, whole-suffix command word is rejected; command words in a namespace
-// segment (for example, "adapter/git/v2") remain valid component identifiers.
-const CUSTOM_COMPONENT_COMMAND_WORD_PATTERN = /^(?:awk|basename|bash|cat|cd|chmod|chown|command|cp|curl|cut|date|dd|diff|dirname|docker|echo|env|export|false|find|git|grep|head|id|jq|kill|kubectl|ln|ls|make|man|mkdir|more|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|ps|pwd|pytest|python(?:3)?|read|realpath|rev|rm|rmdir|scp|sed|set|sh|sleep|sort|source|ssh|sudo|tail|tar|tee|test|time|touch|tr|true|tsc|uname|uniq|unset|wait|wc|wget|which|whoami|xargs|yarn|yes|zip|zsh)$/iu;
+/**
+ * Single source of truth for command words that are unsafe as opaque protocol
+ * labels. Keep this list complete: redaction, component validation, and
+ * vista_version validation all consume it.
+ */
+export const BARE_COMMAND_WORDS = [
+  "awk", "basename", "bash", "cat", "cd", "chmod", "chown", "command", "cp", "curl",
+  "cut", "date", "dd", "diff", "dirname", "docker", "echo", "env", "export", "false",
+  "find", "git", "grep", "head", "id", "jq", "kill", "kubectl", "ln", "ls", "make",
+  "man", "mkdir", "more", "mv", "node", "npm", "npx", "openssl", "perl", "pip", "pnpm",
+  "printf", "ps", "pwd", "pytest", "python", "python3", "read", "realpath", "rev", "rm",
+  "rmdir", "scp", "sed", "set", "sh", "sleep", "sort", "source", "ssh", "sudo", "tail",
+  "tar", "tee", "test", "time", "touch", "tr", "true", "tsc", "uname", "uniq", "unset",
+  "wait", "wc", "wget", "which", "whoami", "xargs", "yarn", "yes", "zip", "zsh",
+] as const;
+const BARE_COMMAND_WORD_SET = new Set<string>(BARE_COMMAND_WORDS);
+const COMMAND_WORD_PATTERN = BARE_COMMAND_WORDS.join("|");
+const COMMAND_INVOCATION_PATTERN = new RegExp(`(?:^|\\b)(?:${COMMAND_WORD_PATTERN})\\s+[^\\n]*`, "iu");
+
 const REDACTION_CUSTOM_COMPONENT_PATTERN = /^custom:\[REDACTED(?:_[A-Z]+)?\]$/u;
 const VISTA_VERSION_PATTERN = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}._:+/@-]*$/u;
 const VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
 const VISTA_VERSION_UNSAFE_PATTERN = /(?:[\\|?&#=%;`$<>]|:\/|:\/\/|^[/~]|^[A-Za-z]:[/\\]|(?:^|\/)\.\.?(?:\/|$))/iu;
-const VISTA_VERSION_COMMAND_PATTERN = /(?:^|\/)(?:sudo|bash|cat|cd|chmod|chown|command|cp|curl|docker|echo|env|export|false|find|git|grep|kill|kubectl|ls|make|mkdir|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|pwd|pytest|python(?:3)?|read|rm|scp|sed|set|sh|sleep|source|ssh|tar|test|touch|true|tsc|uname|unset|wait|wget|which|whoami|xargs|yarn|zip|zsh)(?:$|\/)/iu;
 
 const STATS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/u;
 const SENSITIVE_STATS_KEY_PATTERN = /(?:accesskey|accesstoken|apikey|auth|cookie|credential|password|passwd|privatekey|refreshtoken|secret|token|sshkey|signingkey|absolutepath|command|cwd|directory|filename|filepath|path|shell|url|uri|href)/u;
@@ -28,9 +42,19 @@ export const MAX_STATS_ENTRIES = 32;
 /** Maximum length of a retained string stats value. */
 export const MAX_STATS_VALUE_LENGTH = 64;
 
+/** Return whether a value is exactly one recognized shell command word. */
+export function isBareCommandWord(value: unknown): boolean {
+  return typeof value === "string" && BARE_COMMAND_WORD_SET.has(value.toLowerCase());
+}
+
+/** Return whether a value contains a recognized command followed by arguments. */
+export function isCommandInvocation(value: unknown): boolean {
+  return typeof value === "string" && COMMAND_INVOCATION_PATTERN.test(value);
+}
+
 /** Return whether a custom-component suffix is exactly one recognized shell word. */
 export function isBareCustomComponentCommand(value: unknown): boolean {
-  return typeof value === "string" && CUSTOM_COMPONENT_COMMAND_WORD_PATTERN.test(value);
+  return isBareCommandWord(value);
 }
 
 /**
@@ -76,8 +100,9 @@ export function isSafeVistaVersion(value: unknown): value is string {
     !VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN.test(value) &&
     !VISTA_VERSION_UNSAFE_PATTERN.test(value) &&
     !CUSTOM_COMPONENT_TOKEN_PATTERN.test(value) &&
-    !VISTA_VERSION_COMMAND_PATTERN.test(value) &&
-    value.split("/").every((segment) => segment.length > 0 && segment !== "." && segment !== "..")
+    value.split("/").every((segment) =>
+      segment.length > 0 && segment !== "." && segment !== ".." && !isBareCommandWord(segment)
+    )
   );
 }
 

@@ -44,6 +44,7 @@ Every type in this package carries a redaction contract:
 - **Never** include absolute filesystem paths
 - **Never** include usernames, credentials, or tokens
 - **Never** include model inputs or outputs verbatim
+- Unknown property names that look like paths, credentials, tokens, or shell syntax are dropped or replaced before persistence
 
 Use `target_class` and `reason_code` for machine-readable classification.
 Use hashed `env_fingerprint` instead of raw environment values. Custom
@@ -59,6 +60,14 @@ identifiers such as `custom:adapter/git/v2` remain valid.
 The core redactor retains at most 32 entries whose string values are at most 64
 characters and safe metadata; credential-, path-, URL-, and shell-like values
 are redacted or omitted. Stats are never an escape hatch for artifact content.
+
+### Check-function repair actions
+
+`VistaCheckFunction.repair_action_id` is an opaque policy-registry key, not a
+shell command, command template, or executable text. The protocol carries only
+that identifier. A trusted policy registry is the only component allowed to
+resolve the identifier to an approved repair action and execute it; unregistered
+or unauthorized action keys must not be interpreted as commands.
 
 ## Protocol versions
 
