@@ -1,7 +1,7 @@
 {
   "name": "@pi-vista/protocol",
   "version": "0.1.0",
-  "description": "Zero-dependency TypeScript interfaces and JSON schemas for pi-vista",
+  "description": "Zero-dependency TypeScript interfaces for pi-vista",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

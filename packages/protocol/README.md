@@ -1,8 +1,8 @@
 # @pi-vista/protocol
 
-Zero-dependency TypeScript interfaces and JSON schemas for pi-vista.
+Zero-dependency TypeScript interfaces for pi-vista.
 
-This package is the **only** dependency that adapters (workspace-guard, ai-gate, Laya, Kev) need.
+This package is the **only** dependency that the documented adapters (workspace-guard and ai-gate) need.
 It has no runtime dependencies and is safe to add to any project.
 
 ## Install
@@ -46,3 +46,10 @@ Every type in this package carries a redaction contract:
 
 Use `target_class` and `reason_code` for machine-readable classification.
 Use hashed `env_fingerprint` instead of raw environment values.
+
+## Protocol versions
+
+Phase 1 is a 0.x protocol. `vista_version` may be omitted for legacy records,
+but when present it must be a non-empty string. Readers retain unknown versions
+for inspection; validators enforce record shape and safety constraints without
+pretending an unknown version is the current protocol.

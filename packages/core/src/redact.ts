@@ -1,12 +1,14 @@
+import { isSafeSegment } from "./path-safe.js";
+
 const REDACTED_MARKER = "[REDACTED]";
 const REDACTED_PATH_MARKER = "[REDACTED_PATH]";
 const REDACTED_CREDENTIAL_MARKER = "[REDACTED_CREDENTIAL]";
 const REDACTED_COMMAND_MARKER = "[REDACTED_COMMAND]";
 
-const URL_USERINFO_PATTERN = /([a-z][a-z\d+.-]*:\/\/)[^\s/@:]+(?::[^\s/@]*)?@/giu;
-const URL_QUERY_PARAMETER_PATTERN = /([?&#])([a-z][a-z0-9_.-]*)=([^&#\s]*)/giu;
-const URL_FRAGMENT_PATTERN = /#[^\s<>'"`]+/gu;
-const ASSIGNMENT_SECRET_PATTERN = /\b([a-z][a-z0-9_-]*)\s*([:=])\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/giu;
+const URL_PATTERN = /\b[a-z][a-z\d+.-]*:\/\/[^\s<>'"`]+/giu;
+const FULL_URL_PATTERN = /^[a-z][a-z\d+.-]*:\/\/[^\s<>'"`]+$/iu;
+const URL_QUERY_PARAMETER_PATTERN = /([?&])([^=?&#\s]+)=([^&#\s]*)/gu;
+const ASSIGNMENT_SECRET_PATTERN = /\b([a-z][a-z\d_.-]*)\s*([:=])\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/giu;
 const BEARER_PATTERN = /\b(?:basic|bearer)\s+[A-Za-z0-9._~+/=-]+/giu;
 const PEM_PATTERN = /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/gu;
 const TOKEN_PATTERN = /\b(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/g;
@@ -14,13 +16,29 @@ const WINDOWS_PATH_PATTERN = /(?:\b[A-Za-z]:[\\/]+|\\\\[A-Za-z0-9._-]+[\\/]+)[^\
 const POSIX_PATH_PATTERN = /(?<![\w:/])(?:\/[A-Za-z0-9._~@%+\-]+)+/g;
 const ROOT_PATH_PATTERN = /(?<![\w:/])\/(?=$|[\s"'`<>|;&])/g;
 const HOME_PATH_PATTERN = /~[\\/][^\s"'`<>|;&]+/g;
-const FILE_URL_PATTERN = /\bfile:\/\/[^\s"'`<>|;&]+/giu;
 const COMMAND_WORDS = "bash|cat|cd|chmod|chown|command|cp|curl|docker|echo|env|export|false|find|git|grep|kill|kubectl|ls|make|mkdir|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|pwd|pytest|python(?:3)?|read|rm|scp|sed|set|sh|sleep|source|ssh|tar|test|touch|true|tsc|uname|unset|wait|wget|which|whoami|xargs|yarn|zip|zsh";
 const COMMAND_PATTERN = new RegExp(`(?:^|\\b)(?:sudo\\s+)?(?:${COMMAND_WORDS})\\s+[^\\n]*`, "iu");
+const BARE_COMMAND_PATTERN = new RegExp(`^(?:sudo\\s+)?(?:${COMMAND_WORDS})$`, "iu");
 const SHELL_SYNTAX_PATTERN = /(?:&&|\|\||\||[;`]|\$\(|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\r?\n|(?:^|\s)[<>](?:\s|\S))/u;
+const SAFE_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+$/u;
+const SAFE_SLASH_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+(?:\/[A-Za-z0-9._:@+\-]+)*$/u;
 
-/** Long unknown strings are treated as potentially sensitive model or tool data. */
-const UNKNOWN_TEXT_MAX_LENGTH = 64;
+/** Only protocol-defined metadata/ID fields opt in to retaining text. */
+const SAFE_IDENTIFIER_KEYS = new Set([
+  "runid", "stepid", "sessionid", "traceid", "checkid", "failureid",
+  "experienceid", "hindsightdocid", "supersededby", "sourcesha", "verifiedsha",
+  "worktreeid", "envfingerprint", "sha",
+]);
+const SAFE_IDENTIFIER_ARRAY_KEYS = new Set([
+  "completedsteps", "pendingsteps", "checkfnids", "resumerequires", "dependson",
+]);
+const SAFE_METADATA_KEYS = new Set([
+  "action", "component", "repo", "branch", "targetclass", "policyversion",
+  "layer", "reasoncode", "modelid", "vistaversion", "result", "type", "status",
+  "stage", "failuretype", "fixoutcome", "tool", "checktype", "onfailure", "onfail",
+  "layaresult", "tasktype",
+]);
+const URL_KEYS = new Set(["url", "uri", "href"]);
 
 /** Error raised when a value cannot be safely represented after redaction. */
 export class RedactionError extends Error {
@@ -35,37 +53,6 @@ function requireString(value: string, kind: string): string {
     throw new RedactionError(`${kind} must be a string`);
   }
   return value;
-}
-
-function redactPathFragments(value: string): string {
-  // Do not protect URLs before path handling: query and fragment values can
-  // contain absolute paths (for example ?file=/Users/alice/secret.txt).
-  return value
-    .replace(FILE_URL_PATTERN, REDACTED_PATH_MARKER)
-    .replace(WINDOWS_PATH_PATTERN, REDACTED_PATH_MARKER)
-    .replace(POSIX_PATH_PATTERN, REDACTED_PATH_MARKER)
-    .replace(ROOT_PATH_PATTERN, REDACTED_PATH_MARKER)
-    .replace(HOME_PATH_PATTERN, REDACTED_PATH_MARKER);
-}
-
-function redactCredentialFragments(value: string): string {
-  return value
-    .replace(PEM_PATTERN, REDACTED_CREDENTIAL_MARKER)
-    .replace(URL_USERINFO_PATTERN, `$1${REDACTED_CREDENTIAL_MARKER}@`)
-    .replace(URL_QUERY_PARAMETER_PATTERN, (match: string, prefix: string, key: string, parameterValue: string) =>
-      isCredentialKey(key) ? `${prefix}${key}=${REDACTED_CREDENTIAL_MARKER}` : `${prefix}${key}=${parameterValue}`,
-    )
-    // Fragments are opaque to pi-vista and can carry tokens or paths. Keep a
-    // path marker when one is present; otherwise replace the whole fragment.
-    .replace(URL_FRAGMENT_PATTERN, (fragment: string) => {
-      const pathRedacted = redactPathFragments(fragment);
-      return pathRedacted === fragment ? `#${REDACTED_CREDENTIAL_MARKER}` : pathRedacted;
-    })
-    .replace(BEARER_PATTERN, REDACTED_CREDENTIAL_MARKER)
-    .replace(ASSIGNMENT_SECRET_PATTERN, (match: string, key: string, separator: string) =>
-      isCredentialKey(key) ? `${key}${separator}${REDACTED_CREDENTIAL_MARKER}` : match,
-    )
-    .replace(TOKEN_PATTERN, REDACTED_CREDENTIAL_MARKER);
 }
 
 function normalizedKey(key: string | undefined): string {
@@ -90,12 +77,14 @@ function isPathKey(key: string | undefined): boolean {
 
 function isCredentialKey(key: string | undefined): boolean {
   const normalized = normalizedKey(key);
-  return normalized.length > 0 && /(?:accesstoken|apikey|authorization|cookie|credential|password|passwd|privatekey|refreshtoken|secret|token)/u.test(normalized);
+  // Semantic matching covers new credential names as well as common env
+  // assignments such as AWS_ACCESS_KEY_ID, PRIVATE_KEY, and CLIENT_SECRET.
+  return normalized.length > 0 && /(?:accesskey|accesstoken|apikey|authorization|auth|cookie|credential|password|passwd|privatekey|refreshtoken|secret|token|sshkey|signingkey)/u.test(normalized);
 }
 
 function isModelDataKey(key: string | undefined): boolean {
   const normalized = normalizedKey(key);
-  return normalized.length > 0 && /(?:prompttext|prompt|modelprompt|modelinput|modeloutput|completion|output|input|request|response|taskgoal|currentstate|stderr|stdout|content|body|message)/u.test(normalized);
+  return normalized !== "modelid" && /(?:model|prompt|completion|output|input|request|response|taskgoal|currentstate|stderr|stdout|content|body|message|payload|raw)/u.test(normalized);
 }
 
 function isIdentityKey(key: string | undefined): boolean {
@@ -103,45 +92,121 @@ function isIdentityKey(key: string | undefined): boolean {
   return normalized.length > 0 && /(?:email|home|login|user|userid|username)/u.test(normalized);
 }
 
-function isSafeTextKey(key: string | undefined): boolean {
-  const normalized = normalizedKey(key);
-  return /^(?:runid|stepid|sessionid|traceid|component|repo|sourcesha|worktreeid|branch|targetclass|policyversion|layer|envfingerprint|modelid|vistaversion|result|url|uri|href)$/u.test(normalized);
+function redactPathFragments(value: string): string {
+  return value
+    .replace(WINDOWS_PATH_PATTERN, REDACTED_PATH_MARKER)
+    .replace(POSIX_PATH_PATTERN, REDACTED_PATH_MARKER)
+    .replace(ROOT_PATH_PATTERN, REDACTED_PATH_MARKER)
+    .replace(HOME_PATH_PATTERN, REDACTED_PATH_MARKER);
 }
 
-function isUnknownLongText(value: string, key: string | undefined): boolean {
-  return value.length > UNKNOWN_TEXT_MAX_LENGTH && !isSafeTextKey(key);
+function redactCredentialFragments(value: string): string {
+  return value
+    .replace(PEM_PATTERN, REDACTED_CREDENTIAL_MARKER)
+    .replace(BEARER_PATTERN, REDACTED_CREDENTIAL_MARKER)
+    .replace(ASSIGNMENT_SECRET_PATTERN, (match: string, key: string, separator: string) =>
+      isCredentialKey(key) ? `${key}${separator}${REDACTED_CREDENTIAL_MARKER}` : match,
+    )
+    .replace(TOKEN_PATTERN, REDACTED_CREDENTIAL_MARKER);
 }
 
-function looksLikeCommand(value: string, key: string | undefined): boolean {
-  if (isCommandKey(key)) {
-    return true;
-  }
-  if (normalizedKey(key) === "action" && /\s/u.test(value)) {
-    return true;
-  }
-  return COMMAND_PATTERN.test(value) || SHELL_SYNTAX_PATTERN.test(value);
-}
-
-function sanitizeString(value: string, key: string | undefined): string {
-  if (isCommandKey(key)) {
+function markerForFragments(value: string): string {
+  if (value.includes(REDACTED_COMMAND_MARKER)) {
     return REDACTED_COMMAND_MARKER;
   }
-  if (isPathKey(key)) {
-    return REDACTED_PATH_MARKER;
-  }
-  if (isCredentialKey(key)) {
+  if (value.includes(REDACTED_CREDENTIAL_MARKER)) {
     return REDACTED_CREDENTIAL_MARKER;
   }
-  if (isModelDataKey(key) || isIdentityKey(key) || isUnknownLongText(value, key)) {
+  if (value.includes(REDACTED_PATH_MARKER)) {
+    return REDACTED_PATH_MARKER;
+  }
+  return REDACTED_MARKER;
+}
+
+function decodeUrlComponent(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/gu, " "));
+  } catch {
     return REDACTED_MARKER;
   }
+}
 
-  let result = redactCredentialFragments(value);
-  result = redactPathFragments(result);
-  if (looksLikeCommand(result, key)) {
+function redactUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "file:") {
+      return REDACTED_PATH_MARKER;
+    }
+    // URLSearchParams decodes both keys and values before classification.
+    // Even unknown query keys/values are opaque data, not safe metadata.
+    const parameters = Array.from(parsed.searchParams, ([key, parameterValue]) => {
+      const keyMarker = isCredentialKey(key)
+        ? REDACTED_CREDENTIAL_MARKER
+        : isPathKey(key) ? REDACTED_PATH_MARKER : REDACTED_MARKER;
+      const valueMarker = keyMarker !== REDACTED_MARKER
+        ? keyMarker
+        : markerForFragments(redactPathFragments(redactCredentialFragments(parameterValue)));
+      return `${keyMarker}=${valueMarker}`;
+    });
+    const query = parameters.length > 0 ? `?${parameters.join("&")}` : "";
+    const fragment = parsed.hash.length > 0
+      ? `#${markerForFragments(redactPathFragments(redactCredentialFragments(decodeUrlComponent(parsed.hash.slice(1)))))}`
+      : "";
+    // host excludes username/password. Pathnames and fragments must never be
+    // copied back from the URL; retaining the origin is sufficient for a ref.
+    return `${parsed.protocol}//${parsed.host}/${REDACTED_PATH_MARKER}${query}${fragment}`;
+  } catch {
+    return REDACTED_PATH_MARKER;
+  }
+}
+
+function sanitizeFragments(value: string, key: string | undefined): string {
+  let result = value.replace(URL_PATTERN, (url: string) => redactUrl(url));
+  result = result.replace(URL_QUERY_PARAMETER_PATTERN, (match: string, prefix: string, parameterKey: string) =>
+    isCredentialKey(decodeUrlComponent(parameterKey))
+      ? `${prefix}${REDACTED_CREDENTIAL_MARKER}=${REDACTED_CREDENTIAL_MARKER}`
+      : match,
+  );
+  result = redactPathFragments(redactCredentialFragments(result));
+  if (
+    (normalizedKey(key) === "action" && (BARE_COMMAND_PATTERN.test(result) || /\s/u.test(result))) ||
+    COMMAND_PATTERN.test(result) || SHELL_SYNTAX_PATTERN.test(result)
+  ) {
     return REDACTED_COMMAND_MARKER;
   }
   return result;
+}
+
+function sanitizeString(value: string, key: string | undefined, allowSafeText: boolean): string {
+  const normalized = normalizedKey(key);
+  if (URL_KEYS.has(normalized)) {
+    return FULL_URL_PATTERN.test(value) ? redactUrl(value) : REDACTED_MARKER;
+  }
+  if (!allowSafeText) {
+    return REDACTED_MARKER;
+  }
+  if (normalized === "ref") {
+    // Artifact references retain only a safe opaque ID or a sanitized URL.
+    if (FULL_URL_PATTERN.test(value)) {
+      return redactUrl(value);
+    }
+    const redacted = sanitizeFragments(value, key);
+    return isSafeSegment(redacted) ? redacted : markerForFragments(redacted);
+  }
+  if (SAFE_IDENTIFIER_KEYS.has(normalized) || SAFE_IDENTIFIER_ARRAY_KEYS.has(normalized)) {
+    const redacted = sanitizeFragments(value, key);
+    return isSafeSegment(redacted) ? redacted : markerForFragments(redacted);
+  }
+  if (SAFE_METADATA_KEYS.has(normalized)) {
+    const redacted = sanitizeFragments(value, key);
+    const pattern = normalized === "branch" || normalized === "modelid"
+      ? SAFE_SLASH_METADATA_PATTERN
+      : SAFE_METADATA_PATTERN;
+    return pattern.test(redacted) ? redacted : markerForFragments(redacted);
+  }
+  // A short unknown command or model output is just as sensitive as a long
+  // one. Newly added fields must opt in to the protocol allowlist above.
+  return REDACTED_MARKER;
 }
 
 /** Redact a filesystem path. The original path is never retained. */
@@ -162,28 +227,26 @@ export function redactCommand(value: string): string {
   return REDACTED_COMMAND_MARKER;
 }
 
-function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string): unknown {
-  if (isCommandKey(key)) {
-    return REDACTED_COMMAND_MARKER;
-  }
-  if (isPathKey(key)) {
-    return REDACTED_PATH_MARKER;
-  }
-  if (isCredentialKey(key)) {
-    return REDACTED_CREDENTIAL_MARKER;
-  }
-  if (isModelDataKey(key) || isIdentityKey(key)) {
-    return REDACTED_MARKER;
-  }
+function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string, allowSafeText = true): unknown {
+  const normalized = normalizedKey(key);
+  const forcedMarker = isCommandKey(key)
+    ? REDACTED_COMMAND_MARKER
+    : isCredentialKey(key)
+      ? REDACTED_CREDENTIAL_MARKER
+      : isModelDataKey(key) || isIdentityKey(key)
+        ? REDACTED_MARKER
+        : isPathKey(key) && !SAFE_IDENTIFIER_KEYS.has(normalized)
+          ? REDACTED_PATH_MARKER
+          : undefined;
 
   if (
-    value === null ||
-    value === undefined ||
-    typeof value === "boolean" ||
-    typeof value === "number" ||
-    typeof value === "string"
+    value === null || value === undefined ||
+    typeof value === "boolean" || typeof value === "number"
   ) {
-    return typeof value === "string" ? sanitizeString(value, key) : value;
+    return forcedMarker ?? value;
+  }
+  if (typeof value === "string") {
+    return forcedMarker ?? sanitizeString(value, key, allowSafeText);
   }
 
   if (typeof value !== "object") {
@@ -195,26 +258,31 @@ function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string): un
   seen.add(value);
 
   if (Array.isArray(value)) {
-    const result = value.map((item) => cloneAndRedact(item, seen));
+    // Preserve the owning field for checkpoint IDs. Traverse sensitive
+    // values before replacing them so circular/unsupported input still
+    // signals a redaction failure instead of being silently accepted.
+    const result = value.map((item) => cloneAndRedact(item, seen, key, forcedMarker === undefined && allowSafeText));
     seen.delete(value);
-    return result;
+    return forcedMarker ?? result;
   }
 
   const result: Record<string, unknown> = {};
+  // Metadata names inside unknown objects (including artifact stats) are not
+  // an opt-in: only the root protocol object and its artifact refs allow text.
+  const allowProperties = forcedMarker === undefined && allowSafeText && (key === undefined || normalized === "artifactrefs");
   for (const [property, propertyValue] of Object.entries(value)) {
-    result[property] = cloneAndRedact(propertyValue, seen, property);
+    result[property] = cloneAndRedact(propertyValue, seen, property, allowProperties);
   }
   seen.delete(value);
-  return result;
+  return forcedMarker ?? result;
 }
 
 /**
  * Recursively redact an event/checkpoint-like value.
  *
- * Known model, command, path, identity, and credential fields are replaced
- * regardless of their spelling/casing. Unknown long strings are also replaced
- * so a newly added object field cannot silently become a raw prompt or tool
- * payload. Unsupported or circular values throw RedactionError so callers can
+ * Only protocol-defined low-sensitivity metadata and safe IDs retain text.
+ * Model/task/payload fields and all unknown text are replaced, regardless of
+ * length. Unsupported or circular values throw RedactionError so callers can
  * fail open without accidentally persisting an unsafe object.
  */
 export function redactAll<T>(value: T): T {

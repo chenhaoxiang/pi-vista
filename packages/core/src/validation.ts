@@ -18,16 +18,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isStringArray(value: unknown): value is string[] {
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/** @internal Share run binding with store path enumeration. */
+export function isVistaStepIdForRun(runId: unknown, stepId: unknown): stepId is string {
+  return (
+    isSafeSegment(runId) &&
+    isSafeSegment(stepId) &&
+    stepId.startsWith(`${runId}_`) &&
+    stepId.length > runId.length + 1
+  );
+}
+
+function isIdentifierArray(value: unknown, isIdentifier: (item: unknown) => boolean): value is string[] {
   if (!Array.isArray(value)) {
     return false;
   }
+  // Unlike Array.every, index traversal also rejects sparse array holes.
   for (let index = 0; index < value.length; index += 1) {
-    if (typeof value[index] !== "string") {
+    if (!isIdentifier(value[index])) {
       return false;
     }
   }
   return true;
+}
+
+function isSafeResumeRequirement(value: unknown): value is string {
+  // Requirements are symbolic IDs, not paths. Reject dot-dot fragments in
+  // addition to the shared path-segment grammar to make traversal intent
+  // unambiguous even when a caller supplies a custom requirement name.
+  return isSafeSegment(value) && !value.includes("..");
 }
 
 export function isVistaComponent(value: unknown): value is VistaComponent {
@@ -41,12 +63,12 @@ export function isVistaResult(value: unknown): value is VistaResult {
   return typeof value === "string" && RESULTS.has(value as VistaResult);
 }
 
-/** Return false for malformed values without throwing on untrusted storage data. */
+/** Validate shape/safety, not version compatibility, without throwing on stored data. */
 export function isVistaEvent(value: unknown): value is VistaEvent {
   if (!isRecord(value)) {
     return false;
   }
-  if (!isSafeSegment(value.run_id) || !isSafeSegment(value.step_id)) {
+  if (!isVistaStepIdForRun(value.run_id, value.step_id)) {
     return false;
   }
   if (typeof value.ts !== "number" || !Number.isFinite(value.ts)) {
@@ -72,12 +94,14 @@ export function isVistaEvent(value: unknown): value is VistaEvent {
     "reason_code",
     "env_fingerprint",
     "model_id",
-    "vista_version",
   ] as const;
   for (const key of optionalStringKeys) {
     if (value[key] !== undefined && typeof value[key] !== "string") {
       return false;
     }
+  }
+  if (value.vista_version !== undefined && !isNonEmptyString(value.vista_version)) {
+    return false;
   }
   if (value.artifact_refs !== undefined) {
     if (!Array.isArray(value.artifact_refs)) {
@@ -98,7 +122,11 @@ export function isVistaEvent(value: unknown): value is VistaEvent {
           return false;
         }
         for (const stat of Object.values(artifact.stats)) {
-          if (typeof stat !== "number" && typeof stat !== "string") {
+          if (typeof stat === "number") {
+            if (!Number.isFinite(stat)) {
+              return false;
+            }
+          } else if (typeof stat !== "string") {
             return false;
           }
         }
@@ -114,20 +142,19 @@ export function isVistaCheckpoint(value: unknown): value is VistaCheckpoint {
     return false;
   }
   return (
-    isSafeSegment(value.run_id) &&
-    isSafeSegment(value.step_id) &&
+    isVistaStepIdForRun(value.run_id, value.step_id) &&
     typeof value.ts === "number" &&
     Number.isFinite(value.ts) &&
     typeof value.task_goal === "string" &&
-    isStringArray(value.completed_steps) &&
+    isIdentifierArray(value.completed_steps, (stepId) => isVistaStepIdForRun(value.run_id, stepId)) &&
     typeof value.current_state === "string" &&
-    isStringArray(value.pending_steps) &&
+    isIdentifierArray(value.pending_steps, (stepId) => isVistaStepIdForRun(value.run_id, stepId)) &&
     typeof value.source_sha === "string" &&
     typeof value.env_fingerprint === "string" &&
     typeof value.policy_version === "string" &&
-    isStringArray(value.check_fn_ids) &&
+    isIdentifierArray(value.check_fn_ids, isSafeSegment) &&
     typeof value.resumable === "boolean" &&
-    (value.resume_requires === undefined || isStringArray(value.resume_requires))
+    (value.resume_requires === undefined || isIdentifierArray(value.resume_requires, isSafeResumeRequirement))
   );
 }
 

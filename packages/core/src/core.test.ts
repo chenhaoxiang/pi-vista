@@ -14,7 +14,7 @@ import {
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
 import { generateRunId, generateStepId, isSafeSegment } from "./run-id.js";
-import { VistaProtocolError } from "./validation.js";
+import { isVistaEvent, VistaProtocolError } from "./validation.js";
 
 async function temporaryDirectory(): Promise<string> {
   return mkdtemp(join(tmpdir(), "pi-vista-core-"));
@@ -80,10 +80,10 @@ test("CheckpointStore.listCheckpoints returns step IDs in lexicographic order, n
   try {
     const checkpointStore = new CheckpointStore({ baseDir });
 
-    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "step-z", ts: 1_700_000_000_000 });
-    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "step-a", ts: 1_700_000_000_001 });
+    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "run-round-trip_step-z", ts: 1_700_000_000_000 });
+    await checkpointStore.save({ ...sampleCheckpoint(), step_id: "run-round-trip_step-a", ts: 1_700_000_000_001 });
 
-    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), ["step-a", "step-z"]);
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), ["run-round-trip_step-a", "run-round-trip_step-z"]);
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }
@@ -168,7 +168,7 @@ test("redaction removes paths, credentials, and commands", () => {
   strictEqual(isRedacted(value), true);
 });
 
-test("redactAll covers model-data key variants, env assignments, URL secrets, and unknown long text", () => {
+test("redactAll uses an allowlist and handles encoded URL secrets", () => {
   const value = redactAll({
     prompt_text: "raw prompt text must not be retained",
     MODEL_PROMPT: "another prompt",
@@ -176,25 +176,114 @@ test("redactAll covers model-data key variants, env assignments, URL secrets, an
     task_goal: "raw task goal",
     current_state: "raw state",
     stderr_output: "raw stderr",
-    aws_assignment: "AWS_SECRET_ACCESS_KEY=aws-secret",
+    unknown_short_text: "short model output",
+    unknown_command: "echo short secret",
+    aws_assignment: "AWS_ACCESS_KEY_ID=aws-access-secret",
     private_assignment: "PRIVATE_KEY=private-secret",
     token_assignment: "ACCESS_TOKEN=access-secret",
     api_assignment: "API_KEY=api-secret",
-    url: "https://alice:password@example.test/result?file=/Users/alice/secret.txt&token=url-secret#file=/Users/alice/fragment.txt",
+    url: "https://alice:password@example.test/Users/alice/private.txt?%61pi%5Fkey=url-secret&file=%2FUsers%2Falice%2Fsecret.txt#path=%2FUsers%2Falice%2Ffragment.txt&%61ccess_token=fragment-secret",
     unknown_payload: "unclassified sensitive text ".repeat(8),
   });
   const serialized = JSON.stringify(value);
   strictEqual(serialized.includes("raw prompt text"), false);
   strictEqual(serialized.includes("raw model response"), false);
-  strictEqual(serialized.includes("aws-secret"), false);
+  strictEqual(serialized.includes("short model output"), false);
+  strictEqual(serialized.includes("echo short secret"), false);
+  strictEqual(serialized.includes("aws-access-secret"), false);
   strictEqual(serialized.includes("private-secret"), false);
   strictEqual(serialized.includes("access-secret"), false);
   strictEqual(serialized.includes("api-secret"), false);
   strictEqual(serialized.includes("password@example"), false);
   strictEqual(serialized.includes("url-secret"), false);
+  strictEqual(serialized.includes("fragment-secret"), false);
   strictEqual(serialized.includes("/Users/alice"), false);
   strictEqual(serialized.includes("unknown_payload"), true);
   strictEqual((value as { url: string }).url.includes("[REDACTED_PATH]"), true);
+  strictEqual((value as { url: string }).url.includes("[REDACTED_CREDENTIAL]"), true);
+});
+
+test("redactAll preserves structured metadata and safe IDs but not unknown text", () => {
+  const value = redactAll({
+    action: "guard:A:block",
+    raw_action: "ls",
+    reason_code: "sha_mismatch",
+    component: "custom:adapter",
+    repo: "vista",
+    branch: "feature/redaction",
+    run_id: "run-structured",
+    step_id: "run-structured_s0",
+    completed_steps: ["run-structured_s0"],
+    check_fn_ids: ["check-safe"],
+    unknown: "hello",
+  });
+
+  deepStrictEqual(value, {
+    action: "guard:A:block",
+    raw_action: "[REDACTED]",
+    reason_code: "sha_mismatch",
+    component: "custom:adapter",
+    repo: "vista",
+    branch: "feature/redaction",
+    run_id: "run-structured",
+    step_id: "run-structured_s0",
+    completed_steps: ["run-structured_s0"],
+    check_fn_ids: ["check-safe"],
+    unknown: "[REDACTED]",
+  });
+});
+
+test("runtime bindings reject cross-run and unsafe checkpoint references", async () => {
+  const baseDir = await temporaryDirectory();
+  try {
+    const eventStore = new EventStore({ baseDir });
+    const checkpointStore = new CheckpointStore({ baseDir });
+    const invalidEventStepIds = ["step-a", "other-run_s0", "run-round-trip_../step"];
+    for (const stepId of invalidEventStepIds) {
+      await rejects(
+        () => eventStore.append({ ...sampleEvent(), step_id: stepId }),
+        VistaProtocolError,
+      );
+    }
+
+    const invalidCheckpoints: VistaCheckpoint[] = [
+      { ...sampleCheckpoint(), step_id: "step-a" },
+      { ...sampleCheckpoint(), step_id: "other-run_s0" },
+      { ...sampleCheckpoint(), completed_steps: ["other-run_s0"] },
+      { ...sampleCheckpoint(), pending_steps: ["run-round-trip_s0", "step-z"] },
+      { ...sampleCheckpoint(), pending_steps: ["run-round-trip/s0"] },
+      { ...sampleCheckpoint(), check_fn_ids: [""] },
+      { ...sampleCheckpoint(), check_fn_ids: ["check/a"] },
+      { ...sampleCheckpoint(), resume_requires: [""] },
+      { ...sampleCheckpoint(), resume_requires: ["nested/condition"] },
+      { ...sampleCheckpoint(), resume_requires: ["../outside"] },
+      { ...sampleCheckpoint(), resume_requires: ["nested\\\\condition"] },
+    ];
+    for (const checkpoint of invalidCheckpoints) {
+      await rejects(() => checkpointStore.save(checkpoint), VistaProtocolError);
+    }
+
+    const checkpointDir = join(baseDir, "runs", "run-round-trip", "checkpoints");
+    await mkdir(checkpointDir, { recursive: true });
+    await writeFile(
+      join(checkpointDir, "other-run_s0.json"),
+      JSON.stringify({ ...sampleCheckpoint(), step_id: "other-run_s0" }),
+      "utf8",
+    );
+    await writeFile(
+      join(checkpointDir, "step-a.json"),
+      JSON.stringify({ ...sampleCheckpoint(), step_id: "step-a" }),
+      "utf8",
+    );
+    await writeFile(
+      join(checkpointDir, "run-round-trip_s9.json"),
+      JSON.stringify({ ...sampleCheckpoint(), completed_steps: ["other-run_s0"] }),
+      "utf8",
+    );
+    deepStrictEqual(await checkpointStore.listCheckpoints("run-round-trip"), []);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
 });
 
 test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identity records", async () => {
@@ -206,14 +295,16 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
     const checkpointDir = join(eventDir, "checkpoints");
     await mkdir(checkpointDir, { recursive: true });
     const valid = sampleEvent();
-    const wrongRun = { ...valid, run_id: "other-run" };
+    const wrongRun = { ...valid, run_id: "other-run", step_id: "other-run_s0" };
+    const wrongStepBinding = { ...valid, step_id: "other-run_s0" };
+    const invalidStepBinding = { ...valid, step_id: "step-a" };
     const invalidComponent = { ...valid, component: "not-a-component" };
     const invalidResult = { ...valid, result: "not-a-result" };
     const invalidTimestamp = { ...valid, ts: Number.NaN };
     const invalidAction = { ...valid, action: "   " };
     await writeFile(
       join(eventDir, "events.jsonl"),
-      [valid, wrongRun, invalidComponent, invalidResult, invalidTimestamp, invalidAction]
+      [valid, wrongRun, wrongStepBinding, invalidStepBinding, invalidComponent, invalidResult, invalidTimestamp, invalidAction]
         .map((event) => JSON.stringify(event))
         .join("\n") + "\n",
       "utf8",
@@ -230,8 +321,40 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
       JSON.stringify({ run_id: "run-round-trip", step_id: "run-round-trip_s1" }),
       "utf8",
     );
+    await writeFile(
+      join(checkpointDir, "run-round-trip_s2.json"),
+      JSON.stringify({ ...sampleCheckpoint(), step_id: "other-run_s0" }),
+      "utf8",
+    );
+    await writeFile(
+      join(checkpointDir, "run-round-trip_s3.json"),
+      JSON.stringify({ ...sampleCheckpoint(), completed_steps: ["other-run_s0"] }),
+      "utf8",
+    );
     strictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s0"), null);
     strictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s1"), null);
+    strictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s2"), null);
+    strictEqual(await checkpointStore.load("run-round-trip", "run-round-trip_s3"), null);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects non-finite artifact stats and empty versions but preserves unknown versions", async () => {
+  const invalidStats = {
+    ...sampleEvent(),
+    artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { total: Number.POSITIVE_INFINITY } }],
+  };
+  strictEqual(isVistaEvent(invalidStats), false);
+  strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "" }), false);
+  strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "9.9.9" }), true);
+
+  const baseDir = await temporaryDirectory();
+  try {
+    const store = new EventStore({ baseDir });
+    await rejects(() => store.append(invalidStats), VistaProtocolError);
+    await store.append({ ...sampleEvent(), vista_version: "9.9.9" });
+    deepStrictEqual((await store.readRun("run-round-trip"))[0]?.vista_version, "9.9.9");
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }

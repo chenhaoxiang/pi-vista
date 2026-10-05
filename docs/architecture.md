@@ -38,7 +38,7 @@ effective_capability =
     └── experience.jsonl           # experience promotion log (append-only)
 ```
 
-Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns checkpoint step IDs in stable lexicographic order (not numeric or timestamp order).
+Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins. A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
 
 ### Layer 2: Hindsight (primary long-term memory)
 
@@ -120,6 +120,10 @@ The following can **never** be overridden by pi-vista, regardless of what experi
 4. Kev G2/D2 isolation boundaries
 
 pi-vista is **fail-open**: its unavailability never blocks task execution.
+
+## Protocol versions
+
+Phase 1 is currently a 0.x protocol. `vista_version` may be omitted for legacy records, but when present it must be a non-empty string. Readers retain unknown version strings for inspection; validation checks the record shape and safety constraints only and must not treat an unknown version as the current protocol. A future compatibility decision will be explicit rather than inferred.
 
 ---
 

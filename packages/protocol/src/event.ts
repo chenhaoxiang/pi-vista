@@ -111,6 +111,9 @@ export interface VistaEvent {
   model_id?: string | undefined;
 
   // ── Protocol ──────────────────────────────────────────────────────────
-  /** pi-vista protocol version that produced this event. */
+  /**
+   * pi-vista protocol version that produced this event. Optional for 0.x
+   * legacy records; readers retain unknown non-empty versions as-is.
+   */
   vista_version?: string | undefined;
 }

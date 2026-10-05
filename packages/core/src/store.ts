@@ -5,7 +5,13 @@ import { join, resolve } from "node:path";
 import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
 import { redactAll } from "./redact.js";
 import { assertSafeSegment, isSafeSegment } from "./path-safe.js";
-import { assertVistaCheckpoint, assertVistaEvent, isVistaCheckpoint, isVistaEvent } from "./validation.js";
+import {
+  assertVistaCheckpoint,
+  assertVistaEvent,
+  isVistaCheckpoint,
+  isVistaEvent,
+  isVistaStepIdForRun,
+} from "./validation.js";
 
 const EVENTS_FILE = "events.jsonl";
 const CHECKPOINTS_DIR = "checkpoints";
@@ -188,6 +194,9 @@ export class CheckpointStore {
 
   /** Return a checkpoint, or null when it is missing or cannot be parsed. */
   async load(runId: string, stepId: string): Promise<VistaCheckpoint | null> {
+    if (!isVistaStepIdForRun(runId, stepId)) {
+      return null;
+    }
     try {
       const contents = await readFile(join(this.checkpointsDir(runId), `${safeSegment(stepId, "stepId")}.json`), "utf8");
       const checkpoint = parseCheckpoint(JSON.parse(contents) as unknown);
@@ -199,15 +208,27 @@ export class CheckpointStore {
     }
   }
 
-  /** Return stored checkpoint step IDs in stable lexicographic order. */
+  /** Return valid stored checkpoint step IDs in stable lexicographic order. */
   async listCheckpoints(runId: string): Promise<string[]> {
     try {
       const entries = await readdir(this.checkpointsDir(runId), { withFileTypes: true });
-      return entries
+      const candidates = entries
         .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
         .map((entry) => entry.name.slice(0, -".json".length))
-        .filter((stepId) => isSafeSegment(stepId))
-        .sort();
+        .filter((stepId) => isVistaStepIdForRun(runId, stepId));
+      const valid: string[] = [];
+      for (const stepId of candidates) {
+        try {
+          const contents = await readFile(join(this.checkpointsDir(runId), `${stepId}.json`), "utf8");
+          const checkpoint = parseCheckpoint(JSON.parse(contents) as unknown);
+          if (checkpoint !== undefined && checkpoint.run_id === runId && checkpoint.step_id === stepId) {
+            valid.push(stepId);
+          }
+        } catch {
+          // Corrupt or concurrently removed checkpoints are omitted.
+        }
+      }
+      return valid.sort();
     } catch {
       return [];
     }

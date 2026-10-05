@@ -54,15 +54,8 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 
 | Package | Description |
 |---|---|
-| `@pi-vista/protocol` | Zero-dependency TypeScript interfaces and schemas |
+| `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
-| `@pi-vista/check` | Check Function engine for replay validation |
-| `@pi-vista/replay` | Replay manifests and dry-run execution |
-| `@pi-vista/inspect` | `vista history`, `vista inspect`, `vista compare` CLI |
-| `@pi-vista/promote` | Experience promotion pipeline to Hindsight |
-| `@pi-vista/adapter-pi` | Pi extension adapter |
-| `@pi-vista/adapter-test` | Test framework adapter |
-| `@pi-vista/adapter-browser` | Browser automation adapter |
 
 ---
 
@@ -100,11 +93,10 @@ See [docs/getting-started.md](docs/getting-started.md) for adapter setup.
 
 ## Integration
 
-- [Pi adapter](docs/adapters/pi.md)
 - [workspace-guard adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
-- [Laya adapter](docs/adapters/laya.md)
-- [Kev adapter](docs/adapters/kev.md)
+
+Other adapters listed above are planned; setup documentation is not yet available.
 
 ---
 

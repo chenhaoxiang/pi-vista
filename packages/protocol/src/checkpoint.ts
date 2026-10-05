@@ -17,13 +17,13 @@ export interface VistaCheckpoint {
   /** Human-readable task goal (redacted). */
   task_goal: string;
 
-  /** Step IDs that have been completed. */
+  /** Step IDs that have been completed; every ID must begin with `${run_id}_`. */
   completed_steps: string[];
 
   /** Structured summary of current state (no raw paths or commands). */
   current_state: string;
 
-  /** Step IDs still pending. */
+  /** Step IDs still pending; every ID must begin with `${run_id}_`. */
   pending_steps: string[];
 
   // ── Verification binding ──────────────────────────────────────────────
@@ -37,7 +37,7 @@ export interface VistaCheckpoint {
   policy_version: string;
 
   // ── Resumability ─────────────────────────────────────────────────────
-  /** Check Function IDs that must pass before this checkpoint can be resumed. */
+  /** Safe, non-empty Check Function IDs that must pass before resuming. */
   check_fn_ids: string[];
 
   /** Whether this checkpoint is safe to resume from. */
