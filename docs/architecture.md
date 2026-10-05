@@ -38,7 +38,12 @@ effective_capability =
     └── experience.jsonl           # experience promotion log (append-only)
 ```
 
-Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins. A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
+Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins (last-writer-wins). A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
+
+`ArtifactRef.stats` is limited to finite numbers and short metadata strings.
+The core redactor retains at most 32 entries and at most 64 characters per
+string, and applies credential/path/URL/shell redaction before retaining text;
+stats do not contain artifact content.
 
 ### Layer 2: Hindsight (primary long-term memory)
 

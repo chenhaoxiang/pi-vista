@@ -2,7 +2,9 @@ import type { ArtifactRef } from "./artifact.js";
 
 /**
  * VistaComponent — the system that emitted this event.
- * Use "custom:<name>" for project-specific components.
+ * Use `custom:<name>` for project-specific components. Runtime validation keeps
+ * the suffix non-empty, non-whitespace, and control-free while allowing
+ * namespace slashes, Unicode, and dots; it is not an arbitrary payload field.
  */
 export type VistaComponent =
   | "pi"

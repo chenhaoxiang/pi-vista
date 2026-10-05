@@ -14,9 +14,9 @@ A model-agnostic execution augmentation and experience system for Pi.
 `pi-vista` gives any Pi session a persistent, verifiable execution memory:
 
 - **Record** every tool call, guard decision, gate check, and test result as a unified event stream
-- **Inspect** the full evidence chain behind any task or merge
-- **Replay** past execution paths with environment validation (Check Functions)
-- **Promote** verified experiences into long-term memory via Hindsight
+- **Define** the evidence model for inspecting tasks and merges (Phase 2 tools are planned)
+- **Prepare** replay validation with Check Functions (Phase 2/3 implementation is planned)
+- **Specify** promotion of verified experiences into Hindsight (future Phase 3 work)
 - **Adapt** — each verified run makes the next run better, regardless of which model executes it
 
 ---
@@ -36,7 +36,8 @@ A model-agnostic execution augmentation and experience system for Pi.
 │  event store │ checkpoint │ artifact refs        │
 │  check fn registry │ experience lifecycle        │
 │                                                  │
-│  inspect / history / compare / replay / promote  │
+│  Phase 2+ tools: inspect / history / compare    │
+│  replay / promote (planned)                     │
 └──────────────────────┬──────────────────────────┘
                        │  verified + redacted → promote
                        ▼
@@ -84,10 +85,22 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 ## Getting started
 
 ```bash
-npm install @pi-vista/protocol @pi-vista/core
+npm install @pi-vista/core
 ```
 
-See [docs/getting-started.md](docs/getting-started.md) for adapter setup.
+`@pi-vista/core` brings the protocol package for runtime use; install
+`@pi-vista/protocol` separately only when importing its interfaces directly.
+Phase 1 ships the protocol interfaces, redaction, event emission, and local
+stores. The `vista` history/inspect/promote CLI is planned for Phase 2; it is
+not included in this release. See [docs/getting-started.md](docs/getting-started.md)
+for adapter setup.
+
+### Artifact statistics
+
+`ArtifactRef.stats` accepts finite numbers and short metadata strings. The core
+redactor retains at most 32 entries with short labels and values (up to 64
+characters), while credential-, path-, URL-, and shell-like names or values are
+redacted or omitted. Stats never carry artifact content or secrets.
 
 ---
 
@@ -96,7 +109,7 @@ See [docs/getting-started.md](docs/getting-started.md) for adapter setup.
 - [workspace-guard adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 
-Other adapters listed above are planned; setup documentation is not yet available.
+Additional adapters are future work; the links above are the only adapter guides shipped in Phase 1.
 
 ---
 

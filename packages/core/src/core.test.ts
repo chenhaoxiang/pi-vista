@@ -14,7 +14,7 @@ import {
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
 import { generateRunId, generateStepId, isSafeSegment } from "./run-id.js";
-import { isVistaEvent, VistaProtocolError } from "./validation.js";
+import { isVistaComponent, isVistaEvent, VistaProtocolError } from "./validation.js";
 
 async function temporaryDirectory(): Promise<string> {
   return mkdtemp(join(tmpdir(), "pi-vista-core-"));
@@ -178,11 +178,13 @@ test("redactAll uses an allowlist and handles encoded URL secrets", () => {
     stderr_output: "raw stderr",
     unknown_short_text: "short model output",
     unknown_command: "echo short secret",
-    aws_assignment: "AWS_ACCESS_KEY_ID=aws-access-secret",
+    aws_secret_assignment: "AWS_SECRET_ACCESS_KEY=aws-secret-access-secret",
+    aws_id_assignment: "AWS_ACCESS_KEY_ID=aws-access-id-secret",
+    client_assignment: "CLIENT_SECRET=client-secret",
     private_assignment: "PRIVATE_KEY=private-secret",
     token_assignment: "ACCESS_TOKEN=access-secret",
     api_assignment: "API_KEY=api-secret",
-    url: "https://alice:password@example.test/Users/alice/private.txt?%61pi%5Fkey=url-secret&file=%2FUsers%2Falice%2Fsecret.txt#path=%2FUsers%2Falice%2Ffragment.txt&%61ccess_token=fragment-secret",
+    url: "https://alice:password@example.test/Users/alice/private.txt?%41WS%5FSECRET%5FACCESS%5FKEY=url-secret&%41WS%5FACCESS%5FKEY%5FID=id-secret&%43LIENT%5FSECRET=client-url-secret&file=%2FUsers%2Falice%2Fsecret.txt#path=%2FUsers%2Falice%2Ffragment.txt&%61ccess_token=fragment-secret",
     unknown_payload: "unclassified sensitive text ".repeat(8),
   });
   const serialized = JSON.stringify(value);
@@ -190,17 +192,36 @@ test("redactAll uses an allowlist and handles encoded URL secrets", () => {
   strictEqual(serialized.includes("raw model response"), false);
   strictEqual(serialized.includes("short model output"), false);
   strictEqual(serialized.includes("echo short secret"), false);
-  strictEqual(serialized.includes("aws-access-secret"), false);
+  strictEqual(serialized.includes("aws-secret-access-secret"), false);
+  strictEqual(serialized.includes("aws-access-id-secret"), false);
+  strictEqual(serialized.includes("client-secret"), false);
   strictEqual(serialized.includes("private-secret"), false);
   strictEqual(serialized.includes("access-secret"), false);
   strictEqual(serialized.includes("api-secret"), false);
   strictEqual(serialized.includes("password@example"), false);
   strictEqual(serialized.includes("url-secret"), false);
+  strictEqual(serialized.includes("client-url-secret"), false);
+  strictEqual(serialized.includes("id-secret"), false);
   strictEqual(serialized.includes("fragment-secret"), false);
   strictEqual(serialized.includes("/Users/alice"), false);
   strictEqual(serialized.includes("unknown_payload"), true);
   strictEqual((value as { url: string }).url.includes("[REDACTED_PATH]"), true);
   strictEqual((value as { url: string }).url.includes("[REDACTED_CREDENTIAL]"), true);
+});
+
+test("custom components preserve slash, Unicode, and dots without widening unknown text", () => {
+  const components = ["custom:adapter/v2", "custom:适配器.β/检查", "custom:组件/v2"];
+  for (const component of components) {
+    strictEqual(isVistaComponent(component), true);
+    const value = redactAll({ component });
+    deepStrictEqual(value, { component });
+  }
+
+  strictEqual(isVistaComponent("custom:"), false);
+  strictEqual(isVistaComponent("custom:adapter/v2\nsecret"), false);
+  strictEqual(isVistaComponent("custom:/Users/alice"), false);
+  strictEqual(isVistaComponent("custom:CLIENT_SECRET=secret"), false);
+  deepStrictEqual(redactAll({ component: "custom:/Users/alice" }), { component: "custom:[REDACTED_PATH]" });
 });
 
 test("redactAll preserves structured metadata and safe IDs but not unknown text", () => {
@@ -231,6 +252,55 @@ test("redactAll preserves structured metadata and safe IDs but not unknown text"
     check_fn_ids: ["check-safe"],
     unknown: "[REDACTED]",
   });
+});
+
+test("ArtifactRef stats retain short metadata and redact unsafe strings", () => {
+  const value = redactAll({
+    artifact_refs: [{
+      type: "test_result",
+      ref: "receipt-1",
+      stats: {
+        passed: 19,
+        total: "19",
+        suite: "unit",
+        locale: "检查",
+        long_label: "x".repeat(65),
+        command: "echo secret",
+        path: "/Users/alice/private.txt",
+        CLIENT_SECRET: "client-secret",
+      },
+    }],
+  }) as {
+    artifact_refs: Array<{ stats: Record<string, number | string> }>;
+  };
+
+  deepStrictEqual(value.artifact_refs[0]?.stats, {
+    passed: 19,
+    total: "19",
+    suite: "unit",
+    locale: "检查",
+    long_label: "[REDACTED]",
+  });
+});
+
+test("emitVistaEvent retains safe ArtifactRef string stats", async () => {
+  let persisted: VistaEvent | undefined;
+  const store = {
+    async append(event: VistaEvent): Promise<void> {
+      persisted = event;
+    },
+  };
+  const event = await emitVistaEvent(
+    {
+      component: "test",
+      action: "test:stats",
+      result: "ok",
+      artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { suite: "unit", platform: "检查" } }],
+    },
+    { store, runId: "run-stats", seq: 0, now: 123 },
+  );
+  deepStrictEqual(event?.artifact_refs?.[0]?.stats, { suite: "unit", platform: "检查" });
+  deepStrictEqual(persisted?.artifact_refs?.[0]?.stats, { suite: "unit", platform: "检查" });
 });
 
 test("runtime bindings reject cross-run and unsafe checkpoint references", async () => {
@@ -346,6 +416,14 @@ test("validator rejects non-finite artifact stats and empty versions but preserv
     artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { total: Number.POSITIVE_INFINITY } }],
   };
   strictEqual(isVistaEvent(invalidStats), false);
+  strictEqual(isVistaEvent({
+    ...sampleEvent(),
+    artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { suite: "unit" } }],
+  }), true);
+  strictEqual(isVistaEvent({
+    ...sampleEvent(),
+    artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { suite: "x".repeat(65) } }],
+  }), false);
   strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "" }), false);
   strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "9.9.9" }), true);
 
@@ -365,6 +443,8 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
   try {
     const invalidInputs = [
       { component: "invalid", action: "test:invalid", result: "ok" },
+      { component: "custom:adapter/v2\nsecret", action: "test:invalid", result: "ok" },
+      { component: "custom:/tmp/private", action: "test:invalid", result: "ok" },
       { component: "test", action: "test:invalid", result: "invalid" },
       { component: "test", action: "", result: "ok" },
       { component: "test", action: "test:invalid", result: "ok", ts: Number.NaN },
@@ -391,19 +471,56 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
   }
 });
 
-test("emitVistaEvent accepts custom components and persists the validated event", async () => {
-  let persisted: VistaEvent | undefined;
+test("emitVistaEvent accepts slash and Unicode custom components and persists them", async () => {
+  const persisted: VistaEvent[] = [];
   const store = {
     async append(event: VistaEvent): Promise<void> {
-      persisted = event;
+      persisted.push(event);
     },
   };
-  const event = await emitVistaEvent(
-    { component: "custom:adapter", action: "custom:observe", result: "unknown" },
-    { store, runId: "run-custom", seq: 0, now: 123 },
-  );
-  strictEqual(event?.component, "custom:adapter");
-  strictEqual(persisted?.component, "custom:adapter");
+  const components = ["custom:adapter/v2", "custom:适配器.β/检查"] as const;
+  for (const [seq, component] of components.entries()) {
+    const event = await emitVistaEvent(
+      { component, action: "custom:observe", result: "unknown" },
+      { store, runId: "run-custom", seq, now: 123 },
+    );
+    strictEqual(event?.component, component);
+    strictEqual(isVistaEvent(event), true);
+  }
+  deepStrictEqual(persisted.map((event) => event.component), components);
+});
+
+test("a delayed Store.append rejection after timeout is handled without unhandledRejection", async () => {
+  let rejectAppend: ((reason?: unknown) => void) | undefined;
+  let resolveStarted: (() => void) | undefined;
+  const started = new Promise<void>((resolve) => {
+    resolveStarted = resolve;
+  });
+  const store = {
+    append(): Promise<void> {
+      resolveStarted?.();
+      return new Promise<void>((_resolve, reject) => {
+        rejectAppend = reject;
+      });
+    },
+  };
+  const unhandled: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => {
+    unhandled.push(reason);
+  };
+  process.on("unhandledRejection", onUnhandledRejection);
+  try {
+    await emitVistaEvent(
+      { component: "test", action: "test:delayed_rejection", result: "ok" },
+      { store, runId: "run-delayed-rejection", seq: 0, now: 123, persistTimeoutMs: 5 },
+    );
+    await started;
+    rejectAppend?.(new Error("late store failure"));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    strictEqual(unhandled.length, 0);
+  } finally {
+    process.off("unhandledRejection", onUnhandledRejection);
+  }
 });
 
 test("emitVistaEvent times out a hanging Store.append and remains fail-open", async () => {
@@ -423,6 +540,22 @@ test("emitVistaEvent times out a hanging Store.append and remains fail-open", as
   strictEqual(event?.step_id, "run-hanging_s0");
   strictEqual(event?.ts, 123);
   strictEqual(Date.now() - started < 500, true);
+});
+
+test("concurrent saves for one step produce a valid last-writer-wins checkpoint", async () => {
+  const baseDir = await temporaryDirectory();
+  try {
+    const checkpointStore = new CheckpointStore({ baseDir });
+    const first = { ...sampleCheckpoint(), policy_version: "policy-first" };
+    const second = { ...sampleCheckpoint(), policy_version: "policy-second" };
+    await Promise.all([checkpointStore.save(first), checkpointStore.save(second)]);
+
+    const loaded = await checkpointStore.load(sampleCheckpoint().run_id, sampleCheckpoint().step_id);
+    strictEqual(loaded?.policy_version === "policy-first" || loaded?.policy_version === "policy-second", true);
+    strictEqual(loaded?.current_state, "[REDACTED]");
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
 });
 
 test("CheckpointStore.save uses an atomic same-directory replacement", async () => {

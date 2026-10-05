@@ -1,4 +1,11 @@
 import { isSafeSegment } from "./path-safe.js";
+import {
+  isRetainedStatsKey,
+  isSafeCustomComponent,
+  isSafeStatsValue,
+  isValidStatsString,
+  MAX_STATS_ENTRIES,
+} from "./safe-fields.js";
 
 const REDACTED_MARKER = "[REDACTED]";
 const REDACTED_PATH_MARKER = "[REDACTED_PATH]";
@@ -22,6 +29,7 @@ const BARE_COMMAND_PATTERN = new RegExp(`^(?:sudo\\s+)?(?:${COMMAND_WORDS})$`, "
 const SHELL_SYNTAX_PATTERN = /(?:&&|\|\||\||[;`]|\$\(|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\r?\n|(?:^|\s)[<>](?:\s|\S))/u;
 const SAFE_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+$/u;
 const SAFE_SLASH_METADATA_PATTERN = /^[A-Za-z0-9._:@+\-]+(?:\/[A-Za-z0-9._:@+\-]+)*$/u;
+const CONTROL_CHARACTER_PATTERN = /[\p{Cc}\p{Cf}]/u;
 
 /** Only protocol-defined metadata/ID fields opt in to retaining text. */
 const SAFE_IDENTIFIER_KEYS = new Set([
@@ -160,8 +168,29 @@ function redactUrl(value: string): string {
   }
 }
 
+function redactEncodedFragments(value: string): string {
+  if (!/%[0-9a-f]{2}/iu.test(value)) {
+    return value;
+  }
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value.replace(/\+/gu, " "));
+  } catch {
+    return REDACTED_MARKER;
+  }
+  const redacted = redactPathFragments(redactCredentialFragments(decoded));
+  if (redacted !== decoded) {
+    return markerForFragments(redacted);
+  }
+  return SHELL_SYNTAX_PATTERN.test(decoded) ? REDACTED_COMMAND_MARKER : value;
+}
+
 function sanitizeFragments(value: string, key: string | undefined): string {
+  if (CONTROL_CHARACTER_PATTERN.test(value)) {
+    return REDACTED_MARKER;
+  }
   let result = value.replace(URL_PATTERN, (url: string) => redactUrl(url));
+  result = redactEncodedFragments(result);
   result = result.replace(URL_QUERY_PARAMETER_PATTERN, (match: string, prefix: string, parameterKey: string) =>
     isCredentialKey(decodeUrlComponent(parameterKey))
       ? `${prefix}${REDACTED_CREDENTIAL_MARKER}=${REDACTED_CREDENTIAL_MARKER}`
@@ -175,6 +204,13 @@ function sanitizeFragments(value: string, key: string | undefined): string {
     return REDACTED_COMMAND_MARKER;
   }
   return result;
+}
+
+function sanitizeStatsValue(value: string): string {
+  const redacted = sanitizeFragments(value, undefined);
+  return isValidStatsString(redacted) && redacted === value && isSafeStatsValue(redacted)
+    ? redacted
+    : markerForFragments(redacted);
 }
 
 function sanitizeString(value: string, key: string | undefined, allowSafeText: boolean): string {
@@ -192,6 +228,16 @@ function sanitizeString(value: string, key: string | undefined, allowSafeText: b
     }
     const redacted = sanitizeFragments(value, key);
     return isSafeSegment(redacted) ? redacted : markerForFragments(redacted);
+  }
+  if (normalized === "component" && value.startsWith("custom:")) {
+    if (isSafeCustomComponent(value)) {
+      return value;
+    }
+    const redactedSuffix = sanitizeFragments(value.slice("custom:".length), key);
+    const redacted = `custom:${redactedSuffix}`;
+    return isSafeCustomComponent(redacted)
+      ? redacted
+      : `custom:${markerForFragments(redactedSuffix)}`;
   }
   if (SAFE_IDENTIFIER_KEYS.has(normalized) || SAFE_IDENTIFIER_ARRAY_KEYS.has(normalized)) {
     const redacted = sanitizeFragments(value, key);
@@ -227,7 +273,13 @@ export function redactCommand(value: string): string {
   return REDACTED_COMMAND_MARKER;
 }
 
-function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string, allowSafeText = true): unknown {
+function cloneAndRedact(
+  value: unknown,
+  seen: WeakSet<object>,
+  key?: string,
+  allowSafeText = true,
+  statsValue = false,
+): unknown {
   const normalized = normalizedKey(key);
   const forcedMarker = isCommandKey(key)
     ? REDACTED_COMMAND_MARKER
@@ -243,10 +295,13 @@ function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string, all
     value === null || value === undefined ||
     typeof value === "boolean" || typeof value === "number"
   ) {
+    if (statsValue && typeof value === "number" && !Number.isFinite(value)) {
+      return REDACTED_MARKER;
+    }
     return forcedMarker ?? value;
   }
   if (typeof value === "string") {
-    return forcedMarker ?? sanitizeString(value, key, allowSafeText);
+    return forcedMarker ?? (statsValue ? sanitizeStatsValue(value) : sanitizeString(value, key, allowSafeText));
   }
 
   if (typeof value !== "object") {
@@ -267,11 +322,25 @@ function cloneAndRedact(value: unknown, seen: WeakSet<object>, key?: string, all
   }
 
   const result: Record<string, unknown> = {};
-  // Metadata names inside unknown objects (including artifact stats) are not
-  // an opt-in: only the root protocol object and its artifact refs allow text.
+  const isStatsObject = forcedMarker === undefined && allowSafeText && normalized === "stats";
+  // Metadata names inside unknown objects are not an opt-in: only the root
+  // protocol object and its artifact refs allow text. Stats are a bounded
+  // exception for short labels and values documented by ArtifactRef.
   const allowProperties = forcedMarker === undefined && allowSafeText && (key === undefined || normalized === "artifactrefs");
+  let retainedStatsEntries = 0;
   for (const [property, propertyValue] of Object.entries(value)) {
-    result[property] = cloneAndRedact(propertyValue, seen, property, allowProperties);
+    if (isStatsObject) {
+      if (retainedStatsEntries >= MAX_STATS_ENTRIES || !isRetainedStatsKey(property)) {
+        // Traverse dropped values so unsupported or circular input still
+        // fails closed instead of being silently accepted.
+        cloneAndRedact(propertyValue, seen, property, false);
+        continue;
+      }
+      retainedStatsEntries += 1;
+      result[property] = cloneAndRedact(propertyValue, seen, property, true, true);
+    } else {
+      result[property] = cloneAndRedact(propertyValue, seen, property, allowProperties);
+    }
   }
   seen.delete(value);
   return forcedMarker ?? result;

@@ -24,7 +24,7 @@ cat ~/.pi/vista/runs/<run_id>/events.jsonl | jq .component | sort | uniq
 
 **Goal**: make any task's evidence chain inspectable.
 
-**Deliverables**:
+**Planned deliverables (the Phase 1 release does not ship this CLI)**:
 ```
 vista history <run_id>
 vista inspect <run_id> [--step <step_id>]
@@ -56,13 +56,14 @@ Priority coverage:
 - SHA verification  
 - gate receipt binding
 
-### Track B: Hindsight promotion
+### Track B: Hindsight promotion (future CLI)
 
 ```bash
 vista promote <run_id> [--dry-run]
 ```
 
-Dry-run shows exactly what will be written before committing.
+This is a future command; no `vista` CLI is shipped in Phase 1. Dry-run is
+intended to show exactly what will be written before committing.
 
 ### Track C: Failure analysis
 

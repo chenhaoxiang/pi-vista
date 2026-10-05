@@ -1,5 +1,11 @@
 import type { VistaCheckpoint, VistaComponent, VistaEvent, VistaResult } from "@pi-vista/protocol";
 import { isSafeSegment } from "./path-safe.js";
+import {
+  isSafeCustomComponent,
+  isSafeStatsKey,
+  isValidStatsString,
+  MAX_STATS_ENTRIES,
+} from "./safe-fields.js";
 
 const COMPONENTS = new Set<VistaComponent>(["pi", "guard", "gate", "laya", "kev", "test", "browser", "ci"]);
 const RESULTS = new Set<VistaResult>(["ok", "blocked", "failed", "unknown", "abstain"]);
@@ -55,7 +61,7 @@ function isSafeResumeRequirement(value: unknown): value is string {
 export function isVistaComponent(value: unknown): value is VistaComponent {
   return (
     typeof value === "string" &&
-    (COMPONENTS.has(value as VistaComponent) || /^custom:[^\s]+$/u.test(value))
+    (COMPONENTS.has(value as VistaComponent) || isSafeCustomComponent(value))
   );
 }
 
@@ -121,12 +127,19 @@ export function isVistaEvent(value: unknown): value is VistaEvent {
         if (!isRecord(artifact.stats)) {
           return false;
         }
-        for (const stat of Object.values(artifact.stats)) {
+        const stats = Object.entries(artifact.stats);
+        if (stats.length > MAX_STATS_ENTRIES) {
+          return false;
+        }
+        for (const [key, stat] of stats) {
+          if (!isSafeStatsKey(key)) {
+            return false;
+          }
           if (typeof stat === "number") {
             if (!Number.isFinite(stat)) {
               return false;
             }
-          } else if (typeof stat !== "string") {
+          } else if (!isValidStatsString(stat)) {
             return false;
           }
         }

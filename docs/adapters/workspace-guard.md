@@ -8,7 +8,7 @@ workspace-guard emits a `VistaEvent` at the end of each `guardCheck` call.
 ```typescript
 // Add at end of logEvent() in workspace-guard.ts
 
-import { emitVistaEvent } from "@pi-vista/core/emit";
+import { emitVistaEvent, generateRunId } from "@pi-vista/core";
 
 emitVistaEvent({
   run_id: process.env.VISTA_RUN_ID ?? generateRunId(),
