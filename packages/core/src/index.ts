@@ -22,7 +22,10 @@ export {
   generateRunId,
   generateStepId,
   getOrCreateRunId,
+  assertSafeSegment,
+  isSafeSegment,
 } from "./run-id.js";
+export { VistaProtocolError, isVistaComponent, isVistaEvent, isVistaResult, isVistaCheckpoint } from "./validation.js";
 export {
   CheckpointStore,
   EventStore,

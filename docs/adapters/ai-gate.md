@@ -31,3 +31,9 @@ emitVistaEvent({
 - Does not participate in merge decisions
 
 Gate is the final authority. pi-vista indexes and explains; gate decides.
+
+`emitVistaEvent` rejects invalid protocol input (including an unknown
+`component`/`result`, a missing `action`, or an invalid timestamp), so adapter
+code should handle that rejected promise. Store I/O failures and persistence
+timeouts are fail-open and do not block gate execution; persistence waits at
+most 250 ms by default (`persistTimeoutMs` can override the default).

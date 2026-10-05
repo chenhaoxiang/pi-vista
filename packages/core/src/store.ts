@@ -1,8 +1,11 @@
-import { appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { appendFile, mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
 import { redactAll } from "./redact.js";
+import { assertSafeSegment, isSafeSegment } from "./path-safe.js";
+import { assertVistaCheckpoint, assertVistaEvent, isVistaCheckpoint, isVistaEvent } from "./validation.js";
 
 const EVENTS_FILE = "events.jsonl";
 const CHECKPOINTS_DIR = "checkpoints";
@@ -16,16 +19,7 @@ export function defaultBaseDir(): string {
 }
 
 function safeSegment(value: string, label: string): string {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value === "." ||
-    value === ".." ||
-    !/^[A-Za-z0-9._-]+$/u.test(value)
-  ) {
-    throw new TypeError(`${label} must be a path-safe identifier`);
-  }
-  return value;
+  return assertSafeSegment(value, label);
 }
 
 function reportFailure(operation: string): void {
@@ -36,10 +30,6 @@ function reportFailure(operation: string): void {
   } catch {
     // Logging must not turn a best-effort write into a caller-visible failure.
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function parseJsonLines(contents: string): unknown[] {
@@ -59,22 +49,24 @@ function parseJsonLines(contents: string): unknown[] {
 }
 
 function parseEvent(value: unknown): VistaEvent | undefined {
-  if (!isRecord(value) || typeof value.run_id !== "string" || typeof value.step_id !== "string") {
+  if (!isVistaEvent(value) || !isSafeSegment(value.run_id) || !isSafeSegment(value.step_id)) {
     return undefined;
   }
   try {
-    return redactAll(value) as unknown as VistaEvent;
+    const redacted = redactAll(value) as unknown;
+    return isVistaEvent(redacted) ? redacted : undefined;
   } catch {
     return undefined;
   }
 }
 
 function parseCheckpoint(value: unknown): VistaCheckpoint | undefined {
-  if (!isRecord(value) || typeof value.run_id !== "string" || typeof value.step_id !== "string") {
+  if (!isVistaCheckpoint(value) || !isSafeSegment(value.run_id) || !isSafeSegment(value.step_id)) {
     return undefined;
   }
   try {
-    return redactAll(value) as unknown as VistaCheckpoint;
+    const redacted = redactAll(value) as unknown;
+    return isVistaCheckpoint(redacted) ? redacted : undefined;
   } catch {
     return undefined;
   }
@@ -96,8 +88,16 @@ export class EventStore {
   }
 
   async append(event: VistaEvent): Promise<void> {
+    assertVistaEvent(event);
+    let redacted: VistaEvent;
     try {
-      const redacted = redactAll(event) as VistaEvent;
+      redacted = redactAll(event) as VistaEvent;
+    } catch {
+      reportFailure("event append");
+      return;
+    }
+    assertVistaEvent(redacted);
+    try {
       const runId = safeSegment(redacted.run_id, "runId");
       const directory = this.runDir(runId);
       await mkdir(directory, { recursive: true });
@@ -112,7 +112,7 @@ export class EventStore {
       const contents = await readFile(join(this.runDir(runId), EVENTS_FILE), "utf8");
       return parseJsonLines(contents)
         .map(parseEvent)
-        .filter((event): event is VistaEvent => event !== undefined);
+        .filter((event): event is VistaEvent => event !== undefined && event.run_id === runId);
     } catch {
       return [];
     }
@@ -122,7 +122,7 @@ export class EventStore {
     try {
       const entries = await readdir(join(this.baseDir, "runs"), { withFileTypes: true });
       return entries
-        .filter((entry) => entry.isDirectory() && /^[A-Za-z0-9._-]+$/u.test(entry.name))
+        .filter((entry) => entry.isDirectory() && isSafeSegment(entry.name))
         .map((entry) => entry.name)
         .sort();
     } catch {
@@ -151,15 +151,38 @@ export class CheckpointStore {
   }
 
   async save(checkpoint: VistaCheckpoint): Promise<void> {
+    assertVistaCheckpoint(checkpoint);
+    let redacted: VistaCheckpoint;
     try {
-      const redacted = redactAll(checkpoint) as VistaCheckpoint;
+      redacted = redactAll(checkpoint) as VistaCheckpoint;
+    } catch {
+      reportFailure("checkpoint save");
+      return;
+    }
+    assertVistaCheckpoint(redacted);
+    let temporaryPath: string | undefined;
+    try {
       const runId = safeSegment(redacted.run_id, "runId");
       const stepId = safeSegment(redacted.step_id, "stepId");
       const directory = join(this.baseDir, "runs", runId, CHECKPOINTS_DIR);
       await mkdir(directory, { recursive: true });
-      await writeFile(join(directory, `${stepId}.json`), `${JSON.stringify(redacted, null, 2)}\n`, "utf8");
+      const finalPath = join(directory, `${stepId}.json`);
+      // Keep the temporary file beside the destination so rename is atomic on
+      // the same filesystem. The name contains only safe path-segment chars.
+      temporaryPath = join(directory, `.${stepId}.${randomUUID()}.tmp`);
+      await writeFile(temporaryPath, `${JSON.stringify(redacted, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+      await rename(temporaryPath, finalPath);
+      temporaryPath = undefined;
     } catch {
       reportFailure("checkpoint save");
+    } finally {
+      if (temporaryPath !== undefined) {
+        try {
+          await unlink(temporaryPath);
+        } catch {
+          // The write may have failed before creating the temporary file.
+        }
+      }
     }
   }
 
@@ -167,7 +190,10 @@ export class CheckpointStore {
   async load(runId: string, stepId: string): Promise<VistaCheckpoint | null> {
     try {
       const contents = await readFile(join(this.checkpointsDir(runId), `${safeSegment(stepId, "stepId")}.json`), "utf8");
-      return parseCheckpoint(JSON.parse(contents) as unknown) ?? null;
+      const checkpoint = parseCheckpoint(JSON.parse(contents) as unknown);
+      return checkpoint !== undefined && checkpoint.run_id === runId && checkpoint.step_id === stepId
+        ? checkpoint
+        : null;
     } catch {
       return null;
     }
@@ -180,14 +206,7 @@ export class CheckpointStore {
       return entries
         .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
         .map((entry) => entry.name.slice(0, -".json".length))
-        .filter((stepId) => {
-          try {
-            safeSegment(stepId, "stepId");
-            return true;
-          } catch {
-            return false;
-          }
-        })
+        .filter((stepId) => isSafeSegment(stepId))
         .sort();
     } catch {
       return [];

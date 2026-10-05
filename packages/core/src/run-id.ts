@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
+import { assertSafeSegment, isSafeSegment } from "./path-safe.js";
 
 const RUN_ID_ENV = "VISTA_RUN_ID";
+
+export { assertSafeSegment, isSafeSegment } from "./path-safe.js";
 
 /**
  * Generate a run identifier that is sortable by creation time and safe to use
@@ -9,22 +12,23 @@ const RUN_ID_ENV = "VISTA_RUN_ID";
 export function generateRunId(): string {
   const timestamp = Date.now().toString(36);
   const random = randomBytes(4).toString("hex");
-  return `vr_${timestamp}_${random}`;
+  return assertSafeSegment(`vr_${timestamp}_${random}`, "runId");
 }
 
 /**
  * Generate a deterministic step identifier for a run sequence number.
- * Base-36 keeps identifiers compact while retaining their ordering.
+ * Base-36 keeps identifiers compact. Checkpoint listing is lexicographic,
+ * not a claim of numeric or timestamp ordering.
  */
 export function generateStepId(runId: string, seq: number): string {
-  if (runId.length === 0 || /[\\/]/u.test(runId)) {
-    throw new TypeError("runId must be a non-empty path-safe string");
-  }
+  assertSafeSegment(runId, "runId");
   if (!Number.isInteger(seq) || seq < 0) {
     throw new TypeError("seq must be a non-negative integer");
   }
 
-  return `${runId}_s${seq.toString(36)}`;
+  const stepId = `${runId}_s${seq.toString(36)}`;
+  assertSafeSegment(stepId, "stepId");
+  return stepId;
 }
 
 /**
@@ -32,7 +36,7 @@ export function generateStepId(runId: string, seq: number): string {
  */
 export function currentRunId(): string | undefined {
   const value = process.env[RUN_ID_ENV];
-  return value && value.length > 0 ? value : undefined;
+  return isSafeSegment(value) ? value : undefined;
 }
 
 /**

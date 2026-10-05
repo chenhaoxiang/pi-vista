@@ -38,7 +38,7 @@ effective_capability =
     └── experience.jsonl           # experience promotion log (append-only)
 ```
 
-Checkpoint storage is fail-open and redacts before writing. `CheckpointStore.load(runId, stepId)` returns the checkpoint or `null` when it is missing or corrupt; `listCheckpoints(runId)` returns checkpoint step IDs in stable lexicographic order.
+Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns checkpoint step IDs in stable lexicographic order (not numeric or timestamp order).
 
 ### Layer 2: Hindsight (primary long-term memory)
 

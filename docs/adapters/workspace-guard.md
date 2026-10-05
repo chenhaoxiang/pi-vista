@@ -36,5 +36,9 @@ emitVistaEvent({
 
 ## Failure mode
 
-If `emitVistaEvent` throws, it is caught and logged to stderr. The guard
-decision has already been made and executed; the Vista event is best-effort.
+`emitVistaEvent` rejects when the adapter supplies invalid protocol input (for
+example an unknown `component` or `result`, a missing `action`, or an invalid
+timestamp). Adapters should handle that rejected promise so it cannot become an
+unhandled rejection. Store I/O failures and persistence timeouts are handled
+internally and fail-open; they never block the guard decision. The default
+persistence timeout is 250 ms and can be overridden with `persistTimeoutMs`.

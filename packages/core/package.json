@@ -25,6 +25,10 @@
     "./store": {
       "types": "./dist/store.d.ts",
       "import": "./dist/store.js"
+    },
+    "./validation": {
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.js"
     }
   },
   "scripts": {
