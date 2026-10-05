@@ -49,7 +49,7 @@ Use `target_class` and `reason_code` for machine-readable classification.
 Use hashed `env_fingerprint` instead of raw environment values. Custom
 components use the `custom:<name>` form; the core runtime permits namespace
 slashes, Unicode, and dots in a non-empty, non-whitespace name while rejecting
-control, credential, and path-like payloads.
+control, credential, path-like, and shell-like payloads.
 
 `ArtifactRef.stats` may contain finite numbers and short metadata labels/values.
 The core redactor retains at most 32 entries whose string values are at most 64
@@ -59,7 +59,8 @@ are redacted or omitted. Stats are never an escape hatch for artifact content.
 ## Protocol versions
 
 Phase 1 is a 0.x protocol. `vista_version` may be omitted for legacy records,
-but when present it must be a non-empty string. Readers retain unknown versions
-for inspection; the core validator enforces record shape and safety constraints
-without pretending an unknown version is the current protocol. In Phase 1,
-`@pi-vista/core` is the only runtime validation contract.
+but when present it must be a non-empty, control-free, safe version label. Safe
+unknown versions may use namespace slashes (for example, `future/1`) but must
+not contain credentials, paths, URLs, or shell payloads. Readers retain unknown
+versions for inspection rather than treating them as the current protocol. In
+Phase 1, `@pi-vista/core` is the only runtime validation contract.

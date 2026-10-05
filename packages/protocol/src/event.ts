@@ -4,7 +4,8 @@ import type { ArtifactRef } from "./artifact.js";
  * VistaComponent — the system that emitted this event.
  * Use `custom:<name>` for project-specific components. Runtime validation keeps
  * the suffix non-empty, non-whitespace, and control-free while allowing
- * namespace slashes, Unicode, and dots; it is not an arbitrary payload field.
+ * namespace slashes, Unicode, and dots; shell-like and path-like payloads
+ * are rejected because this is not an arbitrary payload field.
  */
 export type VistaComponent =
   | "pi"
@@ -115,7 +116,7 @@ export interface VistaEvent {
   // ── Protocol ──────────────────────────────────────────────────────────
   /**
    * pi-vista protocol version that produced this event. Optional for 0.x
-   * legacy records; readers retain unknown non-empty versions as-is.
+   * legacy records; readers retain unknown safe, non-empty versions as-is.
    */
   vista_version?: string | undefined;
 }

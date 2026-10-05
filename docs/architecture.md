@@ -128,7 +128,7 @@ pi-vista is **fail-open**: its unavailability never blocks task execution.
 
 ## Protocol versions
 
-Phase 1 is currently a 0.x protocol. `vista_version` may be omitted for legacy records, but when present it must be a non-empty string. Readers retain unknown version strings for inspection; validation checks the record shape and safety constraints only and must not treat an unknown version as the current protocol. A future compatibility decision will be explicit rather than inferred.
+Phase 1 is currently a 0.x protocol. `vista_version` may be omitted for legacy records, but when present it must be a non-empty, control-free, safe version label. Safe unknown versions may use namespace slashes (for example, `future/1`) but must not contain credentials, paths, URLs, or shell payloads. Readers retain unknown version strings for inspection; validation checks the record shape and safety constraints only and must not treat an unknown version as the current protocol. A future compatibility decision will be explicit rather than inferred.
 
 ---
 

@@ -3,6 +3,7 @@ import { isSafeSegment } from "./path-safe.js";
 import {
   isSafeCustomComponent,
   isSafeStatsKey,
+  isSafeVistaVersion,
   isValidStatsString,
   MAX_STATS_ENTRIES,
 } from "./safe-fields.js";
@@ -22,10 +23,6 @@ export class VistaProtocolError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
 }
 
 /** @internal Share run binding with store path enumeration. */
@@ -106,7 +103,7 @@ export function isVistaEvent(value: unknown): value is VistaEvent {
       return false;
     }
   }
-  if (value.vista_version !== undefined && !isNonEmptyString(value.vista_version)) {
+  if (value.vista_version !== undefined && !isSafeVistaVersion(value.vista_version)) {
     return false;
   }
   if (value.artifact_refs !== undefined) {

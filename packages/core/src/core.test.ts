@@ -14,6 +14,7 @@ import {
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
 import { generateRunId, generateStepId, isSafeSegment } from "./run-id.js";
+import { isSafeCustomComponent } from "./safe-fields.js";
 import { isVistaComponent, isVistaEvent, VistaProtocolError } from "./validation.js";
 
 async function temporaryDirectory(): Promise<string> {
@@ -222,6 +223,16 @@ test("custom components preserve slash, Unicode, and dots without widening unkno
   strictEqual(isVistaComponent("custom:/Users/alice"), false);
   strictEqual(isVistaComponent("custom:CLIENT_SECRET=secret"), false);
   deepStrictEqual(redactAll({ component: "custom:/Users/alice" }), { component: "custom:[REDACTED_PATH]" });
+
+  for (const component of ["custom:foo|bar", "custom:pwd|whoami"]) {
+    strictEqual(isSafeCustomComponent(component), false);
+    strictEqual(isVistaComponent(component), false);
+    strictEqual(isVistaEvent({ ...sampleEvent(), component }), false);
+    const redacted = redactAll({ component }) as { component: string };
+    strictEqual(redacted.component, "custom:[REDACTED_COMMAND]");
+    strictEqual(redacted.component.includes(component), false);
+    strictEqual(isVistaComponent(redacted.component), true);
+  }
 });
 
 test("redactAll preserves structured metadata and safe IDs but not unknown text", () => {
@@ -369,12 +380,13 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
     const wrongStepBinding = { ...valid, step_id: "other-run_s0" };
     const invalidStepBinding = { ...valid, step_id: "step-a" };
     const invalidComponent = { ...valid, component: "not-a-component" };
+    const invalidPipeComponent = { ...valid, component: "custom:foo|bar" };
     const invalidResult = { ...valid, result: "not-a-result" };
     const invalidTimestamp = { ...valid, ts: Number.NaN };
     const invalidAction = { ...valid, action: "   " };
     await writeFile(
       join(eventDir, "events.jsonl"),
-      [valid, wrongRun, wrongStepBinding, invalidStepBinding, invalidComponent, invalidResult, invalidTimestamp, invalidAction]
+      [valid, wrongRun, wrongStepBinding, invalidStepBinding, invalidComponent, invalidPipeComponent, invalidResult, invalidTimestamp, invalidAction]
         .map((event) => JSON.stringify(event))
         .join("\n") + "\n",
       "utf8",
@@ -410,7 +422,7 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
   }
 });
 
-test("validator rejects non-finite artifact stats and empty versions but preserves unknown versions", async () => {
+test("validator rejects unsafe versions and preserves unknown slash versions", async () => {
   const invalidStats = {
     ...sampleEvent(),
     artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { total: Number.POSITIVE_INFINITY } }],
@@ -425,14 +437,26 @@ test("validator rejects non-finite artifact stats and empty versions but preserv
     artifact_refs: [{ type: "test_result", ref: "receipt-1", stats: { suite: "x".repeat(65) } }],
   }), false);
   strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "" }), false);
-  strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "9.9.9" }), true);
+  strictEqual(isVistaEvent({ ...sampleEvent(), vista_version: "future/1" }), true);
+  for (const vista_version of [
+    "future/1\nsecret",
+    "future|1",
+    "/tmp/vista",
+    "TOKEN=secret",
+    "https://example.test/future/1",
+    "pwd",
+  ]) {
+    strictEqual(isVistaEvent({ ...sampleEvent(), vista_version }), false);
+  }
+  deepStrictEqual(redactAll({ vista_version: "future/1" }), { vista_version: "future/1" });
+  deepStrictEqual(redactAll({ vista_version: "future|1" }), { vista_version: "[REDACTED_COMMAND]" });
 
   const baseDir = await temporaryDirectory();
   try {
     const store = new EventStore({ baseDir });
     await rejects(() => store.append(invalidStats), VistaProtocolError);
-    await store.append({ ...sampleEvent(), vista_version: "9.9.9" });
-    deepStrictEqual((await store.readRun("run-round-trip"))[0]?.vista_version, "9.9.9");
+    await store.append({ ...sampleEvent(), vista_version: "future/1" });
+    deepStrictEqual((await store.readRun("run-round-trip"))[0]?.vista_version, "future/1");
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }
@@ -445,6 +469,8 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
       { component: "invalid", action: "test:invalid", result: "ok" },
       { component: "custom:adapter/v2\nsecret", action: "test:invalid", result: "ok" },
       { component: "custom:/tmp/private", action: "test:invalid", result: "ok" },
+      { component: "custom:foo|bar", action: "test:invalid", result: "ok" },
+      { component: "custom:pwd|whoami", action: "test:invalid", result: "ok" },
       { component: "test", action: "test:invalid", result: "invalid" },
       { component: "test", action: "", result: "ok" },
       { component: "test", action: "test:invalid", result: "ok", ts: Number.NaN },
@@ -466,6 +492,23 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
     } as unknown as VistaEventInput;
     strictEqual(await emitVistaEvent(unsafeEvent, { baseDir, runId: "run-unsafe", seq: 0 }), undefined);
     deepStrictEqual(await new EventStore({ baseDir }).readRun("run-unsafe"), []);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("EventStore rejects pipe custom components without persistence", async () => {
+  const baseDir = await temporaryDirectory();
+  try {
+    const store = new EventStore({ baseDir });
+    for (const component of ["custom:foo|bar", "custom:pwd|whoami"] as const) {
+      await rejects(
+        () => store.append({ ...sampleEvent(), component }),
+        (error: unknown) => error instanceof VistaProtocolError,
+      );
+    }
+    deepStrictEqual(await store.readRun("run-round-trip"), []);
+    deepStrictEqual(await readdir(baseDir), []);
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }

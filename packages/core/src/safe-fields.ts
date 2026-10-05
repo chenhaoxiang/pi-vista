@@ -5,9 +5,13 @@
 
 const CUSTOM_COMPONENT_NAME_PATTERN = /^[^\s\p{Cc}\p{Cf}]+$/u;
 const CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
-const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:\\|[?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
+const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:[\\|?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
 const CUSTOM_COMPONENT_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/u;
 const REDACTION_CUSTOM_COMPONENT_PATTERN = /^custom:\[REDACTED(?:_[A-Z]+)?\]$/u;
+const VISTA_VERSION_PATTERN = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}._:+/@-]*$/u;
+const VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
+const VISTA_VERSION_UNSAFE_PATTERN = /(?:[\\|?&#=%;`$<>]|:\/|:\/\/|^[/~]|^[A-Za-z]:[/\\]|(?:^|\/)\.\.?(?:\/|$))/iu;
+const VISTA_VERSION_COMMAND_PATTERN = /(?:^|\/)(?:sudo|bash|cat|cd|chmod|chown|command|cp|curl|docker|echo|env|export|false|find|git|grep|kill|kubectl|ls|make|mkdir|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|pwd|pytest|python(?:3)?|read|rm|scp|sed|set|sh|sleep|source|ssh|tar|test|touch|true|tsc|uname|unset|wait|wget|which|whoami|xargs|yarn|zip|zsh)(?:$|\/)/iu;
 
 const STATS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/u;
 const SENSITIVE_STATS_KEY_PATTERN = /(?:accesskey|accesstoken|apikey|auth|cookie|credential|password|passwd|privatekey|refreshtoken|secret|token|sshkey|signingkey|absolutepath|command|cwd|directory|filename|filepath|path|shell|url|uri|href)/u;
@@ -40,6 +44,28 @@ export function isSafeCustomComponent(value: unknown): value is `custom:${string
     !CUSTOM_COMPONENT_UNSAFE_PATTERN.test(name) &&
     !CUSTOM_COMPONENT_TOKEN_PATTERN.test(name) &&
     name.split("/").every((segment) => segment !== "." && segment !== "..")
+  );
+}
+
+/**
+ * Return whether a protocol version is safe to retain as an opaque label.
+ * Unknown versions intentionally use the same conservative grammar as known
+ * versions so readers can preserve them without retaining paths or payloads.
+ */
+export function isSafeVistaVersion(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (REDACTION_MARKER_PATTERN.test(value)) {
+    return true;
+  }
+  return (
+    VISTA_VERSION_PATTERN.test(value) &&
+    !VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN.test(value) &&
+    !VISTA_VERSION_UNSAFE_PATTERN.test(value) &&
+    !CUSTOM_COMPONENT_TOKEN_PATTERN.test(value) &&
+    !VISTA_VERSION_COMMAND_PATTERN.test(value) &&
+    value.split("/").every((segment) => segment.length > 0 && segment !== "." && segment !== "..")
   );
 }
 

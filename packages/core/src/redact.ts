@@ -3,6 +3,7 @@ import {
   isRetainedStatsKey,
   isSafeCustomComponent,
   isSafeStatsValue,
+  isSafeVistaVersion,
   isValidStatsString,
   MAX_STATS_ENTRIES,
 } from "./safe-fields.js";
@@ -238,6 +239,10 @@ function sanitizeString(value: string, key: string | undefined, allowSafeText: b
     return isSafeCustomComponent(redacted)
       ? redacted
       : `custom:${markerForFragments(redactedSuffix)}`;
+  }
+  if (normalized === "vistaversion") {
+    const redacted = sanitizeFragments(value, key);
+    return isSafeVistaVersion(redacted) ? redacted : markerForFragments(redacted);
   }
   if (SAFE_IDENTIFIER_KEYS.has(normalized) || SAFE_IDENTIFIER_ARRAY_KEYS.has(normalized)) {
     const redacted = sanitizeFragments(value, key);
