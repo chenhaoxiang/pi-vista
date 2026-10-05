@@ -102,6 +102,13 @@ redactor retains at most 32 entries with short labels and values (up to 64
 characters), while credential-, path-, URL-, and shell-like names or values are
 redacted or omitted. Stats never carry artifact content or secrets.
 
+Custom components are structured `custom:<namespace>` identifiers, not shell
+commands. A recognized command word is rejected when it is the complete suffix
+(for example, `custom:pwd` and `custom:bash`), while command words inside a
+namespace remain valid (for example, `custom:adapter/git/v2`). Emission and
+EventStore writes validate before persistence, and readers discard invalid
+records.
+
 ---
 
 ## Integration

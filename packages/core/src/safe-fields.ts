@@ -7,6 +7,10 @@ const CUSTOM_COMPONENT_NAME_PATTERN = /^[^\s\p{Cc}\p{Cf}]+$/u;
 const CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
 const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:[\\|?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
 const CUSTOM_COMPONENT_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/u;
+// A component suffix is an identifier/namespace, not a command position. Only
+// an exact, whole-suffix command word is rejected; command words in a namespace
+// segment (for example, "adapter/git/v2") remain valid component identifiers.
+const CUSTOM_COMPONENT_COMMAND_WORD_PATTERN = /^(?:awk|basename|bash|cat|cd|chmod|chown|command|cp|curl|cut|date|dd|diff|dirname|docker|echo|env|export|false|find|git|grep|head|id|jq|kill|kubectl|ln|ls|make|man|mkdir|more|mv|node|npm|npx|openssl|perl|pip|pnpm|printf|ps|pwd|pytest|python(?:3)?|read|realpath|rev|rm|rmdir|scp|sed|set|sh|sleep|sort|source|ssh|sudo|tail|tar|tee|test|time|touch|tr|true|tsc|uname|uniq|unset|wait|wc|wget|which|whoami|xargs|yarn|yes|zip|zsh)$/iu;
 const REDACTION_CUSTOM_COMPONENT_PATTERN = /^custom:\[REDACTED(?:_[A-Z]+)?\]$/u;
 const VISTA_VERSION_PATTERN = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}._:+/@-]*$/u;
 const VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
@@ -24,11 +28,18 @@ export const MAX_STATS_ENTRIES = 32;
 /** Maximum length of a retained string stats value. */
 export const MAX_STATS_VALUE_LENGTH = 64;
 
+/** Return whether a custom-component suffix is exactly one recognized shell word. */
+export function isBareCustomComponentCommand(value: unknown): boolean {
+  return typeof value === "string" && CUSTOM_COMPONENT_COMMAND_WORD_PATTERN.test(value);
+}
+
 /**
  * The shared custom-component shape used by the runtime validator and the
  * redactor. The protocol type intentionally remains `custom:${string}`;
  * runtime records require a non-empty, non-whitespace, control-free suffix;
- * path-, credential-, URL-, and shell-like payloads are rejected.
+ * path-, credential-, URL-, and shell-like payloads are rejected. A bare
+ * command word is rejected only as the complete suffix, not as a namespace
+ * segment (for example, `custom:adapter/git/v2` is valid).
  */
 export function isSafeCustomComponent(value: unknown): value is `custom:${string}` {
   if (typeof value !== "string" || !value.startsWith("custom:")) {
@@ -43,6 +54,7 @@ export function isSafeCustomComponent(value: unknown): value is `custom:${string
     !CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN.test(name) &&
     !CUSTOM_COMPONENT_UNSAFE_PATTERN.test(name) &&
     !CUSTOM_COMPONENT_TOKEN_PATTERN.test(name) &&
+    !isBareCustomComponentCommand(name) &&
     name.split("/").every((segment) => segment !== "." && segment !== "..")
   );
 }

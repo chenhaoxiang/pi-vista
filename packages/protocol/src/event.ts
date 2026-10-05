@@ -5,7 +5,9 @@ import type { ArtifactRef } from "./artifact.js";
  * Use `custom:<name>` for project-specific components. Runtime validation keeps
  * the suffix non-empty, non-whitespace, and control-free while allowing
  * namespace slashes, Unicode, and dots; shell-like and path-like payloads
- * are rejected because this is not an arbitrary payload field.
+ * are rejected because this is not an arbitrary payload field. A recognized
+ * shell command word is rejected only when it is the complete suffix: for
+ * example, `custom:pwd` is invalid while `custom:adapter/git/v2` is valid.
  */
 export type VistaComponent =
   | "pi"

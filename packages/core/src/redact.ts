@@ -1,5 +1,6 @@
 import { isSafeSegment } from "./path-safe.js";
 import {
+  isBareCustomComponentCommand,
   isRetainedStatsKey,
   isSafeCustomComponent,
   isSafeStatsValue,
@@ -234,7 +235,11 @@ function sanitizeString(value: string, key: string | undefined, allowSafeText: b
     if (isSafeCustomComponent(value)) {
       return value;
     }
-    const redactedSuffix = sanitizeFragments(value.slice("custom:".length), key);
+    const suffix = value.slice("custom:".length);
+    if (isBareCustomComponentCommand(suffix)) {
+      return `custom:${REDACTED_COMMAND_MARKER}`;
+    }
+    const redactedSuffix = sanitizeFragments(suffix, key);
     const redacted = `custom:${redactedSuffix}`;
     return isSafeCustomComponent(redacted)
       ? redacted

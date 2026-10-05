@@ -210,8 +210,13 @@ test("redactAll uses an allowlist and handles encoded URL secrets", () => {
   strictEqual((value as { url: string }).url.includes("[REDACTED_CREDENTIAL]"), true);
 });
 
-test("custom components preserve slash, Unicode, and dots without widening unknown text", () => {
-  const components = ["custom:adapter/v2", "custom:适配器.β/检查", "custom:组件/v2"];
+test("custom components preserve slash, Unicode, dots, and namespaced command words", () => {
+  const components = [
+    "custom:adapter/v2",
+    "custom:适配器.β/检查",
+    "custom:组件/v2",
+    "custom:adapter/git/v2",
+  ];
   for (const component of components) {
     strictEqual(isVistaComponent(component), true);
     const value = redactAll({ component });
@@ -224,7 +229,7 @@ test("custom components preserve slash, Unicode, and dots without widening unkno
   strictEqual(isVistaComponent("custom:CLIENT_SECRET=secret"), false);
   deepStrictEqual(redactAll({ component: "custom:/Users/alice" }), { component: "custom:[REDACTED_PATH]" });
 
-  for (const component of ["custom:foo|bar", "custom:pwd|whoami"]) {
+  for (const component of ["custom:foo|bar", "custom:pwd|whoami", "custom:cat /tmp/file"]) {
     strictEqual(isSafeCustomComponent(component), false);
     strictEqual(isVistaComponent(component), false);
     strictEqual(isVistaEvent({ ...sampleEvent(), component }), false);
@@ -232,6 +237,14 @@ test("custom components preserve slash, Unicode, and dots without widening unkno
     strictEqual(redacted.component, "custom:[REDACTED_COMMAND]");
     strictEqual(redacted.component.includes(component), false);
     strictEqual(isVistaComponent(redacted.component), true);
+  }
+
+  for (const command of ["pwd", "whoami", "rm", "cat", "git", "curl", "bash"]) {
+    const component = `custom:${command}`;
+    strictEqual(isSafeCustomComponent(component), false);
+    strictEqual(isVistaComponent(component), false);
+    strictEqual(isVistaEvent({ ...sampleEvent(), component }), false);
+    deepStrictEqual(redactAll({ component }), { component: "custom:[REDACTED_COMMAND]" });
   }
 });
 
@@ -381,12 +394,14 @@ test("EventStore.readRun and CheckpointStore.load reject invalid or cross-identi
     const invalidStepBinding = { ...valid, step_id: "step-a" };
     const invalidComponent = { ...valid, component: "not-a-component" };
     const invalidPipeComponent = { ...valid, component: "custom:foo|bar" };
+    const invalidBareCommandComponents = ["custom:pwd", "custom:whoami", "custom:rm", "custom:cat", "custom:git", "custom:curl", "custom:bash"]
+      .map((component) => ({ ...valid, component }));
     const invalidResult = { ...valid, result: "not-a-result" };
     const invalidTimestamp = { ...valid, ts: Number.NaN };
     const invalidAction = { ...valid, action: "   " };
     await writeFile(
       join(eventDir, "events.jsonl"),
-      [valid, wrongRun, wrongStepBinding, invalidStepBinding, invalidComponent, invalidPipeComponent, invalidResult, invalidTimestamp, invalidAction]
+      [valid, wrongRun, wrongStepBinding, invalidStepBinding, invalidComponent, invalidPipeComponent, ...invalidBareCommandComponents, invalidResult, invalidTimestamp, invalidAction]
         .map((event) => JSON.stringify(event))
         .join("\n") + "\n",
       "utf8",
@@ -471,6 +486,13 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
       { component: "custom:/tmp/private", action: "test:invalid", result: "ok" },
       { component: "custom:foo|bar", action: "test:invalid", result: "ok" },
       { component: "custom:pwd|whoami", action: "test:invalid", result: "ok" },
+      { component: "custom:pwd", action: "test:invalid", result: "ok" },
+      { component: "custom:whoami", action: "test:invalid", result: "ok" },
+      { component: "custom:rm", action: "test:invalid", result: "ok" },
+      { component: "custom:cat", action: "test:invalid", result: "ok" },
+      { component: "custom:git", action: "test:invalid", result: "ok" },
+      { component: "custom:curl", action: "test:invalid", result: "ok" },
+      { component: "custom:bash", action: "test:invalid", result: "ok" },
       { component: "test", action: "test:invalid", result: "invalid" },
       { component: "test", action: "", result: "ok" },
       { component: "test", action: "test:invalid", result: "ok", ts: Number.NaN },
@@ -497,11 +519,22 @@ test("emitVistaEvent rejects invalid protocol unions and does not persist redact
   }
 });
 
-test("EventStore rejects pipe custom components without persistence", async () => {
+test("EventStore rejects unsafe custom components without persistence", async () => {
   const baseDir = await temporaryDirectory();
   try {
     const store = new EventStore({ baseDir });
-    for (const component of ["custom:foo|bar", "custom:pwd|whoami"] as const) {
+    const invalidComponents = [
+      "custom:foo|bar",
+      "custom:pwd|whoami",
+      "custom:pwd",
+      "custom:whoami",
+      "custom:rm",
+      "custom:cat",
+      "custom:git",
+      "custom:curl",
+      "custom:bash",
+    ] as const;
+    for (const component of invalidComponents) {
       await rejects(
         () => store.append({ ...sampleEvent(), component }),
         (error: unknown) => error instanceof VistaProtocolError,
@@ -521,7 +554,7 @@ test("emitVistaEvent accepts slash and Unicode custom components and persists th
       persisted.push(event);
     },
   };
-  const components = ["custom:adapter/v2", "custom:适配器.β/检查"] as const;
+  const components = ["custom:adapter/v2", "custom:适配器.β/检查", "custom:组件/v2", "custom:adapter/git/v2"] as const;
   for (const [seq, component] of components.entries()) {
     const event = await emitVistaEvent(
       { component, action: "custom:observe", result: "unknown" },

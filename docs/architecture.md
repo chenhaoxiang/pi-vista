@@ -45,6 +45,15 @@ The core redactor retains at most 32 entries and at most 64 characters per
 string, and applies credential/path/URL/shell redaction before retaining text;
 stats do not contain artifact content.
 
+Custom components are structured identifiers, not shell command fields. The
+runtime grammar rejects a recognized shell command word when it is the complete
+custom suffix (for example, `custom:pwd`, `custom:whoami`, `custom:rm`,
+`custom:cat`, `custom:git`, `custom:curl`, and `custom:bash`). The boundary is
+anchored to the complete suffix: command words inside a namespace remain valid,
+so `custom:adapter/git/v2` is retained. Validation happens before emission or
+EventStore writes; readers discard records that fail the same grammar, so an
+invalid component is never persisted or returned as a valid event.
+
 ### Layer 2: Hindsight (primary long-term memory)
 
 Hindsight provides the semantic memory layer. pi-vista writes to it only when an experience passes promotion criteria:

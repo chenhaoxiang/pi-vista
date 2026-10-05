@@ -49,7 +49,11 @@ Use `target_class` and `reason_code` for machine-readable classification.
 Use hashed `env_fingerprint` instead of raw environment values. Custom
 components use the `custom:<name>` form; the core runtime permits namespace
 slashes, Unicode, and dots in a non-empty, non-whitespace name while rejecting
-control, credential, path-like, and shell-like payloads.
+control, credential, path-like, and shell-like payloads. A bare recognized shell
+command word is not a component namespace: `custom:pwd`, `custom:whoami`,
+`custom:rm`, `custom:cat`, `custom:git`, `custom:curl`, and `custom:bash` are
+invalid. This boundary applies only to the complete suffix, so namespaced
+identifiers such as `custom:adapter/git/v2` remain valid.
 
 `ArtifactRef.stats` may contain finite numbers and short metadata labels/values.
 The core redactor retains at most 32 entries whose string values are at most 64
