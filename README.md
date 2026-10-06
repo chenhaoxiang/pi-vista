@@ -97,9 +97,9 @@ npm install @pi-vista/protocol
 ```
 
 Phase 1 ships the protocol interfaces, redaction, event emission, and local
-stores. The `vista` history/inspect/promote CLI is planned for Phase 2; it is
-not included in this release. See [docs/getting-started.md](docs/getting-started.md)
-for adapter setup.
+stores. The `vista` history/inspect CLI is planned for Phase 2; experience
+promotion is planned for Phase 3. Neither CLI is included in this release. See
+[docs/getting-started.md](docs/getting-started.md) for adapter setup.
 
 ### Artifact statistics
 
