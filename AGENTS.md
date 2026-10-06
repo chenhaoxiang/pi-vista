@@ -11,25 +11,27 @@ The observation CLI is strictly offline/read-only. Do not turn recorded
 Tests must use synthetic data, never real session logs; CLI fixtures belong in
 `tmp/`, and cleanup must target only test-created directories.
 
-## Candidate package inventory
+## Source package inventory
 
-The infrastructure candidate includes `@pi-vista/protocol`, `@pi-vista/core`,
+The merged infrastructure includes `@pi-vista/protocol`, `@pi-vista/core`,
 `@pi-vista/adapter-pi`, `@pi-vista/adapter-workspace-guard`,
 `@pi-vista/adapter-ai-gate`, `@pi-vista/cli`, and `@pi-vista/checks`.
 Build protocol/core first, then the other public packages. Root tests include
 all existing package tests plus public-import synthetic integration tests.
-Candidate availability does not imply a main merge or release acceptance.
-The integration snapshot records the old candidate's confirmed core/Pi/guard
-embedded-credential identity gap. The bounded security candidate fix is described
-in docs/metadata-safety.md and still requires independent review; functional
-checks alone do not clear live/release blockers or permit opportunistic pin edits.
+Source integration through PR #7 is recorded in the merge closeout; it does not
+imply registry publication, deployment or operational acceptance. The integration
+snapshot preserves the old core/Pi/guard credential defect as historical evidence.
+The bounded metadata/generation repair passed exact-source review and isolated
+post-merge tests; docs/metadata-safety.md describes its limits. Do not treat that
+review as a universal secret detector, owner verification or live/release authority.
 
 ## Public document map
 
 - [README.md](README.md): package overview and implementation status
+- [docs/handoff/2026-10-06-source-merge-closeout.md](docs/handoff/2026-10-06-source-merge-closeout.md): merged-source evidence, source PR reconciliation and remaining boundaries
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
 - [docs/infrastructure-integration.md](docs/infrastructure-integration.md): candidate inventory, public source pins, functional validation snapshot and open blockers
-- [docs/metadata-safety.md](docs/metadata-safety.md): shared known-credential metadata boundaries, historical defect and candidate review limits
+- [docs/metadata-safety.md](docs/metadata-safety.md): shared known-credential metadata boundaries, historical defect and source review limits
 - [docs/cli.md](docs/cli.md): maintained observation CLI/API, privacy and limits
 - [docs/check-functions.md](docs/check-functions.md): programmatic predicate registry/runner, fail-closed limits and no authorization
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases

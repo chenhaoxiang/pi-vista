@@ -7,14 +7,15 @@ A model-agnostic execution augmentation and experience system for Pi.
 > Every model call produces experience. Every model call consumes experience.  
 > No model is permanently "strong" or "weak" — the system grows regardless of which model runs.
 
-**Candidate checkout, not main:** this infrastructure integration combines seven
-public packages from pinned, open and unmerged source PRs. Validation is synthetic,
-offline **functional compatibility only**, not a privacy/security acceptance or
-publication claim. The [integration snapshot](docs/infrastructure-integration.md)
-records the old source pins' confirmed embedded `ghp_` / `github_pat_` identity
-leak. This security candidate adds a [bounded shared metadata fix](docs/metadata-safety.md),
-**pending independent review and acceptance**. Local validation does not clear
-live-use or release readiness; the historical snapshot remains unchanged.
+**Merged source, not a published or live system:** [PR #7](https://github.com/chenhaoxiang/pi-vista/pull/7)
+integrated the seven public packages and bounded metadata/generation repairs into
+`main`. Exact-source review passed, and isolated post-merge validation passed
+**232 tests** on Node 26.9.0. These checks do not establish release or operational
+acceptance. The [merge closeout](docs/handoff/2026-10-06-source-merge-closeout.md)
+records source commits, verification and remaining work. The [integration snapshot](docs/infrastructure-integration.md)
+preserves the old source pins' credential defect as historical evidence; the
+[shared metadata guide](docs/metadata-safety.md) describes the repaired contract
+and its limits. Producer sanitization remains required.
 
 ---
 
@@ -162,8 +163,9 @@ records.
 
 ## Integration
 
-- [Infrastructure candidate, source pins, synthetic validation and blockers](docs/infrastructure-integration.md)
-- [Shared credential metadata safety candidate and limits](docs/metadata-safety.md)
+- [Merged source closeout and remaining work](docs/handoff/2026-10-06-source-merge-closeout.md)
+- [Historical infrastructure candidate, source pins and validation](docs/infrastructure-integration.md)
+- [Shared credential metadata safety contract and limits](docs/metadata-safety.md)
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)
