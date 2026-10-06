@@ -10,7 +10,8 @@
     "build": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core",
     "test": "npm run build && npm run test --workspace=@pi-vista/core && npm run test --workspace=@pi-vista/protocol",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol"
+    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol",
+    "pack:dry-run": "npm pack --dry-run --workspace=@pi-vista/protocol && npm pack --dry-run --workspace=@pi-vista/core"
   },
   "keywords": [
     "ai-agent",

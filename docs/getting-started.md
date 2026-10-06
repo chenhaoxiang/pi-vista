@@ -1,14 +1,21 @@
 # Getting started with pi-vista
 
-## 1. Install the core package
+## 1. Install the Phase 1 package
 
 ```bash
 npm install @pi-vista/core
 ```
 
-`@pi-vista/core` includes the runtime event emitter, redaction, and local
-stores. Install `@pi-vista/protocol` separately only when an adapter needs the
-TypeScript interfaces directly.
+`@pi-vista/core` declares the matching published `@pi-vista/protocol` package
+as a runtime dependency, so npm installs it automatically. For an adapter that
+uses only the TypeScript interfaces, install the protocol package directly:
+
+```bash
+npm install @pi-vista/protocol
+```
+
+The published packages include their compiled `dist` entry points; no checkout
+build step is required after installation.
 
 ## 2. Set VISTA_RUN_ID in your Pi session
 

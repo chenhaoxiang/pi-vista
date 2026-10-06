@@ -12,6 +12,9 @@ redaction; runtime validation is provided by `@pi-vista/core` in Phase 1.
 npm install @pi-vista/protocol
 ```
 
+The published package includes the compiled `dist` entry points referenced by
+`main`, `types`, and `exports`; consumers do not need to build from a checkout.
+
 ## Usage
 
 ```typescript

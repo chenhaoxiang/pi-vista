@@ -31,8 +31,14 @@
       "import": "./dist/validation.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test \"dist/**/*.test.js\""
   },

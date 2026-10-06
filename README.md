@@ -88,8 +88,14 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 npm install @pi-vista/core
 ```
 
-`@pi-vista/core` brings the protocol package for runtime use; install
-`@pi-vista/protocol` separately only when importing its interfaces directly.
+`@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so
+npm installs the matching published protocol package automatically. Install
+`@pi-vista/protocol` separately when importing its interfaces directly:
+
+```bash
+npm install @pi-vista/protocol
+```
+
 Phase 1 ships the protocol interfaces, redaction, event emission, and local
 stores. The `vista` history/inspect/promote CLI is planned for Phase 2; it is
 not included in this release. See [docs/getting-started.md](docs/getting-started.md)

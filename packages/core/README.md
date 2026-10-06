@@ -3,6 +3,15 @@
 Runtime support for pi-vista Phase 1: event emission, redaction, run IDs, and
 local event/checkpoint stores.
 
+## Install
+
+```bash
+npm install @pi-vista/core
+```
+
+The matching `@pi-vista/protocol` package is installed automatically as a
+runtime dependency.
+
 ## Custom components
 
 Custom components use the structured `custom:<namespace>` form. The runtime
