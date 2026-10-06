@@ -65,12 +65,25 @@ exceptions and bounded async timeouts fail closed, even with WARN. Timeout canno
 preempt synchronous trusted code or undo side effects. No cached passes, hidden
 retries, repairs, runtime persistence or safety-authority integration are added.
 
-The only supplied, **opt-in** implementations are `sha_matches` and `env_matches`,
+The base package's only supplied, **opt-in** implementations are `sha_matches` and `env_matches`,
 pure expected/actual safe-metadata comparisons, not Git/environment collection
 or independent owner verification. Reports always carry `verification:
 predicate-only` and `authorization: none`; passing predicates grant no replay,
 execution, merge, release or promotion permission. See
 [check-functions.md](check-functions.md) for exact API, safety subset and limits.
+
+**Implemented separate local-addon slice**: `@pi-vista/checks-local` creates a
+fresh explicit trusted-host registry with actual local `path_exists`,
+`path_not_exists`, HEAD `sha_matches`, full-ref `branch_exists`/
+`branch_not_exists` and Git-status `worktree_clean`. Protocol params are symbolic
+aliases/expected safe SHA; root/repo/relative-path/ref and Git executable selection
+remain detached private host config. Namespace, subprocess, abort and unsupported
+filter/submodule failures are hard even under WARN. Fixed read-only Git controls
+and component walks do not make trusted local Git a hostile sandbox or reads an
+atomic/race-proof jail. The base runtime stays no-I/O; all reports remain
+predicate-only and authorization none. See [local-check-probes.md](local-check-probes.md).
+No receipt/test-source authenticity, owner/gate integration, CLI check commands,
+repair, Hindsight or replay is added.
 
 **Future work, not implemented commands**:
 
@@ -79,10 +92,9 @@ vista check register worktree_create
 vista check run worktree_create --repo <repo> --task <task>
 ```
 
-Future trusted-owner probe coverage (not registered by default):
-- worktree creation/cleanliness
-- branch existence
-- independent source SHA verification
+Future trusted-owner coverage (not implemented by the local observations):
+- worktree creation
+- source/receipt/test authenticity beyond observing an actual local HEAD
 - gate receipt binding and actual test results
 
 Source/test/pack and offline tarball smoke do not establish publication, a clean
