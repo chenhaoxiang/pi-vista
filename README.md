@@ -62,6 +62,7 @@ not a source of execution, merge, release or promotion authorization.
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
 | `@pi-vista/adapter-pi` | Low-coupling Pi session/run context and safe tool summaries |
 | `@pi-vista/adapter-workspace-guard` | Public adapter for sanitized workspace-guard observations |
+| `@pi-vista/adapter-ai-gate` | Read-only mapping of sanitized owner-side gate evidence |
 | `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
 | `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
 
@@ -93,6 +94,8 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 
 ```bash
 npm install @pi-vista/core
+# Optional owner-side evidence observer:
+npm install @pi-vista/adapter-ai-gate
 ```
 
 `@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so
@@ -156,6 +159,13 @@ records.
 The Pi adapter is a public helper only: Pi private extensions call it explicitly;
 pi-vista does not install, patch, or hook Pi automatically. It does not own Pi
 execution, fallback, watchdog, permission, or model-routing decisions.
+
+`@pi-vista/adapter-ai-gate` consumes only owner-side, already-sanitized and
+structured evidence. It is model-agnostic and read-only: it does not run
+`gh`/API calls, read PR/CI/review content or gate configuration, infer a gate
+result, or change ai-gate admission, merge, or deployment behavior.
+
+Additional adapters are future work; the links above are the adapter guides shipped in Phase 1.
 
 ---
 

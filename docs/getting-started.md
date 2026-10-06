@@ -4,6 +4,8 @@
 
 ```bash
 npm install @pi-vista/core @pi-vista/adapter-pi
+# Optional owner-side ai-gate evidence observer:
+npm install @pi-vista/adapter-ai-gate
 ```
 
 `@pi-vista/core` declares the matching published `@pi-vista/protocol` package
@@ -31,6 +33,10 @@ export VISTA_RUN_ID=$(node -e "console.log(crypto.randomUUID())")
 A Pi private extension calls `@pi-vista/adapter-pi` explicitly. The public
 package does not install or patch Pi, and it does not own execution, fallback,
 watchdog, permission, or model-routing decisions.
+
+For ai-gate, pass only owner-side evidence that has already been structured
+and redacted. The public adapter does not run `gh` or APIs, read PR/CI/review
+text, inspect gate configuration, make gate decisions, merge, or deploy.
 
 For public workspace-guard observation integration:
 
