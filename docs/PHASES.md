@@ -46,8 +46,9 @@ vista receipts <run_id>
 Core storage is best-effort: empty/omitted records do not prove an exhaustive
 history, audit PASS, or successful run. Unknown safe versions remain untrusted
 recorded labels. See [cli.md](cli.md) for exact limits and trust boundaries.
-This implementation status does not claim registry publication or deployment;
-Phase 3 replay/check-registry/promotion is not included.
+This implementation status does not claim registry publication or deployment.
+Phase 3 replay/promotion is not included; the separate first programmatic
+check-registry slice is described below.
 
 ---
 
@@ -55,18 +56,38 @@ Phase 3 replay/check-registry/promotion is not included.
 
 ### Track A: Check Functions
 
-Register and execute environment validation before replay:
+**Implemented first bounded slice**: `@pi-vista/checks`, a programmatic trusted
+callback registry and ordered predicate runner consuming existing
+`VistaCheckFunction` descriptions. All inputs validate before callbacks and use
+detached immutable own-data snapshots. STOP/WARN are supported; REPAIR is
+unsupported and rejected before callbacks. Missing handlers, malformed verdicts,
+exceptions and bounded async timeouts fail closed, even with WARN. Timeout cannot
+preempt synchronous trusted code or undo side effects. No cached passes, hidden
+retries, repairs, runtime persistence or safety-authority integration are added.
+
+The only supplied, **opt-in** implementations are `sha_matches` and `env_matches`,
+pure expected/actual safe-metadata comparisons, not Git/environment collection
+or independent owner verification. Reports always carry `verification:
+predicate-only` and `authorization: none`; passing predicates grant no replay,
+execution, merge, release or promotion permission. See
+[check-functions.md](check-functions.md) for exact API, safety subset and limits.
+
+**Future work, not implemented commands**:
 
 ```bash
 vista check register worktree_create
 vista check run worktree_create --repo <repo> --task <task>
 ```
 
-Priority coverage:
-- worktree creation
+Future trusted-owner probe coverage (not registered by default):
+- worktree creation/cleanliness
 - branch existence
-- SHA verification  
-- gate receipt binding
+- independent source SHA verification
+- gate receipt binding and actual test results
+
+Source/test/pack and offline tarball smoke do not establish publication, a clean
+consumer install, Node 20 runtime behavior or operational acceptance. Replay and
+experience reuse remain future work.
 
 ### Track B: Hindsight promotion (future CLI)
 

@@ -48,6 +48,26 @@ input cannot select arbitrary shell behavior. This registry boundary is
 separate from fail-open event/checkpoint observation and does not change the
 safety authority of workspace-guard or ai-gate.
 
+The implemented Phase 3A first slice, `@pi-vista/checks`, is separate from core
+storage: trusted host code explicitly registers in-process predicates for
+`VistaCheckFunction` descriptions. It validates all own-data definitions,
+params, safe structured context and bounded options before callbacks, then uses
+detached immutable snapshots. STOP/WARN are supported; REPAIR is refused before
+any callback and repair IDs are never resolved, including on STOP/WARN. Missing
+handlers, exceptions, invalid verdicts and timeouts fail closed for predicate
+satisfaction, unlike fail-open observation. Timeouts bound asynchronous waits,
+not synchronous blocking code or host side effects.
+
+Its opt-in `sha_matches`/`env_matches` are pure safe expected/actual metadata
+comparisons, not independent Git/environment/owner probes. There are no default
+path/branch/worktree/receipt/test implementations, policy-file loading, shell or
+dynamic code, filesystem/network/process operations, runtime persistence,
+Hindsight, CLI check commands, replay or promotion. Reports carry
+`verification: predicate-only` and `authorization: none` and exclude raw params,
+context, descriptions and errors. Predicate passes never override safety
+admission or infer permission from recorded flags. See
+[check-functions.md](check-functions.md) for the maintained API and limits.
+
 `ArtifactRef.stats` is limited to finite numbers and short metadata strings.
 The core redactor retains at most 32 entries and at most 64 characters per
 string, and applies credential/path/URL/shell redaction before retaining text;
@@ -143,7 +163,11 @@ The following can **never** be overridden by pi-vista, regardless of what experi
 3. production, credential, and billing hard gates
 4. Kev G2/D2 isolation boundaries
 
-pi-vista is **fail-open**: its unavailability never blocks task execution.
+Core observation is **fail-open**: its unavailability never blocks task
+execution. The optional programmatic checks API is **fail-closed** only for its
+own predicate satisfaction report. It neither intercepts execution nor grants
+replay, merge, release or promotion permission. Actual safety decisions remain
+with the owners listed above.
 
 ## Protocol versions
 

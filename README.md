@@ -15,7 +15,7 @@ A model-agnostic execution augmentation and experience system for Pi.
 
 - **Record** every tool call, guard decision, gate check, and test result as a unified event stream
 - **Inspect** recorded histories, checkpoints, count differences, and opaque receipt refs with the offline, read-only Phase 2 CLI
-- **Prepare** replay validation with Check Functions (Phase 3 implementation is planned)
+- **Prepare** validation with a bounded, opt-in programmatic Check Function registry (Phase 3A predicate-only foundation, not replay or owner verification)
 - **Specify** promotion of verified experiences into Hindsight (future Phase 3 work)
 - **Adapt** — each verified run makes the next run better, regardless of which model executes it
 
@@ -47,7 +47,10 @@ A model-agnostic execution augmentation and experience system for Pi.
 └─────────────────────────────────────────────────┘
 ```
 
-pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executing normally. It is a pure observer — it never sits between a command and its execution.
+Core observation is **fail-open**: if it crashes or is unavailable, Pi continues
+executing normally. It never sits between a command and its execution. The
+separate opt-in Check Function API is **fail-closed** for predicate satisfaction,
+not a source of execution, merge, release or promotion authorization.
 
 ---
 
@@ -58,6 +61,7 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 | `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
 | `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
+| `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
 
 ---
 
@@ -100,7 +104,15 @@ npm install @pi-vista/protocol
 Phase 1 provides protocol interfaces, redaction, event emission, and local
 stores. This checkout also implements the bounded Phase 2 `@pi-vista/cli`
 observation slice; this is not a registry-publication or deployment claim.
-Experience promotion, replay, and Check Function execution remain future work.
+This checkout also includes the first Phase 3A programmatic Check Function
+foundation. Trusted host code explicitly registers boolean predicates; opt-in
+`sha_matches`/`env_matches` compare safe host-supplied metadata, not actual Git
+or environment observations. STOP/WARN are supported, REPAIR is refused before
+callbacks, and missing/exceptional/malformed/timed-out checks fail closed. Reports
+always say `verification: predicate-only` and `authorization: none`.
+Experience promotion, replay, owner probes and CLI check commands remain future
+work. See [docs/check-functions.md](docs/check-functions.md) for the strict safe
+input subset, snapshots, ordering and non-preemptive timeout limits.
 
 ```bash
 npm run build

@@ -16,6 +16,7 @@ Tests must use synthetic data, never real session logs; CLI fixtures belong in
 - [README.md](README.md): package overview and implementation status
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
 - [docs/cli.md](docs/cli.md): maintained observation CLI/API, privacy and limits
+- [docs/check-functions.md](docs/check-functions.md): programmatic predicate registry/runner, fail-closed limits and no authorization
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases
 - [docs/architecture.md](docs/architecture.md): storage and safety boundaries
 - [packages/core/README.md](packages/core/README.md): public core runtime contract

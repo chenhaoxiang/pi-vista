@@ -57,7 +57,36 @@ independent verification, or merge/execution permission. See the maintained
 [CLI guide](cli.md) for strict parsing, closed privacy projection, deterministic
 ordering, exact bounds, API and exit codes.
 
-## 5. Planned Phase 3 promotion
+## 5. Programmatic Phase 3A predicates
+
+This checkout provides `@pi-vista/checks`, separate from the observation CLI:
+
+```ts
+import { CheckRegistry } from "@pi-vista/checks";
+
+const checks = new CheckRegistry(); // no default handlers
+checks.registerBindingPredicates(); // opt-in metadata comparison only
+const report = await checks.run([{
+  check_id: "env-binding",
+  type: "env_matches",
+  params: { expected: "sandbox-1", actual: "sandbox-1" },
+  on_fail: "STOP",
+}]);
+// report.verification === "predicate-only"; report.authorization === "none"
+```
+
+A satisfied report means registered predicates returned true, not an independently
+collected environment, Git, receipt or test verification. Input prevalidation,
+immutable snapshots, ordered STOP/WARN and fail-closed timeout/error handling are
+implemented; REPAIR is refused before callbacks. No owner probes, shell/dynamic
+code, runtime storage, CLI check commands, replay or promotion are included.
+Timeout cannot preempt synchronous trusted callbacks or undo side effects. See
+[the Check Functions guide](check-functions.md) for exact limits and trust
+boundaries. Node 20, a clean npm consumer install and consumer TypeScript
+compilation remain unverified; source/build/pack smoke is not publication or
+operational acceptance.
+
+## 6. Planned Phase 3 promotion
 
 Promotion to Hindsight is future work. These commands are design notes,
 not implemented by the observation CLI:
