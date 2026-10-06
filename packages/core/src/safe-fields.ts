@@ -1,0 +1,139 @@
+/**
+ * Shared runtime grammars for protocol fields that retain text after redaction.
+ * These are deliberately narrower than the protocol's general string fields.
+ */
+
+import { hasKnownCredential } from "./credential.js";
+
+const CUSTOM_COMPONENT_NAME_PATTERN = /^[^\s\p{Cc}\p{Cf}]+$/u;
+const CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
+const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:[\\|?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
+/**
+ * Single source of truth for command words that are unsafe as opaque protocol
+ * labels. Keep this list complete: redaction, component validation, and
+ * vista_version validation all consume it.
+ */
+export const BARE_COMMAND_WORDS = [
+  "awk", "basename", "bash", "cat", "cd", "chmod", "chown", "command", "cp", "curl",
+  "cut", "date", "dd", "diff", "dirname", "docker", "echo", "env", "export", "false",
+  "find", "git", "grep", "head", "id", "jq", "kill", "kubectl", "ln", "ls", "make",
+  "man", "mkdir", "more", "mv", "node", "npm", "npx", "openssl", "perl", "pip", "pnpm",
+  "printf", "ps", "pwd", "pytest", "python", "python3", "read", "realpath", "rev", "rm",
+  "rmdir", "scp", "sed", "set", "sh", "sleep", "sort", "source", "ssh", "sudo", "tail",
+  "tar", "tee", "test", "time", "touch", "tr", "true", "tsc", "uname", "uniq", "unset",
+  "wait", "wc", "wget", "which", "whoami", "xargs", "yarn", "yes", "zip", "zsh",
+] as const;
+const BARE_COMMAND_WORD_SET = new Set<string>(BARE_COMMAND_WORDS);
+const COMMAND_WORD_PATTERN = BARE_COMMAND_WORDS.join("|");
+const COMMAND_INVOCATION_PATTERN = new RegExp(`(?:^|\\b)(?:${COMMAND_WORD_PATTERN})\\s+[^\\n]*`, "iu");
+
+const REDACTION_CUSTOM_COMPONENT_PATTERN = /^custom:\[REDACTED(?:_[A-Z]+)?\]$/u;
+const VISTA_VERSION_PATTERN = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}._:+/@-]*$/u;
+const VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
+const VISTA_VERSION_UNSAFE_PATTERN = /(?:[\\|?&#=%;`$<>]|:\/|:\/\/|^[/~]|^[A-Za-z]:[/\\]|(?:^|\/)\.\.?(?:\/|$))/iu;
+
+const STATS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/u;
+const SENSITIVE_STATS_KEY_PATTERN = /(?:accesskey|accesstoken|apikey|auth|cookie|credential|password|passwd|privatekey|refreshtoken|secret|token|sshkey|signingkey|absolutepath|command|cwd|directory|filename|filepath|path|shell|url|uri|href)/u;
+const STATS_VALUE_PATTERN = /^[\p{L}\p{M}\p{N}._:@+-]{1,64}$/u;
+const REDACTION_MARKER_PATTERN = /^\[REDACTED(?:_[A-Z]+)?\]$/u;
+
+/** Maximum number of stats entries retained from one ArtifactRef. */
+export const MAX_STATS_ENTRIES = 32;
+
+/** Maximum length of a retained string stats value. */
+export const MAX_STATS_VALUE_LENGTH = 64;
+
+/** Return whether a value is exactly one recognized shell command word. */
+export function isBareCommandWord(value: unknown): boolean {
+  return typeof value === "string" && BARE_COMMAND_WORD_SET.has(value.toLowerCase());
+}
+
+/** Return whether a value contains a recognized command followed by arguments. */
+export function isCommandInvocation(value: unknown): boolean {
+  return typeof value === "string" && COMMAND_INVOCATION_PATTERN.test(value);
+}
+
+/** Return whether a custom-component suffix is exactly one recognized shell word. */
+export function isBareCustomComponentCommand(value: unknown): boolean {
+  return isBareCommandWord(value);
+}
+
+/**
+ * The shared custom-component shape used by the runtime validator and the
+ * redactor. The protocol type intentionally remains `custom:${string}`;
+ * runtime records require a non-empty, non-whitespace, control-free suffix;
+ * path-, credential-, URL-, and shell-like payloads are rejected. A bare
+ * command word is rejected only as the complete suffix, not as a namespace
+ * segment (for example, `custom:adapter/git/v2` is valid).
+ */
+export function isSafeCustomComponent(value: unknown): value is `custom:${string}` {
+  if (typeof value !== "string" || !value.startsWith("custom:")) {
+    return false;
+  }
+  if (REDACTION_CUSTOM_COMPONENT_PATTERN.test(value)) {
+    return true;
+  }
+  const name = value.slice("custom:".length);
+  return (
+    CUSTOM_COMPONENT_NAME_PATTERN.test(name) &&
+    !CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN.test(name) &&
+    !CUSTOM_COMPONENT_UNSAFE_PATTERN.test(name) &&
+    !hasKnownCredential(name) &&
+    !isBareCustomComponentCommand(name) &&
+    name.split("/").every((segment) => segment !== "." && segment !== "..")
+  );
+}
+
+/**
+ * Return whether a protocol version is safe to retain as an opaque label.
+ * Unknown versions intentionally use the same conservative grammar as known
+ * versions so readers can preserve them without retaining paths or payloads.
+ */
+export function isSafeVistaVersion(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (REDACTION_MARKER_PATTERN.test(value)) {
+    return true;
+  }
+  return (
+    VISTA_VERSION_PATTERN.test(value) &&
+    !VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN.test(value) &&
+    !VISTA_VERSION_UNSAFE_PATTERN.test(value) &&
+    !hasKnownCredential(value) &&
+    value.split("/").every((segment) =>
+      segment.length > 0 && segment !== "." && segment !== ".." && !isBareCommandWord(segment)
+    )
+  );
+}
+
+/** Return whether a stats key is a short, control-free metadata label. */
+export function isSafeStatsKey(value: unknown): value is string {
+  return typeof value === "string" && STATS_KEY_PATTERN.test(value);
+}
+
+/** Return whether a stats key is safe to retain after redaction. */
+export function isRetainedStatsKey(value: unknown): value is string {
+  return (
+    isSafeStatsKey(value) &&
+    !hasKnownCredential(value) &&
+    !SENSITIVE_STATS_KEY_PATTERN.test(value.replace(/[_.:-]/gu, "").toLowerCase())
+  );
+}
+
+/** Return whether an incoming stats string is bounded and control-free. */
+export function isValidStatsString(value: unknown): value is string {
+  return typeof value === "string" && value.length <= MAX_STATS_VALUE_LENGTH && !/[\p{Cc}\p{Cf}]/u.test(value);
+}
+
+/** Return whether a stats value can be retained as short metadata text. */
+export function isSafeStatsValue(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= MAX_STATS_VALUE_LENGTH &&
+    (REDACTION_MARKER_PATTERN.test(value) || (
+      STATS_VALUE_PATTERN.test(value) &&
+      !hasKnownCredential(value)
+    ))
+  );
+}

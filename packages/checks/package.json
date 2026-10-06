@@ -1,0 +1,32 @@
+{
+  "name": "@pi-vista/checks",
+  "version": "0.1.0",
+  "description": "Bounded, fail-closed programmatic predicates registered by trusted pi-vista hosts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build",
+    "typecheck": "npm run build && tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test \"dist-test/*.test.js\""
+  },
+  "dependencies": {
+    "@pi-vista/protocol": "0.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

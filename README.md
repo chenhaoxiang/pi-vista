@@ -7,6 +7,15 @@ A model-agnostic execution augmentation and experience system for Pi.
 > Every model call produces experience. Every model call consumes experience.  
 > No model is permanently "strong" or "weak" — the system grows regardless of which model runs.
 
+**Candidate checkout, not main:** this infrastructure integration combines seven
+public packages from pinned, open and unmerged source PRs. Validation is synthetic,
+offline **functional compatibility only**, not a privacy/security acceptance or
+publication claim. The [integration snapshot](docs/infrastructure-integration.md)
+records the old source pins' confirmed embedded `ghp_` / `github_pat_` identity
+leak. This security candidate adds a [bounded shared metadata fix](docs/metadata-safety.md),
+**pending independent review and acceptance**. Local validation does not clear
+live-use or release readiness; the historical snapshot remains unchanged.
+
 ---
 
 ## What it does
@@ -14,9 +23,9 @@ A model-agnostic execution augmentation and experience system for Pi.
 `pi-vista` gives any Pi session a persistent, verifiable execution memory:
 
 - **Record** every tool call, guard decision, gate check, and test result as a unified event stream
-- **Inspect** the full evidence chain behind any task or merge
-- **Replay** past execution paths with environment validation (Check Functions)
-- **Promote** verified experiences into long-term memory via Hindsight
+- **Inspect** recorded histories, checkpoints, count differences, and opaque receipt refs with the offline, read-only Phase 2 CLI
+- **Prepare** validation with a bounded, opt-in programmatic Check Function registry (Phase 3A predicate-only foundation, not replay or owner verification)
+- **Specify** promotion of verified experiences into Hindsight (future Phase 3 work)
 - **Adapt** — each verified run makes the next run better, regardless of which model executes it
 
 ---
@@ -36,7 +45,8 @@ A model-agnostic execution augmentation and experience system for Pi.
 │  event store │ checkpoint │ artifact refs        │
 │  check fn registry │ experience lifecycle        │
 │                                                  │
-│  inspect / history / compare / replay / promote  │
+│  Phase 2: history / inspect / compare / receipts │
+│  replay / promote (planned)                      │
 └──────────────────────┬──────────────────────────┘
                        │  verified + redacted → promote
                        ▼
@@ -46,7 +56,10 @@ A model-agnostic execution augmentation and experience system for Pi.
 └─────────────────────────────────────────────────┘
 ```
 
-pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executing normally. It is a pure observer — it never sits between a command and its execution.
+Core observation is **fail-open**: if it crashes or is unavailable, Pi continues
+executing normally. It never sits between a command and its execution. The
+separate opt-in Check Function API is **fail-closed** for predicate satisfaction,
+not a source of execution, merge, release or promotion authorization.
 
 ---
 
@@ -54,15 +67,13 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 
 | Package | Description |
 |---|---|
-| `@pi-vista/protocol` | Zero-dependency TypeScript interfaces and schemas |
+| `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
-| `@pi-vista/check` | Check Function engine for replay validation |
-| `@pi-vista/replay` | Replay manifests and dry-run execution |
-| `@pi-vista/inspect` | `vista history`, `vista inspect`, `vista compare` CLI |
-| `@pi-vista/promote` | Experience promotion pipeline to Hindsight |
-| `@pi-vista/adapter-pi` | Pi extension adapter |
-| `@pi-vista/adapter-test` | Test framework adapter |
-| `@pi-vista/adapter-browser` | Browser automation adapter |
+| `@pi-vista/adapter-pi` | Low-coupling Pi session/run context and safe tool summaries |
+| `@pi-vista/adapter-workspace-guard` | Public adapter for sanitized workspace-guard observations |
+| `@pi-vista/adapter-ai-gate` | Read-only mapping of sanitized owner-side gate evidence |
+| `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
+| `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
 
 ---
 
@@ -73,7 +84,7 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
 4. **Hindsight is the primary memory** — pi-vista maintains only a local short-term event buffer and executable policy files. Long-term semantic memory lives in Hindsight.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
-6. **Redaction at source** — raw commands, paths, and credentials never enter Hindsight, never enter the experience store, and never reach any model.
+6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. The bounded known-pattern candidate fix does not recognize arbitrary secret encodings or replace producer sanitization.
 
 ---
 
@@ -91,20 +102,82 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 ## Getting started
 
 ```bash
-npm install @pi-vista/protocol @pi-vista/core
+npm install @pi-vista/core
+# Optional explicit observation helpers:
+npm install @pi-vista/adapter-pi @pi-vista/adapter-workspace-guard @pi-vista/adapter-ai-gate
 ```
 
-See [docs/getting-started.md](docs/getting-started.md) for adapter setup.
+These are package-consumer usage examples, not evidence of registry availability.
+`@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so a
+consumer install requires the matching protocol package too. Install
+`@pi-vista/protocol` separately when importing its interfaces directly:
+
+```bash
+npm install @pi-vista/protocol
+```
+
+Phase 1 provides protocol interfaces, redaction, event emission, and local
+stores. This checkout also implements the bounded Phase 2 `@pi-vista/cli`
+observation slice; this is not a registry-publication or deployment claim.
+This checkout also includes the first Phase 3A programmatic Check Function
+foundation. Trusted host code explicitly registers boolean predicates; opt-in
+`sha_matches`/`env_matches` compare safe host-supplied metadata, not actual Git
+or environment observations. STOP/WARN are supported, REPAIR is refused before
+callbacks, and missing/exceptional/malformed/timed-out checks fail closed. Reports
+always say `verification: predicate-only` and `authorization: none`.
+Experience promotion, replay, owner probes and CLI check commands remain future
+work. See [docs/check-functions.md](docs/check-functions.md) for the strict safe
+input subset, snapshots, ordering and non-preemptive timeout limits.
+
+```bash
+npm run build
+node packages/cli/dist/bin.js history --base-dir ./synthetic-store
+node packages/cli/dist/bin.js inspect run-example --base-dir ./synthetic-store --json
+node packages/cli/dist/bin.js compare run-example run-other --base-dir ./synthetic-store
+node packages/cli/dist/bin.js receipts run-example --base-dir ./synthetic-store
+```
+
+An installed CLI package exposes the same entrypoint as `vista`. All views are
+recorded-only and core-best-effort, not exhaustive audits. Receipt `verified`
+flags and `ok` results are owner claims, not independent verification or
+execution/merge authorization. The CLI never resolves artifact content or writes
+storage. See [docs/cli.md](docs/cli.md) for privacy, limits and exit semantics,
+and [docs/getting-started.md](docs/getting-started.md) for adapter setup.
+
+### Artifact statistics
+
+`ArtifactRef.stats` accepts finite numbers and short metadata strings. The core
+redactor retains at most 32 entries with short labels and values (up to 64
+characters), while credential-, path-, URL-, and shell-like names or values are
+redacted or omitted. Stats never carry artifact content or secrets.
+
+Custom components are structured `custom:<namespace>` identifiers, not shell
+commands. A recognized command word is rejected when it is the complete suffix
+(for example, `custom:pwd` and `custom:bash`), while command words inside a
+namespace remain valid (for example, `custom:adapter/git/v2`). Emission and
+EventStore writes validate before persistence, and readers discard invalid
+records.
 
 ---
 
 ## Integration
 
-- [Pi adapter](docs/adapters/pi.md)
-- [workspace-guard adapter](docs/adapters/workspace-guard.md)
+- [Infrastructure candidate, source pins, synthetic validation and blockers](docs/infrastructure-integration.md)
+- [Shared credential metadata safety candidate and limits](docs/metadata-safety.md)
+- [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
-- [Laya adapter](docs/adapters/laya.md)
-- [Kev adapter](docs/adapters/kev.md)
+- [Pi run-context adapter](docs/adapters/pi.md)
+
+The Pi adapter is a public helper only: Pi private extensions call it explicitly;
+pi-vista does not install, patch, or hook Pi automatically. It does not own Pi
+execution, fallback, watchdog, permission, or model-routing decisions.
+
+`@pi-vista/adapter-ai-gate` consumes only owner-side, already-sanitized and
+structured evidence. It is model-agnostic and read-only: it does not run
+`gh`/API calls, read PR/CI/review content or gate configuration, infer a gate
+result, or change ai-gate admission, merge, or deployment behavior.
+
+Additional adapters are future work; the links above are the adapter guides shipped in Phase 1.
 
 ---
 

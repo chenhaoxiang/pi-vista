@@ -25,6 +25,11 @@ export interface ArtifactRef {
   /** Whether the owning system verified this artifact */
   verified?: boolean | undefined;
 
-  /** Summary stats (e.g. { passed: 19, total: 19 }) */
+  /**
+   * Short summary metadata (for example `{ passed: 19, total: 19 }`).
+   * Numbers must be finite. String labels/values are bounded and are retained
+   * only when the core redactor's credential/path/shell-safe policy permits;
+   * callers must never use stats for artifact content or secrets.
+   */
   stats?: Record<string, number | string> | undefined;
 }

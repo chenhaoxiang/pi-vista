@@ -1,0 +1,36 @@
+{
+  "name": "@pi-vista/cli",
+  "version": "0.1.0",
+  "description": "Offline, read-only observation of pi-vista recorded events, checkpoints, and artifact references",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "vista": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('node:fs').chmodSync('dist/bin.js', 0o755)\"",
+    "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build",
+    "typecheck": "npm run build && tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test \"dist-test/*.test.js\""
+  },
+  "dependencies": {
+    "@pi-vista/core": "0.1.0",
+    "@pi-vista/protocol": "0.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

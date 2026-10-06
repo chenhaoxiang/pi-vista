@@ -38,6 +38,52 @@ effective_capability =
     └── experience.jsonl           # experience promotion log (append-only)
 ```
 
+Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins (last-writer-wins). A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
+
+Check-function repair is an opaque contract: `VistaCheckFunction` may carry only a
+`repair_action_id`, never a shell command, command template, or executable text.
+A trusted policy registry must validate and resolve that identifier to an
+allowlisted repair action before execution. Unregistered or untrusted protocol
+input cannot select arbitrary shell behavior. This registry boundary is
+separate from fail-open event/checkpoint observation and does not change the
+safety authority of workspace-guard or ai-gate.
+
+The implemented Phase 3A first slice, `@pi-vista/checks`, is separate from core
+storage: trusted host code explicitly registers in-process predicates for
+`VistaCheckFunction` descriptions. It validates all own-data definitions,
+params, safe structured context and bounded options before callbacks, then uses
+detached immutable snapshots. STOP/WARN are supported; REPAIR is refused before
+any callback and repair IDs are never resolved, including on STOP/WARN. Missing
+handlers, exceptions, invalid verdicts and timeouts fail closed for predicate
+satisfaction, unlike fail-open observation. Timeouts bound asynchronous waits,
+not synchronous blocking code or host side effects.
+
+Its opt-in `sha_matches`/`env_matches` are pure safe expected/actual metadata
+comparisons, not independent Git/environment/owner probes. There are no default
+path/branch/worktree/receipt/test implementations, policy-file loading, shell or
+dynamic code, filesystem/network/process operations, runtime persistence,
+Hindsight, CLI check commands, replay or promotion. Reports carry
+`verification: predicate-only` and `authorization: none` and exclude raw params,
+context, descriptions and errors. Predicate passes never override safety
+admission or infer permission from recorded flags. See
+[check-functions.md](check-functions.md) for the maintained API and limits.
+
+`ArtifactRef.stats` is limited to finite numbers and short metadata strings.
+The core redactor retains at most 32 entries and at most 64 characters per
+string, and applies credential/path/URL/shell redaction before retaining text;
+stats do not contain artifact content. Unknown object property names that look
+like paths, credentials, tokens, or shell syntax are dropped before persistence;
+protocol fields, legal metadata, and safe stats keys remain discoverable.
+
+Custom components are structured identifiers, not shell command fields. The
+runtime grammar rejects a recognized shell command word when it is the complete
+custom suffix (for example, `custom:pwd`, `custom:whoami`, `custom:rm`,
+`custom:cat`, `custom:git`, `custom:curl`, and `custom:bash`). The boundary is
+anchored to the complete suffix: command words inside a namespace remain valid,
+so `custom:adapter/git/v2` is retained. Validation happens before emission or
+EventStore writes; readers discard records that fail the same grammar, so an
+invalid component is never persisted or returned as a valid event.
+
 ### Layer 2: Hindsight (primary long-term memory)
 
 Hindsight provides the semantic memory layer. pi-vista writes to it only when an experience passes promotion criteria:
@@ -117,7 +163,15 @@ The following can **never** be overridden by pi-vista, regardless of what experi
 3. production, credential, and billing hard gates
 4. Kev G2/D2 isolation boundaries
 
-pi-vista is **fail-open**: its unavailability never blocks task execution.
+Core observation is **fail-open**: its unavailability never blocks task
+execution. The optional programmatic checks API is **fail-closed** only for its
+own predicate satisfaction report. It neither intercepts execution nor grants
+replay, merge, release or promotion permission. Actual safety decisions remain
+with the owners listed above.
+
+## Protocol versions
+
+Phase 1 is currently a 0.x protocol. `vista_version` may be omitted for legacy records, but when present it must be a non-empty, control-free, safe version label. Safe unknown versions may use namespace slashes (for example, `future/1`) but must not contain credentials, paths, URLs, or shell payloads. Readers retain unknown version strings for inspection; validation checks the record shape and safety constraints only and must not treat an unknown version as the current protocol. A future compatibility decision will be explicit rather than inferred.
 
 ---
 
