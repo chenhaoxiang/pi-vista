@@ -195,12 +195,31 @@ const result = await runCli([
 // result: { exitCode, stdout, stderr }; the API does not print it.
 ```
 
-`parseArgs` and `observe` reject invalid input with fixed-message `CliError`
-codes `usage`, `observation`, or `output`. Structured requests reject unknown
-keys, getters, inherited request objects, and **explicitly present undefined**
-optional fields; omit optional fields instead. `runCli` converts errors to the
-fixed process result above. Neither importing the package nor parsing arguments
-reads storage. Exported constants describe the same limits as this guide.
+`parseArgs` and `observe` reject malformed input with fixed-message
+`CliError("usage")`; observation/output failures use the fixed `observation` or
+`output` codes. Both input boundaries reject Node-detectable Proxies (including
+revoked Proxies) before reflection, without invoking traps, getters, iterators,
+coercion hooks, or thenables.
+
+Structured requests must have `Object.prototype` or `null` as their prototype.
+Only **own data descriptors** are copied into a detached snapshot; inherited
+fields are never consulted, including input-field pollution on
+`Object.prototype`. Unknown keys, symbols, accessors, custom prototypes, and
+**explicitly present undefined** optional fields are rejected; omit optional
+fields instead. Own non-enumerable data and frozen requests remain valid.
+Validated requests have a null prototype, so later optional-field lookups cannot
+fall through to prototype getters or change with mutations to the source object.
+Core store options are likewise own data without a prototype.
+
+Argument arrays must be ordinary, dense arrays with only their own `length` and
+string-valued indexed data descriptors. Element/method accessors, symbols, extra
+keys, holes, and custom prototypes are rejected without calling source code.
+Ordinary readonly/frozen arrays and non-enumerable indexed data remain valid.
+Parsing uses a detached array snapshot, never the original array's methods,
+iterator, or repeated property reads. All malformed-input exceptions normalize
+to the same usage error; `runCli` renders exit 2, empty stdout and the fixed
+stderr message above. Neither importing the package nor parsing arguments reads
+storage. Exported constants describe the same limits as this guide.
 
 ## Validation and remaining phases
 
@@ -209,8 +228,10 @@ only disposable synthetic stores. Directory inventories and SHA-256 file hashes
 before/after prove no storage writes; absent stores stay absent. Tests cover
 binding, corrupt/cross-identity/unreadable records, unsafe IDs/keys, core-retained
 wrapped tokens, unknown versions, strict errors, deterministic counts and both
-nested/byte limits. Repository build/typecheck/test and package dry-run/import/
-bin smoke are separate checks; an offline tarball extraction is **not** a clean
+nested/byte limits. API regressions also assert zero source getter/Proxy-trap
+calls, rejection before every core reader, prototype-pollution isolation, and
+detachment across awaited reads. Repository build/typecheck/test and package
+dry-run/import/bin smoke are separate checks; an offline tarball extraction is **not** a clean
 consumer install. See [getting-started.md](getting-started.md) and
 [PHASES.md](PHASES.md). Promote, replay, Check Function execution/registration,
 and Hindsight writes remain future work with separate safety authority.

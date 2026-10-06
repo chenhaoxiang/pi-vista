@@ -1,3 +1,4 @@
+import { types } from "node:util";
 import { CliError, MAX_LIMIT, type ObservationRequest, type ParsedCommand } from "./contract.js";
 import { isBoundStep, isCliIdentifier } from "./safety.js";
 
@@ -13,59 +14,67 @@ function validBaseDir(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.length <= 4096 && !/[\p{Cc}\p{Cf}]/u.test(value);
 }
 
-/** Validate the public structured API as strictly as CLI arguments, including present undefined. */
+/** Read only own data descriptors; reject proxies before any observable operation. */
 export function validateRequest(input: ObservationRequest): ObservationRequest {
   try {
-    if (input === null || typeof input !== "object" || Array.isArray(input)) invalid();
-    const value = input as unknown as Record<string, unknown>;
-    const prototype = Object.getPrototypeOf(value);
+    if (types.isProxy(input) || input === null || typeof input !== "object" || Array.isArray(input)) invalid();
+    const prototype = Object.getPrototypeOf(input);
     if (prototype !== Object.prototype && prototype !== null) invalid();
-    for (const key of Reflect.ownKeys(value)) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (descriptor === undefined || !("value" in descriptor) || descriptor.value === undefined) invalid();
+    const values = new Map<string, unknown>();
+    for (const key of Reflect.ownKeys(input)) {
+      if (typeof key !== "string") invalid();
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (descriptor === undefined || !Object.hasOwn(descriptor, "value") || descriptor.value === undefined) invalid();
+      values.set(key, descriptor.value);
     }
-    const command = value.command;
+    const command = values.get("command");
     if (typeof command !== "string" || !COMMANDS.has(command)) invalid();
     const commandKeys = command === "compare" ? ["runIdA", "runIdB"]
       : command === "inspect" ? ["runId", "stepId"] : ["runId"];
     const allowed = new Set([...COMMON_KEYS, ...commandKeys]);
-    for (const key of Reflect.ownKeys(value)) {
-      if (typeof key !== "string" || !allowed.has(key)) invalid();
-    }
-    const has = (key: string): boolean => Object.hasOwn(value, key);
-    if (!has("command")) invalid();
-    if (has("baseDir") && !validBaseDir(value.baseDir)) invalid();
-    if (has("limit") && (typeof value.limit !== "number" || !Number.isInteger(value.limit) || value.limit < 1 || value.limit > MAX_LIMIT)) invalid();
-    const common = {
-      ...(has("baseDir") ? { baseDir: value.baseDir as string } : {}),
-      ...(has("limit") ? { limit: value.limit as number } : {}),
-    };
+    for (const key of values.keys()) if (!allowed.has(key)) invalid();
+    const baseDir = values.get("baseDir");
+    const limit = values.get("limit");
+    const runId = values.get("runId");
+    if (values.has("baseDir") && !validBaseDir(baseDir)) invalid();
+    if (values.has("limit") && (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT)) invalid();
     if (command === "compare") {
-      if (!has("runIdA") || !has("runIdB") || !isCliIdentifier(value.runIdA) || !isCliIdentifier(value.runIdB)) invalid();
-      return { command, runIdA: value.runIdA, runIdB: value.runIdB, ...common };
+      if (!isCliIdentifier(values.get("runIdA")) || !isCliIdentifier(values.get("runIdB"))) invalid();
+    } else {
+      if ((command !== "history" || values.has("runId")) && !isCliIdentifier(runId)) invalid();
+      if (command === "inspect" && values.has("stepId") && !isBoundStep(runId, values.get("stepId"))) invalid();
     }
-    if (has("runId") && !isCliIdentifier(value.runId)) invalid();
-    if (command !== "history" && !has("runId")) invalid();
-    if (command === "inspect") {
-      if (has("stepId") && !isBoundStep(value.runId, value.stepId)) invalid();
-      return { command, runId: value.runId as string, ...(has("stepId") ? { stepId: value.stepId as string } : {}), ...common };
-    }
-    if (command === "receipts") return { command, runId: value.runId as string, ...common };
-    return { command: "history", ...(has("runId") ? { runId: value.runId as string } : {}), ...common };
+    // Optional lookups downstream must not fall through to Object.prototype.
+    const request = Object.create(null) as Record<string, unknown>;
+    for (const [key, value] of values) request[key] = value;
+    return request as ObservationRequest;
   } catch {
     return invalid();
   }
 }
 
-/** Options may precede or follow the command. Duplicate/unknown options are errors. */
-export function parseArgs(argv: readonly string[]): ParsedCommand {
-  if (!Array.isArray(argv) || argv.length > 32) invalid();
-  for (let index = 0; index < argv.length; index += 1) {
-    const value = argv[index];
+function snapshotArgv(input: readonly string[]): string[] {
+  if (types.isProxy(input) || !Array.isArray(input) || Object.getPrototypeOf(input) !== Array.prototype) invalid();
+  const descriptor = Object.getOwnPropertyDescriptor(input, "length");
+  if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) invalid();
+  const length: unknown = descriptor.value;
+  if (typeof length !== "number" || !Number.isInteger(length) || length < 0 || length > 32) invalid();
+  // Dense indices plus length must exhaust own keys, excluding symbols/extras.
+  if (Reflect.ownKeys(input).length !== length + 1) invalid();
+  const argv: string[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const element = Object.getOwnPropertyDescriptor(input, String(index));
+    if (element === undefined || !Object.hasOwn(element, "value")) invalid();
+    const value: unknown = element.value;
     if (typeof value !== "string" || value.length === 0 || value.length > 4096 || /[\p{Cc}\p{Cf}]/u.test(value)) invalid();
+    argv.push(value);
   }
+  return argv;
+}
+
+function parseSnapshot(argv: readonly string[]): ParsedCommand {
   if (argv.length === 0) return { kind: "help" };
-  const info = argv.filter((arg) => arg === "--help" || arg === "-h" || arg === "--version");
+  const info: readonly string[] = argv.filter((arg) => arg === "--help" || arg === "-h" || arg === "--version");
   if (info.length > 0) {
     const rest = argv.filter((arg) => !info.includes(arg));
     if (info.length !== 1 || rest.length > 1 || (rest.length === 1 && !COMMANDS.has(rest[0]!))) invalid();
@@ -117,4 +126,13 @@ export function parseArgs(argv: readonly string[]): ParsedCommand {
     return invalid();
   }
   return { kind: "observation", request: validateRequest(request), json };
+}
+
+/** Parse detached dense data only; malformed input always yields a fixed usage error. */
+export function parseArgs(input: readonly string[]): ParsedCommand {
+  try {
+    return parseSnapshot(snapshotArgv(input));
+  } catch {
+    return invalid();
+  }
 }

@@ -88,8 +88,11 @@ function receipts(pairs: ReadEvents["pairs"]): { items: ReceiptView[]; withheld:
 
 async function readObservation(request: ObservationRequest): Promise<ObservationView> {
   const limit = request.limit ?? DEFAULT_LIMIT;
-  const events = new EventStore(request.baseDir !== undefined ? { baseDir: request.baseDir } : {});
-  const checkpoints = new CheckpointStore(request.baseDir !== undefined ? { baseDir: request.baseDir } : {});
+  // An absent baseDir must not consult Object.prototype inside public core stores.
+  const options = Object.create(null) as { baseDir?: string };
+  if (request.baseDir !== undefined) options.baseDir = request.baseDir;
+  const events = new EventStore(options);
+  const checkpoints = new CheckpointStore(options);
   if (request.command === "history" && request.runId === undefined) {
     const returned = await events.listRuns();
     const safe = returned.filter(isCliIdentifier).sort(compareText);

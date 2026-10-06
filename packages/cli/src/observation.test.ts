@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { CheckpointStore, EventStore } from "@pi-vista/core";
 import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
-import { CliError, DEFAULT_LIMIT, MAX_ID_LENGTH, MAX_OUTPUT_BYTES, NESTED_LIMIT, observe, runCli, STATS_LIMIT, type ObservationView } from "@pi-vista/cli";
+import { CliError, DEFAULT_LIMIT, MAX_ID_LENGTH, MAX_OUTPUT_BYTES, NESTED_LIMIT, observe, runCli, STATS_LIMIT, type ObservationRequest, type ObservationView } from "@pi-vista/cli";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const bin = join(root, "packages/cli/dist/bin.js");
@@ -454,4 +454,54 @@ test("spawned bin broken stdout pipe exits 1 without raw stream errors", { timeo
   });
   deepStrictEqual(result, { code: 1, signal: null });
   strictEqual(stderr, "");
+});
+
+test("observe and runCli keep detached validated data when original inputs change during awaited reads", async () => {
+  const base = await sandbox();
+  const readRun = EventStore.prototype.readRun;
+  let getterCalls = 0;
+  const fail = () => { getterCalls += 1; throw new Error(`SYNTHETIC_PRIVATE_${wrappedGhp}`); };
+  try {
+    const before = await snapshot(base);
+    const request: ObservationRequest = { command: "compare", runIdA: "run-a", runIdB: "run-b", baseDir: base, limit: 1 };
+    const reads: string[] = [];
+    EventStore.prototype.readRun = async function (runId) {
+      strictEqual(this.baseDir, base);
+      reads.push(runId);
+      if (reads.length === 1) {
+        for (const key of ["command", "runIdA", "runIdB", "baseDir", "limit", "then"]) {
+          Object.defineProperty(request, key, { get: fail, configurable: true });
+        }
+        Object.setPrototypeOf(request, Object.defineProperty({}, "runId", { get: fail }));
+      }
+      await Promise.resolve();
+      return [];
+    };
+    const view = await observe(request);
+    if (view.command !== "compare") throw new Error("unexpected view");
+    strictEqual(view.run_id_a, "run-a"); strictEqual(view.run_id_b, "run-b");
+    deepStrictEqual(reads, ["run-a", "run-b"]);
+
+    const argv = ["history", "run-a", "--json", "--base-dir", base];
+    EventStore.prototype.readRun = async function (runId) {
+      strictEqual(this.baseDir, base);
+      reads.push(runId);
+      argv.length = 0;
+      Object.defineProperty(argv, "0", { get: fail });
+      Object.defineProperty(argv, Symbol.iterator, { get: fail });
+      Object.setPrototypeOf(argv, Object.defineProperty({}, "length", { get: fail }));
+      await Promise.resolve();
+      return [];
+    };
+    const result = await runCli(argv);
+    strictEqual(result.exitCode, 0); strictEqual(result.stderr, "");
+    const timeline = jsonView(result.stdout);
+    if (timeline.command !== "history" || timeline.mode !== "timeline") throw new Error("unexpected view");
+    strictEqual(timeline.run_id, "run-a");
+    deepStrictEqual(reads, ["run-a", "run-b", "run-a"]);
+    strictEqual(getterCalls, 0);
+    strictEqual(JSON.stringify(view).includes(wrappedGhp), false);
+    strictEqual(result.stdout.includes(wrappedGhp), false);
+    deepStrictEqual(await snapshot(base), before);
+  } finally { EventStore.prototype.readRun = readRun; await rm(base, { recursive: true, force: true }); }
 });
