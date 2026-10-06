@@ -28,8 +28,13 @@ export VISTA_RUN_ID=$(node -e "console.log(crypto.randomUUID())")
 
 ## 3. Add emit calls to your adapters
 
-See the adapter docs:
-- [workspace-guard](adapters/workspace-guard.md)
+See the adapter docs. For public workspace-guard observation integration:
+
+```bash
+npm install @pi-vista/adapter-workspace-guard
+```
+
+- [workspace-guard public adapter](adapters/workspace-guard.md)
 - [ai-gate](adapters/ai-gate.md)
 
 ## 4. Planned Phase 2 tools

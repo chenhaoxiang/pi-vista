@@ -7,11 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core",
-    "test": "npm run build && npm run test --workspace=@pi-vista/core && npm run test --workspace=@pi-vista/protocol",
+    "build": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build --workspace=@pi-vista/adapter-workspace-guard",
+    "test": "npm run build && npm run test --workspace=@pi-vista/core && npm run test --workspace=@pi-vista/protocol && npm run test --workspace=@pi-vista/adapter-workspace-guard",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol",
-    "pack:dry-run": "npm pack --dry-run --workspace=@pi-vista/protocol && npm pack --dry-run --workspace=@pi-vista/core"
+    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/adapter-workspace-guard",
+    "pack:dry-run": "npm pack --dry-run --workspace=@pi-vista/protocol && npm pack --dry-run --workspace=@pi-vista/core && npm pack --dry-run --workspace=@pi-vista/adapter-workspace-guard"
   },
   "keywords": [
     "ai-agent",

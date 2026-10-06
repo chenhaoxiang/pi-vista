@@ -57,6 +57,7 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 |---|---|
 | `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
+| `@pi-vista/adapter-workspace-guard` | Public adapter for sanitized workspace-guard observations |
 
 ---
 
@@ -119,7 +120,7 @@ records.
 
 ## Integration
 
-- [workspace-guard adapter](docs/adapters/workspace-guard.md)
+- [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 
 Additional adapters are future work; the links above are the only adapter guides shipped in Phase 1.
