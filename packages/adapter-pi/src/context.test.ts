@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { CheckpointStore, EventStore, isSafeSegment, type VistaEvent } from "@pi-vista/core";
-import { createPiRunContext, VistaProtocolError } from "./index.js";
+import { createPiRunContext, VistaProtocolError, type PiCheckpointInput } from "./index.js";
 
 async function temporaryDirectory(): Promise<string> {
   return mkdtemp(join(tmpdir(), "pi-vista-adapter-pi-"));
@@ -24,6 +24,38 @@ function withEnvironment<T>(values: Record<string, string | undefined>, callback
       else process.env[key] = value;
     }
   }
+}
+
+async function withObjectPrototypeProperties<T>(
+  properties: PropertyDescriptorMap,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  const previous = Object.keys(properties).map((key) => [
+    key,
+    Object.getOwnPropertyDescriptor(Object.prototype, key),
+  ] as const);
+  try {
+    for (const [key, descriptor] of Object.entries(properties)) {
+      Object.defineProperty(Object.prototype, key, { ...descriptor, configurable: true });
+    }
+    return await callback();
+  } finally {
+    for (const [key, descriptor] of previous) {
+      if (descriptor === undefined) Reflect.deleteProperty(Object.prototype, key);
+      else Object.defineProperty(Object.prototype, key, descriptor);
+    }
+  }
+}
+
+function checkpointInput(): PiCheckpointInput {
+  return {
+    task_goal: "safe summary",
+    current_state: "safe state",
+    source_sha: "sha",
+    env_fingerprint: "env",
+    policy_version: "policy-1",
+    resumable: false,
+  };
 }
 
 test("run and session IDs use explicit values, safe environments, and safe fallback", () => {
@@ -205,6 +237,148 @@ test("hostile prototypes, accessors, and proxies are rejected", async () => {
   await rejects(async () => { createPiRunContext(hostileOptions); }, VistaProtocolError);
 });
 
+test("normalization ignores polluted Object.prototype data across all input records", async () => {
+  const pollution = {
+    tool: "inherited-tool",
+    result: "ok",
+    runId: "inherited-run",
+    sessionId: "inherited-session",
+    persistTimeoutMs: -1,
+    action: "inherited-action",
+    reasonCode: "inherited-reason",
+    type: "inherited-type",
+    ref: "inherited-ref",
+    sha: "inherited-sha",
+    verified: true,
+    stats: { inheritedCount: 99 },
+    inheritedCount: 99,
+    taskGoal: "inherited goal",
+    pendingSteps: ["other-run_s0"],
+  };
+  const properties = Object.fromEntries(Object.entries(pollution).map(([key, value]) => [
+    key,
+    { value, writable: true },
+  ]));
+  const previous = Object.keys(properties).map((key) => Object.getOwnPropertyDescriptor(Object.prototype, key));
+  const emitted: VistaEvent[] = [];
+  const saved: unknown[] = [];
+  await withObjectPrototypeProperties(properties, async () => {
+    withEnvironment({ VISTA_RUN_ID: "run-own-data-env", PI_SESSION_ID: undefined }, () => {
+      for (const context of [createPiRunContext(), createPiRunContext({})]) {
+        strictEqual(context.runId, "run-own-data-env");
+        strictEqual(context.sessionId, undefined);
+      }
+    });
+    const context = withEnvironment({ PI_SESSION_ID: undefined }, () => createPiRunContext({
+      runId: "run-own-data",
+      now: 123,
+      emit: async (event) => {
+        emitted.push(event as VistaEvent);
+        return event as VistaEvent;
+      },
+      checkpointStore: {
+        async save(checkpoint): Promise<void> {
+          saved.push(checkpoint);
+        },
+      },
+    }));
+    await rejects(() => context.emitToolCall({}), VistaProtocolError);
+    await rejects(() => context.emitToolResult({ tool: "read" } as never), VistaProtocolError);
+    for (const artifact of [{ ref: "receipt-1" }, { type: "diff" }]) {
+      await rejects(
+        () => context.emitToolCall({ tool: "read", artifact_refs: [artifact] } as never),
+        VistaProtocolError,
+      );
+    }
+    const { task_goal: _taskGoal, ...missingGoal } = checkpointInput();
+    await rejects(() => context.checkpoint(missingGoal), VistaProtocolError);
+
+    await context.emitToolResult({
+      tool: "read",
+      result: "blocked",
+      artifact_refs: [
+        { type: "diff", ref: "receipt-1" },
+        { type: "test_result", ref: "receipt-2", stats: { count: 1 } },
+      ],
+    });
+    await context.checkpoint(checkpointInput());
+  });
+  deepStrictEqual(emitted, [{
+    run_id: "run-own-data",
+    step_id: "run-own-data_s0",
+    component: "pi",
+    action: "pi:tool_result:read",
+    result: "blocked",
+    artifact_refs: [
+      { type: "diff", ref: "receipt-1" },
+      { type: "test_result", ref: "receipt-2", stats: { count: 1 } },
+    ],
+  }]);
+  deepStrictEqual(saved, [{
+    run_id: "run-own-data",
+    step_id: "run-own-data_s0",
+    ts: 123,
+    task_goal: "safe summary",
+    completed_steps: [],
+    current_state: "safe state",
+    pending_steps: [],
+    source_sha: "sha",
+    env_fingerprint: "env",
+    policy_version: "policy-1",
+    check_fn_ids: [],
+    resumable: false,
+  }]);
+  deepStrictEqual(
+    Object.keys(properties).map((key) => Object.getOwnPropertyDescriptor(Object.prototype, key)),
+    previous,
+  );
+});
+
+test("normalization neither invokes nor accepts inherited getters", async () => {
+  let getterCalls = 0;
+  const keys = [
+    "tool", "tool_name", "name", "result", "runId", "run_id", "sessionId",
+    "persistTimeoutMs", "action", "reasonCode", "artifactRefs", "type", "ref",
+    "sha", "verified", "stats", "taskGoal", "task_goal", "pendingSteps",
+  ];
+  const properties = Object.fromEntries(keys.map((key) => [key, {
+    get(): never {
+      getterCalls += 1;
+      throw new Error("inherited getter must not run");
+    },
+  }]));
+  const previous = keys.map((key) => Object.getOwnPropertyDescriptor(Object.prototype, key));
+  await withObjectPrototypeProperties(properties, async () => {
+    withEnvironment({ VISTA_RUN_ID: "run-own-getter-env", PI_SESSION_ID: undefined }, () => {
+      strictEqual(createPiRunContext().runId, "run-own-getter-env");
+      strictEqual(createPiRunContext({}).sessionId, undefined);
+    });
+    const context = createPiRunContext({
+      runId: "run-own-getter",
+      now: 123,
+      emit: async (event) => event as VistaEvent,
+      checkpointStore: { async save(): Promise<void> {} },
+    });
+    await rejects(() => context.emitToolCall({}), VistaProtocolError);
+    await rejects(() => context.emitToolResult({ tool: "read" } as never), VistaProtocolError);
+    await rejects(
+      () => context.emitToolCall({ tool: "read", artifact_refs: [{}] } as never),
+      VistaProtocolError,
+    );
+    const { task_goal: _taskGoal, ...missingGoal } = checkpointInput();
+    await rejects(() => context.checkpoint(missingGoal), VistaProtocolError);
+    const event = await context.emitToolResult({
+      tool: "read",
+      result: "ok",
+      artifact_refs: [{ type: "diff", ref: "receipt-1" }],
+    });
+    strictEqual(event?.action, "pi:tool_result:read");
+    await context.checkpoint(checkpointInput());
+  });
+  strictEqual(getterCalls, 0);
+  deepStrictEqual(keys.map((key) => Object.getOwnPropertyDescriptor(Object.prototype, key)), previous);
+});
+
 test("mock emitter/store round-trip remains fail-open", async () => {
   const emitted: VistaEvent[] = [];
   const context = createPiRunContext({
@@ -241,6 +415,103 @@ test("mock emitter/store round-trip remains fail-open", async () => {
     },
   });
   strictEqual(await rejectingEmitter.emitToolCall({ tool: "read" }), undefined);
+});
+
+test("custom emit and checkpointStore.save bound hanging promises, including the 250 ms default", { timeout: 2000 }, async () => {
+  for (const persistTimeoutMs of [0, 10, undefined]) {
+    let emitterCalls = 0;
+    let checkpointCalls = 0;
+    const context = createPiRunContext({
+      runId: "run-hanging-observers",
+      persistTimeoutMs,
+      emit: () => {
+        emitterCalls += 1;
+        return new Promise(() => undefined);
+      },
+      checkpointStore: {
+        save: () => {
+          checkpointCalls += 1;
+          return new Promise(() => undefined);
+        },
+      },
+    });
+    const started = Date.now();
+    const call = context.emitToolCall({ tool: "read" });
+    const result = context.emitToolResult({ tool: "read", result: "ok" });
+    const checkpoint = context.checkpoint(checkpointInput());
+    await Promise.all([context.flush(), context.end()]);
+    deepStrictEqual(await Promise.all([call, result, checkpoint]), [undefined, undefined, undefined]);
+    const elapsed = Date.now() - started;
+    strictEqual(elapsed < 1000, true);
+    if (persistTimeoutMs === undefined) strictEqual(elapsed >= 200, true);
+    strictEqual(emitterCalls, 2);
+    strictEqual(checkpointCalls, 1);
+    await context.flush();
+    await context.end();
+  }
+});
+
+test("late custom observer rejections after timeout do not emit unhandledRejection", { timeout: 1000 }, async () => {
+  let rejectEmission: ((reason?: unknown) => void) | undefined;
+  let rejectCheckpoint: ((reason?: unknown) => void) | undefined;
+  const context = createPiRunContext({
+    runId: "run-late-observers",
+    persistTimeoutMs: 5,
+    emit: () => new Promise((_resolve, reject) => {
+      rejectEmission = reject;
+    }),
+    checkpointStore: {
+      save: () => new Promise<void>((_resolve, reject) => {
+        rejectCheckpoint = reject;
+      }),
+    },
+  });
+  const unhandled: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown): void => {
+    unhandled.push(reason);
+  };
+  process.on("unhandledRejection", onUnhandledRejection);
+  try {
+    const emission = context.emitToolCall({ tool: "read" });
+    const checkpoint = context.checkpoint(checkpointInput());
+    strictEqual(await emission, undefined);
+    await checkpoint;
+    strictEqual(typeof rejectEmission, "function");
+    strictEqual(typeof rejectCheckpoint, "function");
+    rejectEmission?.(new VistaProtocolError("late emitter failure"));
+    rejectCheckpoint?.(new Error("late checkpoint failure"));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await context.flush();
+    await context.end();
+    deepStrictEqual(unhandled, []);
+  } finally {
+    process.off("unhandledRejection", onUnhandledRejection);
+  }
+});
+
+test("custom emitter protocol errors remain visible before timeout", async () => {
+  const context = createPiRunContext({
+    runId: "run-custom-protocol-error",
+    emit: async () => { throw new VistaProtocolError("invalid event"); },
+  });
+  await rejects(() => context.emitToolCall({ tool: "read" }), VistaProtocolError);
+  await context.flush();
+  await context.end();
+});
+
+test("default core emitter retains its event result when append times out", { timeout: 1000 }, async () => {
+  const context = createPiRunContext({
+    runId: "run-core-timeout",
+    now: 123,
+    persistTimeoutMs: 0,
+    store: { append: () => new Promise(() => undefined) },
+  });
+  const event = await context.emitToolResult({ tool: "read", result: "ok" });
+  strictEqual(event?.run_id, "run-core-timeout");
+  strictEqual(event?.step_id, "run-core-timeout_s0");
+  strictEqual(event?.ts, 123);
+  strictEqual(event?.result, "ok");
+  await context.end();
 });
 
 test("real core stores can be used without a Pi-private dependency", async () => {

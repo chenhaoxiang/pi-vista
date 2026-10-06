@@ -22,6 +22,10 @@ export interface PiRunContextOptions {
   run_id?: string | undefined;
   sessionId?: string | undefined;
   session_id?: string | undefined;
+  /**
+   * Maximum wait for custom emit, checkpointStore.save, and flush/end (250 ms
+   * by default). Observer timeouts are fail-open and do not cancel the work.
+   */
   persistTimeoutMs?: number | undefined;
   now?: number | (() => number) | undefined;
   clock?: () => number;

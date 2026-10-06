@@ -53,6 +53,8 @@ Tool input is a closed allowlist. It accepts a short tool label, optional safe
 action, target class, reason code, and opaque artifact references. It has no
 raw argument, command, path, prompt, model input/output, stdout, stderr, cwd,
 or credential field. Unknown own keys are rejected before calling core.
+Options, tool inputs, artifacts, and checkpoints are read from own data
+properties only; inherited values and getters cannot supply input fields.
 
 `emitToolCall()` maps to `component: "pi"` and uses `result: "unknown"`.
 `emitToolResult()` requires one of the protocol `VistaResult` values (`ok`,
@@ -62,8 +64,13 @@ sentence or another status as success.
 Checkpoint values are validated before `CheckpointStore.save`. The checkpoint
 is bound to the context `run_id` and current `step_id`; storage failures are
 best effort and fail-open. The adapter accepts protocol-safe summaries only,
-not raw model/task payloads. `flush()` and `end()` provide bounded best-effort
-waiting for observer writes.
+not raw model/task payloads. Custom `emit` and `checkpointStore.save` promises
+are bounded by `persistTimeoutMs`, defaulting to 250 ms. A timeout is fail-open:
+tool emission returns `undefined` and checkpoint calls resolve. The underlying
+work is not cancelled, and late rejections are handled without an unhandled
+rejection. The default core emitter keeps its own append-timeout semantics
+and still returns the constructed event after a persistence timeout.
+`flush()` and `end()` provide bounded best-effort waiting for observer writes.
 
 ## Integration boundary
 

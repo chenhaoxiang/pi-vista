@@ -43,11 +43,18 @@ await vista.end();
 - `session_id` is selected from an explicit option or a safe `PI_SESSION_ID`.
 - Tool calls and results use a closed allowlist of summary fields. Raw args,
   commands, paths, prompts, model input/output, stdout, stderr, cwd, and
-  credentials are rejected before core redaction.
+  credentials are rejected before core redaction. Options, tool inputs,
+  artifacts, and checkpoints use only own data properties; inherited values
+  and getters are ignored.
 - Tool results require an explicit `VistaResult`; the adapter never infers
   success from prose.
 - Checkpoints are validated against the existing protocol and bound to the
   context's run and current step. Store failures are fail-open.
+- Custom `emit` and `checkpointStore.save` promises are bounded by
+  `persistTimeoutMs` (default 250 ms). On timeout, tool emission returns
+  `undefined` and checkpoint calls resolve. Work is not cancelled; late
+  rejections are handled. The default core emitter retains its existing
+  append-timeout behavior, including returning the constructed event.
 - `flush()`/`end()` wait only a bounded best-effort period for pending observer
   writes. They do not control Pi execution, fallback, watchdogs, permissions,
   or model routing.

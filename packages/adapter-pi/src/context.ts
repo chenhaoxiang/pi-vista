@@ -33,6 +33,7 @@ const SENSITIVE_STATS_KEY_PATTERN = /(?:accesskey|accesstoken|apikey|auth|cookie
 const SAFE_STATS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/u;
 const SAFE_STATS_VALUE_PATTERN = /^[A-Za-z0-9._:@+\-]{1,64}$/u;
 const VISTA_RESULTS = new Set<VistaResult>(["ok", "blocked", "failed", "unknown", "abstain"]);
+const DEFAULT_PERSIST_TIMEOUT_MS = 250;
 
 const CONTEXT_OPTION_KEYS = new Set([
   "runId",
@@ -147,7 +148,7 @@ function snapshotDataRecord(
     if (keys.length !== Object.keys(descriptors).length) {
       reject(`${label} contains unsupported own properties`);
     }
-    const result: Record<string, unknown> = {};
+    const result = Object.create(null) as Record<string, unknown>;
     for (const key of keys) {
       if (typeof key !== "string" || !acceptKey(key)) {
         reject(`${label} contains an unknown own key`);
@@ -212,7 +213,7 @@ function snapshotArray(value: unknown, label: string): unknown[] {
 }
 
 function ownValue(record: SnapshotRecord, key: string): unknown {
-  return record[key];
+  return Object.hasOwn(record, key) ? record[key] : undefined;
 }
 
 function aliasValue(record: SnapshotRecord, keys: readonly string[], label: string): unknown {
@@ -475,6 +476,23 @@ function timestamp(options: NormalizedOptions): number {
   }
 }
 
+/**
+ * Bound an injected observer promise without leaving a late rejection
+ * unhandled after the adapter has already failed open on timeout.
+ */
+function awaitWithTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T | undefined> {
+  operation.catch(() => undefined);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), timeoutMs);
+  });
+  return Promise.race([operation, timeout]).finally(() => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  });
+}
+
 function normalizeCheckpoint(
   value: unknown,
   runId: string,
@@ -615,10 +633,17 @@ class PiRunContextImpl implements PiRunContext {
     return tracked;
   }
 
+  private observerTimeout(): number {
+    return this.options.persistTimeoutMs ?? DEFAULT_PERSIST_TIMEOUT_MS;
+  }
+
   private async dispatch(input: VistaEventInput, step: PiStep): Promise<VistaEvent | undefined> {
     const operation = Promise.resolve().then(() => this.options.emit(input, eventOptions(this.options, step)));
+    const bounded = this.options.emit === emitVistaEvent
+      ? operation
+      : awaitWithTimeout(operation, this.observerTimeout());
     try {
-      return await this.track(operation);
+      return await this.track(bounded);
     } catch (error) {
       if (error instanceof VistaProtocolError) {
         throw error;
@@ -666,7 +691,7 @@ class PiRunContextImpl implements PiRunContext {
     const checkpoint = normalizeCheckpoint(partial, this.runId, step, this.options);
     const operation = Promise.resolve().then(() => this.options.checkpointStore.save(checkpoint));
     try {
-      await this.track(operation);
+      await this.track(awaitWithTimeout(operation, this.observerTimeout()));
     } catch {
       // Checkpoint persistence is observation only. Match core's fail-open
       // contract even when a test or extension supplies a custom store.
@@ -686,7 +711,7 @@ class PiRunContextImpl implements PiRunContext {
       return;
     }
     const settled = Promise.allSettled(operations);
-    const timeoutMs = this.options.persistTimeoutMs ?? 250;
+    const timeoutMs = this.observerTimeout();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<void>((resolve) => {
       timer = setTimeout(resolve, timeoutMs);
