@@ -1,13 +1,15 @@
 import { deepStrictEqual, doesNotReject, rejects, strictEqual, throws } from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import process from "node:process";
 import { join } from "node:path";
 import { test } from "node:test";
-import { EventStore, isVistaEvent, redactAll, VistaProtocolError, type VistaEvent } from "@pi-vista/core";
+import { fileURLToPath } from "node:url";
+import { emitVistaEvent, EventStore, isVistaEvent, redactAll, VistaProtocolError, type VistaEvent } from "@pi-vista/core";
 import {
   emitAiGateEvidence,
   emitAiGateObservation,
   toVistaEventInput,
+  type AiGateEmitOptions,
   type AiGateEvidence,
 } from "./index.js";
 
@@ -27,7 +29,12 @@ const MISMATCH_OUTCOMES = [
   ["status", "neutral", "unknown"],
 ] as const;
 const REF_FIELDS = ["review_hash", "escalation_hash", "receipt_ref", "artifact_ref"] as const;
+const FINE_GRAINED_PAT_TEXT = [16, 82].flatMap((length) => {
+  const token = `github_pat_${"A".repeat(length)}`;
+  return [token, `receipt_${token}`, `review_${token}`, `artifact-${token}`, `safe${token}-ref`, `RECEIPT_${token.toUpperCase()}`];
+});
 const TOKEN_LIKE_TEXT = [
+  ...FINE_GRAINED_PAT_TEXT,
   ...[
     `ghp_${"A".repeat(36)}`,
     `sk-${"A".repeat(36)}`,
@@ -68,6 +75,71 @@ function evidence(overrides: Record<string, unknown> = {}): AiGateEvidence {
   if (Object.hasOwn(overrides, "check_type")) delete value.action;
   if (Object.hasOwn(overrides, "status")) delete value.result;
   return value as unknown as AiGateEvidence;
+}
+
+const UNSAFE_IDENTITY_TEXT = [
+  ...TOKEN_LIKE_TEXT,
+  ...["credential", "token", "bearer", "cookie", "private-key", "API-key", "secret"].flatMap((label) => [
+    `${label}-123`, `receipt_${label}-123`,
+  ]),
+];
+
+function implicitEvidence(): AiGateEvidence {
+  const value = evidence();
+  delete value.run_id;
+  return value;
+}
+
+async function withRunEnvironment(value: string | undefined, callback: () => Promise<void>): Promise<void> {
+  const environment = process.env;
+  const original = Object.getOwnPropertyDescriptor(environment, "VISTA_RUN_ID");
+  if (value === undefined) delete environment.VISTA_RUN_ID;
+  else environment.VISTA_RUN_ID = value;
+  try {
+    await callback();
+  } finally {
+    if (original === undefined) delete environment.VISTA_RUN_ID;
+    else Object.defineProperty(environment, "VISTA_RUN_ID", original);
+  }
+  deepStrictEqual(Object.getOwnPropertyDescriptor(environment, "VISTA_RUN_ID"), original);
+}
+
+async function withEnvironmentDescriptor(descriptor: PropertyDescriptor, callback: () => Promise<void>): Promise<void> {
+  const original = Object.getOwnPropertyDescriptor(process, "env");
+  if (original === undefined) throw new Error("expected process environment descriptor");
+  Object.defineProperty(process, "env", { configurable: true, ...descriptor });
+  try {
+    await callback();
+  } finally {
+    Object.defineProperty(process, "env", original);
+  }
+}
+
+async function adapterFixtureDirectory(): Promise<string> {
+  const baseDir = fileURLToPath(new URL("../../../tmp/", import.meta.url));
+  await mkdir(baseDir, { recursive: true });
+  return mkdtemp(join(baseDir, "ai-gate-adapter-tests-"));
+}
+
+async function directorySnapshot(baseDir: string): Promise<Record<string, string>> {
+  const snapshot: Record<string, string> = {};
+  async function visit(directory: string, prefix: string): Promise<void> {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const key = `${prefix}${entry.name}`;
+      if (entry.isDirectory()) {
+        snapshot[`${key}/`] = "directory";
+        await visit(join(directory, entry.name), `${key}/`);
+      } else {
+        snapshot[key] = (await readFile(join(directory, entry.name))).toString("hex");
+      }
+    }
+  }
+  await visit(baseDir, "");
+  return snapshot;
+}
+
+function valueFreeProtocolError(value: string): (error: unknown) => boolean {
+  return (error: unknown) => error instanceof VistaProtocolError && error.code === "VISTA_PROTOCOL_ERROR" && !error.message.includes(value);
 }
 
 function expectProtocolError(callback: () => unknown, pattern: RegExp): void {
@@ -256,6 +328,14 @@ test("embedded token signatures reject at every retained-string entry before any
   strictEqual(appendCalls, 0);
 });
 
+test("fine-grained PAT signatures reject even when compact variants fit every short-field grammar", () => {
+  for (const field of ["repo", "reason_code", "decision", "verdict", ...REF_FIELDS, "action", "check_type", "run_id", "session_id", "trace_id", "model_id", "reviewer_id"]) {
+    for (const value of FINE_GRAINED_PAT_TEXT.filter((token) => token.length <= 64)) {
+      expectProtocolError(() => toVistaEventInput(evidence({ [field]: value })), /sanitized metadata/u);
+    }
+  }
+});
+
 test("preserves safe opaque IDs and hexadecimal hashes across ref fields", () => {
   for (const field of REF_FIELDS) {
     for (const value of ["receipt-123", "review_abc123", "artifact.release-42", "task-123", SOURCE_SHA, "e".repeat(64)]) {
@@ -267,18 +347,20 @@ test("preserves safe opaque IDs and hexadecimal hashes across ref fields", () =>
 });
 
 test("wrapped token and credential refs never reach or persist in EventStore", async () => {
-  const baseDir = await mkdtemp(join(tmpdir(), "pi-vista-ai-gate-refs-"));
+  const baseDir = await adapterFixtureDirectory();
   try {
     const store = new EventStore({ baseDir });
     const safeEvent = await emitAiGateEvidence(evidence({ receipt_ref: "receipt-safe-1" }), { store, seq: 0, now: 123 });
     const eventsPath = join(baseDir, "runs", "run-ai-gate", "events.jsonl");
     const before = await readFile(eventsPath, "utf8");
+    const beforeDirectory = await directorySnapshot(baseDir);
     for (const field of REF_FIELDS) {
       for (const value of UNSAFE_REFS) {
         await rejects(() => emitAiGateEvidence(evidence({ [field]: value }), { store }), VistaProtocolError);
       }
     }
     strictEqual(await readFile(eventsPath, "utf8"), before);
+    deepStrictEqual(await directorySnapshot(baseDir), beforeDirectory);
     deepStrictEqual(await store.readRun("run-ai-gate"), [safeEvent]);
     deepStrictEqual(await store.listRuns(), ["run-ai-gate"]);
   } finally {
@@ -401,7 +483,7 @@ test("mock emission retains safe metadata, refs, and core-added identity", async
 });
 
 test("emission and EventStore round-trip preserve every mismatch owner outcome without raw data", async () => {
-  const baseDir = await mkdtemp(join(tmpdir(), "pi-vista-ai-gate-"));
+  const baseDir = await adapterFixtureDirectory();
   try {
     const store = new EventStore({ baseDir });
     const events: VistaEvent[] = [];
@@ -437,6 +519,243 @@ test("emission and EventStore round-trip preserve every mismatch owner outcome w
     strictEqual(jsonl.includes("PASS"), false);
     strictEqual(jsonl.includes("verified"), false);
     strictEqual(jsonl.includes("authorized"), false);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("explicit option identities reject bare/wrapped tokens and credential labels before the mock store", async () => {
+  let appendCalls = 0;
+  const store = { async append(): Promise<void> { appendCalls += 1; } };
+  for (const value of UNSAFE_IDENTITY_TEXT) {
+    await rejects(() => emitAiGateEvidence(implicitEvidence(), { runId: value, store }), {
+      name: "VistaProtocolError", code: "VISTA_PROTOCOL_ERROR", message: "ai-gate evidence options.runId must contain only sanitized metadata",
+    });
+    for (const stepId of [value, `run-ai-gate_${value}`]) {
+      await rejects(() => emitAiGateEvidence(evidence(), { stepId, store }), {
+        name: "VistaProtocolError", code: "VISTA_PROTOCOL_ERROR", message: "ai-gate evidence options.stepId must contain only sanitized metadata",
+      });
+    }
+  }
+  for (const field of ["runId", "stepId"]) {
+    for (const value of [undefined, null, 1, "", ".", "..", "/private/run", "a".repeat(129)]) {
+      await rejects(() => emitAiGateEvidence(implicitEvidence(), { [field]: value, store } as AiGateEmitOptions), VistaProtocolError);
+    }
+  }
+  await rejects(() => emitAiGateEvidence(evidence(), { runId: "receipt_token-123", store }), VistaProtocolError);
+  strictEqual(appendCalls, 0);
+});
+
+test("explicit unsafe option identities leave real EventStore directories and file bytes unchanged", async () => {
+  const baseDir = await adapterFixtureDirectory();
+  try {
+    const eventStore = new EventStore({ baseDir });
+    let appendCalls = 0;
+    const store = { async append(event: VistaEvent): Promise<void> { appendCalls += 1; await eventStore.append(event); } };
+    for (const value of UNSAFE_IDENTITY_TEXT) {
+      await rejects(() => emitAiGateEvidence(implicitEvidence(), { runId: value, store }), valueFreeProtocolError(value));
+      await rejects(() => emitAiGateEvidence(evidence(), { stepId: `run-ai-gate_${value}`, store }), valueFreeProtocolError(value));
+    }
+    deepStrictEqual(await directorySnapshot(baseDir), {});
+    strictEqual(appendCalls, 0);
+    const baseline = await emitAiGateEvidence(evidence(), { store, seq: 0, now: 123 });
+    const before = await directorySnapshot(baseDir);
+    for (const value of UNSAFE_IDENTITY_TEXT) {
+      await rejects(() => emitAiGateEvidence(implicitEvidence(), { runId: value, store }), valueFreeProtocolError(value));
+      await rejects(() => emitAiGateEvidence(evidence(), { stepId: `run-ai-gate_${value}`, store }), valueFreeProtocolError(value));
+    }
+    strictEqual(appendCalls, 1);
+    deepStrictEqual(await directorySnapshot(baseDir), before);
+    deepStrictEqual(await eventStore.readRun("run-ai-gate"), [baseline]);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("unsafe VISTA_RUN_ID values use a shared safe fallback without retaining or rewriting the environment", async () => {
+  const baseDir = await adapterFixtureDirectory();
+  try {
+    const store = new EventStore({ baseDir });
+    let sharedRunId: string | undefined;
+    for (const value of [...UNSAFE_IDENTITY_TEXT, "", "/private/run", "a".repeat(129)]) {
+      await withRunEnvironment(value, async () => {
+        const first = await emitAiGateEvidence(implicitEvidence(), { store, now: 123 });
+        const second = await emitAiGateEvidence(implicitEvidence(), { store, now: 123 });
+        strictEqual(isVistaEvent(first), true);
+        strictEqual(isVistaEvent(second), true);
+        if (first === undefined || second === undefined) throw new Error("expected fallback events");
+        strictEqual(/^vr_[a-z0-9]+_[0-9a-f]{8}$/u.test(first.run_id), true);
+        if (sharedRunId === undefined) sharedRunId = first.run_id;
+        strictEqual(first.run_id, sharedRunId);
+        strictEqual(second.run_id, first.run_id);
+        const firstSequence = Number.parseInt(first.step_id.slice(`${first.run_id}_s`.length), 36);
+        strictEqual(second.step_id, `${first.run_id}_s${(firstSequence + 1).toString(36)}`);
+        strictEqual(Object.getOwnPropertyDescriptor(process.env, "VISTA_RUN_ID")?.value, value);
+        const jsonl = await readFile(join(baseDir, "runs", first.run_id, "events.jsonl"), "utf8");
+        if (value.length > 0) strictEqual(jsonl.includes(value), false);
+      });
+    }
+    deepStrictEqual(await store.listRuns(), [sharedRunId]);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
+  }
+});
+
+test("safe evidence/options/environment priority and explicit step binding are preserved", async () => {
+  const store = { async append(): Promise<void> {} };
+  await withRunEnvironment("run-priority-env", async () => {
+    const fromEvidence = await emitAiGateEvidence(evidence({ run_id: "run-priority-evidence" }), {
+      runId: "run-priority-option", stepId: "run-priority-evidence_s2", seq: 2, now: 123, store,
+    });
+    strictEqual(fromEvidence?.run_id, "run-priority-evidence");
+    strictEqual(fromEvidence?.step_id, "run-priority-evidence_s2");
+    const fromOption = await emitAiGateEvidence(implicitEvidence(), { runId: "run-priority-option", store, seq: 3, now: 123 });
+    strictEqual(fromOption?.run_id, "run-priority-option");
+    strictEqual(fromOption?.step_id, "run-priority-option_s3");
+    const fromEnvironment = await emitAiGateEvidence(implicitEvidence(), { store, seq: 4, now: 123 });
+    strictEqual(fromEnvironment?.run_id, "run-priority-env");
+    strictEqual(fromEnvironment?.step_id, "run-priority-env_s4");
+    await rejects(() => emitAiGateEvidence(evidence({ run_id: "run-priority-evidence" }), {
+      runId: "run-priority-option", stepId: "run-priority-option_s2", store,
+    }), VistaProtocolError);
+    await rejects(() => emitAiGateEvidence(evidence(), { stepId: "run-ai-gate_", store }), VistaProtocolError);
+  });
+  await withRunEnvironment("receipt_token-123", async () => {
+    strictEqual((await emitAiGateEvidence(evidence(), { store }))?.run_id, "run-ai-gate");
+    strictEqual((await emitAiGateEvidence(implicitEvidence(), { runId: "run-safe-option", store }))?.run_id, "run-safe-option");
+  });
+});
+
+test("absent environment keeps one generated implicit run and contiguous core-owned default steps", async () => {
+  const store = { async append(): Promise<void> {} };
+  await withRunEnvironment(undefined, async () => {
+    const first = await emitAiGateEvidence(implicitEvidence(), { store, now: 123 });
+    const second = await emitAiGateEvidence(implicitEvidence(), { store, now: 123 });
+    strictEqual(isVistaEvent(first), true);
+    strictEqual(isVistaEvent(second), true);
+    if (first === undefined || second === undefined) throw new Error("expected generated events");
+    strictEqual(first.run_id, second.run_id);
+    const sequence = Number.parseInt(first.step_id.slice(`${first.run_id}_s`.length), 36);
+    strictEqual(second.step_id, `${first.run_id}_s${(sequence + 1).toString(36)}`);
+    strictEqual(Object.hasOwn(process.env, "VISTA_RUN_ID"), false);
+  });
+  await withRunEnvironment("run-core-shared-sequence", async () => {
+    const fromCore = { run_id: "run-core-shared-sequence", component: "gate", action: "gate:ci_check", result: "ok" } as const;
+    strictEqual((await emitVistaEvent(fromCore, { store, seq: 40, now: 123 }))?.step_id, "run-core-shared-sequence_s14");
+    strictEqual((await emitAiGateEvidence(implicitEvidence(), { store, now: 123 }))?.step_id, "run-core-shared-sequence_s15");
+    strictEqual((await emitVistaEvent(fromCore, { store, now: 123 }))?.step_id, "run-core-shared-sequence_s16");
+    strictEqual((await emitAiGateEvidence(implicitEvidence(), { store, now: 123 }))?.step_id, "run-core-shared-sequence_s17");
+  });
+});
+
+test("options reject accessors, custom/inherited prototypes, and Proxies without reads or append calls", async () => {
+  let reads = 0;
+  let appendCalls = 0;
+  const hostile = (): never => { reads += 1; throw new Error("raw-private-content"); };
+  const store = { async append(): Promise<void> { appendCalls += 1; } };
+  for (const field of ["runId", "stepId", "baseDir", "clock", "store", "seq", "now", "persistTimeoutMs"]) {
+    const options = { store } as AiGateEmitOptions;
+    Object.defineProperty(options, field, { get: hostile, enumerable: true });
+    await rejects(() => emitAiGateEvidence(implicitEvidence(), options), valueFreeProtocolError("raw-private-content"));
+  }
+  const inherited = Object.assign(Object.create(Object.defineProperty({}, "runId", { get: hostile })) as object, { store });
+  await rejects(() => emitAiGateEvidence(implicitEvidence(), inherited), VistaProtocolError);
+  const proxy = new Proxy({ store }, { get: hostile, ownKeys: hostile, getOwnPropertyDescriptor: hostile, getPrototypeOf: hostile, has: hostile });
+  await rejects(() => emitAiGateEvidence(implicitEvidence(), proxy), VistaProtocolError);
+  const revoked = Proxy.revocable({ store }, {});
+  revoked.revoke();
+  await rejects(() => emitAiGateEvidence(implicitEvidence(), revoked.proxy), VistaProtocolError);
+  const nested = new Proxy({}, { get: hostile });
+  await rejects(() => emitAiGateEvidence(implicitEvidence(), { runId: nested, store } as unknown as AiGateEmitOptions), VistaProtocolError);
+  for (const key of ["runId", "stepId", "baseDir", "clock", "seq", "now", "persistTimeoutMs"]) {
+    const original = Object.getOwnPropertyDescriptor(Object.prototype, key);
+    Object.defineProperty(Object.prototype, key, { configurable: true, get: hostile });
+    try {
+      await rejects(() => emitAiGateEvidence(implicitEvidence(), { store }), VistaProtocolError);
+    } finally {
+      if (original === undefined) Reflect.deleteProperty(Object.prototype, key);
+      else Object.defineProperty(Object.prototype, key, original);
+    }
+  }
+  for (const options of [null, [], 1, "raw-private-content", new Date(), { store, run_id: "run-other" }, { store, unknown: 1 }, { store, [Symbol("raw-private-content")]: 1 }]) {
+    await rejects(() => emitAiGateEvidence(implicitEvidence(), options as AiGateEmitOptions), valueFreeProtocolError("raw-private-content"));
+  }
+  strictEqual(reads, 0);
+  strictEqual(appendCalls, 0);
+});
+
+test("hostile environment descriptors and Proxies fall back without getters or traps", async () => {
+  let reads = 0;
+  const hostile = (): never => { reads += 1; throw new Error("raw-private-content"); };
+  const store = { async append(): Promise<void> {} };
+  const proxy = new Proxy({}, { get: hostile, getOwnPropertyDescriptor: hostile });
+  const revoked = Proxy.revocable({}, {});
+  revoked.revoke();
+  const environments = [
+    Object.defineProperty({}, "VISTA_RUN_ID", { get: hostile }),
+    Object.create(Object.defineProperty({}, "VISTA_RUN_ID", { get: hostile })) as object,
+    proxy, revoked.proxy,
+  ];
+  for (const value of environments) {
+    await withEnvironmentDescriptor({ value }, async () => {
+      const event = await emitAiGateEvidence(implicitEvidence(), { store, now: 123 });
+      strictEqual(/^vr_[a-z0-9]+_[0-9a-f]{8}$/u.test(event?.run_id ?? ""), true);
+      strictEqual(isVistaEvent(event), true);
+    });
+  }
+  await withEnvironmentDescriptor({ get: hostile }, async () => {
+    strictEqual(isVistaEvent(await emitAiGateEvidence(implicitEvidence(), { store, now: 123 })), true);
+    strictEqual((await emitAiGateEvidence(evidence(), { store }))?.run_id, "run-ai-gate");
+    strictEqual((await emitAiGateEvidence(implicitEvidence(), { runId: "run-own-option", store }))?.run_id, "run-own-option");
+  });
+  const safeEnvironment = Object.freeze(Object.defineProperty(Object.create(null) as object, "VISTA_RUN_ID", {
+    value: "run-own-data-environment", enumerable: false,
+  }));
+  await withEnvironmentDescriptor({ value: safeEnvironment }, async () => {
+    strictEqual((await emitAiGateEvidence(implicitEvidence(), { store }))?.run_id, "run-own-data-environment");
+  });
+  strictEqual(reads, 0);
+});
+
+test("options own-data snapshot retains legitimate store/clock/now callbacks and does not persist baseDir", async () => {
+  const baseDir = await adapterFixtureDirectory();
+  try {
+    let clockCalls = 0;
+    const options = Object.assign(Object.create(null) as AiGateEmitOptions, {
+      baseDir, clock: () => { clockCalls += 1; return 123; }, seq: 0,
+    });
+    Object.defineProperty(options, "runId", { value: "run-safe-options", enumerable: false });
+    Object.defineProperty(options, "stepId", { value: "run-safe-options_s0", enumerable: false });
+    const first = await emitAiGateEvidence(implicitEvidence(), Object.freeze(options));
+    strictEqual(first?.ts, 123);
+    strictEqual(clockCalls, 1);
+    strictEqual(first?.step_id, "run-safe-options_s0");
+    const jsonl = await readFile(join(baseDir, "runs", "run-safe-options", "events.jsonl"), "utf8");
+    strictEqual(jsonl.includes(baseDir), false);
+    strictEqual(jsonl.includes("baseDir"), false);
+    strictEqual(jsonl.includes("clock"), false);
+    deepStrictEqual(await new EventStore({ baseDir }).readRun("run-safe-options"), [first]);
+    await withRunEnvironment("run-safe-clock-env", async () => {
+      let appendCalls = 0;
+      const mutable: AiGateEmitOptions = {
+        runId: "run-snapshot", stepId: "run-snapshot_s5", seq: 5,
+        store: { async append(): Promise<void> { appendCalls += 1; } },
+        now: () => {
+          mutable.runId = "receipt_token-123";
+          mutable.stepId = "receipt_token-123_s5";
+          process.env.VISTA_RUN_ID = "receipt_token-123";
+          return 124;
+        },
+      };
+      const event = await emitAiGateEvidence(implicitEvidence(), mutable);
+      strictEqual(event?.run_id, "run-snapshot");
+      strictEqual(event?.step_id, "run-snapshot_s5");
+      strictEqual(event?.ts, 124);
+      strictEqual(appendCalls, 1);
+    });
+    for (const seq of [-1, NaN, 1.5]) {
+      await rejects(() => emitAiGateEvidence(implicitEvidence(), { runId: "run-safe-options", baseDir, seq }), VistaProtocolError);
+    }
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }

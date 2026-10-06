@@ -51,7 +51,12 @@ export type AiGateEvidence = AiGateEvidenceFields & (
 /** A readable alias for integrations that call the evidence an observation. */
 export type AiGateObservation = AiGateEvidence;
 
-/** Options forwarded to @pi-vista/core's fail-open emitter. */
+/**
+ * Public core emission options, snapshotted from own data fields by the adapter.
+ * Explicit runId/stepId use the same strict identity contract as evidence IDs;
+ * malformed identity rejects before persistence. Store/clock/now remain trusted
+ * callback configuration, and store failures/timeouts retain core fail-open.
+ */
 export type AiGateEmitOptions = EmitOptions;
 
 /** Event input returned before core adds step identity, timestamp, and version. */

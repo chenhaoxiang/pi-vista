@@ -40,8 +40,10 @@ Identity/model identifiers are at most 128 characters, actions 128, codes 64,
 and opaque refs 256. References are single-segment IDs containing only ASCII
 letters, numbers, dots, underscores, and hyphens; paths and URLs are rejected.
 Every retained-string input also rejects embedded token signatures, including
-safe-looking wrappers such as `receipt_ghp_…`, `review_sk-…`, or wrapped Slack/JWT
-values. The same check covers IDs, actions/check types, codes, and model/reviewer
+safe-looking wrappers such as `receipt_ghp_…`, `review_sk-…`, `github_pat_…`
+(fine-grained GitHub PATs), or wrapped Slack/JWT values. Bare, wrapped,
+concatenated-prefix, and case variants reject. The same check covers IDs,
+actions/check types, codes, and model/reviewer
 metadata; it is not limited to refs. Credential labels such as `token`, `bearer`,
 `cookie`, `private-key`, `api-key`, and `secret` are rejected too. All retained
 text also has to pass the existing public core redaction contract.
@@ -95,6 +97,36 @@ A safe `reviewer_id` is omitted when the existing core stats contract cannot
 retain it unchanged (for example a slash-qualified ID or one longer than 64
 characters). No model count or current dual-model rule is fixed here, and no
 core/protocol field is added or relaxed.
+
+## Emission identity and options
+
+`emitAiGateEvidence` accepts only the public core option keys: `store`,
+`baseDir`, `runId`, `stepId`, `seq`, `now`, `clock`, and `persistTimeoutMs`.
+Options must be ordinary or null-prototype own-data records; custom/inherited
+identity sources, accessors, symbols, unknown keys, and Proxies reject without
+implicit reads, getter calls, or Proxy traps. Any supplied `runId`/`stepId` is
+validated as a short (at most 128 characters), path-safe, sanitized identity
+with the same credential/embedded-token predicate used for evidence IDs. Unsafe
+explicit IDs reject with a fixed, value-free `VistaProtocolError` before the
+store is called, including an option ID shadowed by an evidence run. Explicit
+steps must be bound to the effective run as `<run_id>_<suffix>`.
+
+Run priority remains `evidence.run_id` > `options.runId` > implicit identity.
+The implicit path reads only own data descriptors for `process.env` and
+`VISTA_RUN_ID`. Safe environment IDs are reused; missing, unsafe, token-like,
+inaccessible, or hostile environment values use one process-local cached,
+safely generated adapter run instead. The adapter never rewrites or persists
+the rejected environment value or forwards it for core to reread. Explicit
+identity takes precedence without consulting an unrelated environment value.
+
+Core receives the validated run explicitly, plus the explicit step when
+provided. A missing step still comes only from core's safe `generateStepId`
+and shared sequence state, preserving consecutive default steps and sequence
+sharing with direct core emissions on the same run. No adapter step counter
+is introduced. Legitimate `store`, `clock`, and `now` callbacks remain trusted
+configuration; `baseDir` stays a configuration path, not event metadata.
+Malformed protocol input still rejects and store I/O/timeouts stay fail-open.
+`toVistaEventInput` does not resolve options or implicit identity.
 
 ## SHA binding
 

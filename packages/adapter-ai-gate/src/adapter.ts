@@ -1,6 +1,8 @@
+import process from "node:process";
 import { isDeepStrictEqual, types as utilTypes } from "node:util";
 import {
   emitVistaEvent,
+  generateRunId,
   isSafeSegment,
   redactAll,
   VistaProtocolError,
@@ -8,6 +10,7 @@ import {
   type VistaEventInput,
   type VistaResult,
 } from "@pi-vista/core";
+import { isVistaStepIdForRun } from "@pi-vista/core/validation";
 import type { ArtifactRef } from "@pi-vista/protocol";
 import type { AiGateEmitOptions, AiGateEvidence, AiGateStatus } from "./types.js";
 
@@ -16,6 +19,9 @@ const EVIDENCE_FIELDS = new Set([
   "action", "check_type", "result", "status", "decision", "verdict", "reason_code",
   "head_sha", "review_hash", "escalation_hash", "receipt_ref", "artifact_ref",
   "lane", "tier", "reviewer_id", "model_id", "passed", "required",
+]);
+const EMIT_OPTION_FIELDS = new Set([
+  "store", "baseDir", "runId", "stepId", "seq", "now", "clock", "persistTimeoutMs",
 ]);
 const RESULTS = new Set<VistaResult>(["ok", "blocked", "failed", "unknown", "abstain"]);
 const STATUS_RESULTS: Readonly<Record<AiGateStatus, VistaResult>> = {
@@ -36,12 +42,15 @@ const CREDENTIAL_LABEL_PATTERN = /(?:^|[./_:@+-])(?:secret|token|bearer|password
 // Retained strings are stricter than core's generic redaction: a credential
 // can be hidden behind an otherwise safe-looking prefix, including in IDs and
 // action/model metadata. These signatures deliberately match when embedded.
-const EMBEDDED_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,})/iu;
+const EMBEDDED_TOKEN_PATTERN = /(?:github_pat_[A-Za-z0-9_]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,})/iu;
 
 type EvidenceSnapshot = ReadonlyMap<string, unknown>;
+type EmitOptionsSnapshot = ReadonlyMap<string, unknown>;
 type OwnerOutcome =
   | { result: VistaResult; metadataKey: "owner_result"; metadataValue: VistaResult }
   | { result: VistaResult; metadataKey: "owner_status"; metadataValue: AiGateStatus };
+
+let generatedImplicitRunId: string | undefined;
 
 function invalid(message: string): never {
   throw new VistaProtocolError(`ai-gate evidence ${message}`);
@@ -73,6 +82,68 @@ function snapshotEvidence(evidence: unknown): EvidenceSnapshot {
   return snapshot;
 }
 
+function snapshotEmitOptions(options: unknown): EmitOptionsSnapshot {
+  if (options === undefined) return new Map();
+  if (options === null || typeof options !== "object" || utilTypes.isProxy(options) || Array.isArray(options)) {
+    invalid("options must be a plain data object, not a Proxy");
+  }
+  const prototype: unknown = Object.getPrototypeOf(options);
+  if (prototype !== Object.prototype && prototype !== null) {
+    invalid("options must not have a custom prototype");
+  }
+  for (const key of EMIT_OPTION_FIELDS) {
+    if (!Object.hasOwn(options, key) && key in options) {
+      invalid("options must not inherit fields");
+    }
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(options);
+  const snapshot = new Map<string, unknown>();
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== "string" || !EMIT_OPTION_FIELDS.has(key)) {
+      invalid("options contains an unsupported field");
+    }
+    const descriptor = descriptors[key];
+    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
+      invalid("options fields must be data fields, not accessors");
+    }
+    snapshot.set(key, descriptor.value);
+  }
+  return snapshot;
+}
+
+function checkedOptionIdentity(snapshot: EmitOptionsSnapshot, key: "runId" | "stepId"): string | undefined {
+  if (!snapshot.has(key)) return undefined;
+  return checkedIdentifier(snapshot.get(key), key === "runId" ? "run_id" : "step_id", `options.${key}`);
+}
+
+function safeEnvironmentRunId(): string | undefined {
+  try {
+    const environmentDescriptor = Object.getOwnPropertyDescriptor(process, "env");
+    if (environmentDescriptor === undefined || !Object.hasOwn(environmentDescriptor, "value")) return undefined;
+    const environment: unknown = environmentDescriptor.value;
+    if (environment === null || typeof environment !== "object" || utilTypes.isProxy(environment)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(environment, "VISTA_RUN_ID");
+    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) return undefined;
+    const value = descriptor.value;
+    if (typeof value !== "string" || value.length > 128 || !isSafeSegment(value) || !isSafeText(value, "run_id")) {
+      return undefined;
+    }
+    return value;
+  } catch {
+    // An unsafe environment descriptor is never handed to core. The caller
+    // uses the process-local generated fallback below instead.
+    return undefined;
+  }
+}
+
+function implicitRunId(): string {
+  const environmentRunId = safeEnvironmentRunId();
+  if (environmentRunId !== undefined) return environmentRunId;
+  if (generatedImplicitRunId === undefined) generatedImplicitRunId = generateRunId();
+  return generatedImplicitRunId;
+}
+
 function requireString(snapshot: EvidenceSnapshot, key: string): string {
   const value = snapshot.get(key);
   if (typeof value !== "string") {
@@ -92,21 +163,25 @@ function optionalBoolean(snapshot: EvidenceSnapshot, key: string): boolean | und
   return value;
 }
 
-function assertSafeText(value: string, coreKey: string, inputKey: string): void {
+function isSafeText(value: string, coreKey: string): boolean {
   // Use core's public redaction contract, not copied private safety helpers.
-  const redacted = redactAll({ [coreKey]: value });
-  if (redacted[coreKey] !== value || CREDENTIAL_LABEL_PATTERN.test(value) || EMBEDDED_TOKEN_PATTERN.test(value)) {
-    invalid(`${inputKey} must contain only sanitized metadata`);
-  }
+  return !CREDENTIAL_LABEL_PATTERN.test(value) && !EMBEDDED_TOKEN_PATTERN.test(value)
+    && redactAll({ [coreKey]: value })[coreKey] === value;
+}
+
+function assertSafeText(value: string, coreKey: string, inputKey: string): void {
+  if (!isSafeText(value, coreKey)) invalid(`${inputKey} must contain only sanitized metadata`);
+}
+
+function checkedIdentifier(value: unknown, coreKey: string, inputKey: string): string {
+  if (typeof value !== "string") invalid(`${inputKey} must be a string`);
+  if (value.length > 128 || !isSafeSegment(value)) invalid(`${inputKey} must be a short path-safe identifier`);
+  assertSafeText(value, coreKey, inputKey);
+  return value;
 }
 
 function optionalIdentifier(snapshot: EvidenceSnapshot, key: string): string | undefined {
-  const value = optionalString(snapshot, key);
-  if (value !== undefined) {
-    if (value.length > 128 || !isSafeSegment(value)) invalid(`${key} must be a short path-safe identifier`);
-    assertSafeText(value, key, key);
-  }
-  return value;
+  return snapshot.has(key) ? checkedIdentifier(snapshot.get(key), key, key) : undefined;
 }
 
 function optionalCode(snapshot: EvidenceSnapshot, key: string): string | undefined {
@@ -177,6 +252,33 @@ function metadataRef(stats: Record<string, number | string>): ArtifactRef | unde
     if (retained?.[key] === value) safeStats[key] = value;
   }
   return Object.keys(safeStats).length > 0 ? { ...artifact, stats: safeStats } : undefined;
+}
+
+function prepareEmission(
+  event: VistaEventInput,
+  options: unknown,
+): { event: VistaEventInput; options: AiGateEmitOptions } {
+  const snapshot = snapshotEmitOptions(options);
+  const optionRunId = checkedOptionIdentity(snapshot, "runId");
+  const optionStepId = checkedOptionIdentity(snapshot, "stepId");
+  const evidenceRunId = Object.hasOwn(event, "run_id")
+    ? checkedIdentifier(event.run_id, "run_id", "run_id")
+    : undefined;
+  const effectiveRunId = checkedIdentifier(evidenceRunId ?? optionRunId ?? implicitRunId(), "run_id", "effective run_id");
+
+  if (optionStepId !== undefined && !isVistaStepIdForRun(effectiveRunId, optionStepId)) {
+    invalid("options.stepId must belong to the effective run_id");
+  }
+
+  const forwarded = Object.create(null) as Record<string, unknown>;
+  for (const [key, value] of snapshot) forwarded[key] = value;
+  // Make the effective identity explicit so core never consults an unvalidated
+  // option or environment source. Core remains the sole default-step sequencer.
+  forwarded.runId = effectiveRunId;
+  if (optionStepId !== undefined) forwarded.stepId = optionStepId;
+  const preparedEvent: VistaEventInput = Object.assign(Object.create(null) as VistaEventInput, event, { run_id: effectiveRunId });
+  if (optionStepId !== undefined) preparedEvent.step_id = optionStepId;
+  return { event: preparedEvent, options: forwarded as AiGateEmitOptions };
 }
 
 /** Map one owner-side, already-sanitized evidence record without gate operations. */
@@ -275,7 +377,8 @@ export async function emitAiGateEvidence(
   evidence: AiGateEvidence,
   options?: AiGateEmitOptions,
 ): Promise<VistaEvent | undefined> {
-  return emitVistaEvent(toVistaEventInput(evidence), options);
+  const prepared = prepareEmission(toVistaEventInput(evidence), options);
+  return emitVistaEvent(prepared.event, prepared.options);
 }
 
 /** Equivalent observer entry point for integrations that use observation terminology. */
