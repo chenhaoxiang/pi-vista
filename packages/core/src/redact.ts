@@ -48,6 +48,8 @@ const SAFE_METADATA_KEYS = new Set([
   "layaresult", "tasktype",
 ]);
 const URL_KEYS = new Set(["url", "uri", "href"]);
+/** Known protocol names that may contain redacted narrative values. */
+const KNOWN_PROTOCOL_KEYS = new Set(["rootcause"]);
 
 /** Error raised when a value cannot be safely represented after redaction. */
 export class RedactionError extends Error {
@@ -122,6 +124,7 @@ function isUnsafePropertyKey(key: string): boolean {
     SAFE_IDENTIFIER_KEYS.has(normalized) ||
     SAFE_IDENTIFIER_ARRAY_KEYS.has(normalized) ||
     SAFE_METADATA_KEYS.has(normalized) ||
+    KNOWN_PROTOCOL_KEYS.has(normalized) ||
     URL_KEYS.has(normalized) ||
     normalized === "artifactrefs" ||
     normalized === "ref" ||

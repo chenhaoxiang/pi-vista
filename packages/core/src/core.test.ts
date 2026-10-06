@@ -185,6 +185,7 @@ test("redactAll drops unsafe property names while retaining protocol metadata an
     ...unsafeProperties,
     action: "guard:A:block",
     repo: "vista",
+    root_cause: "sensitive explanation",
     artifact_refs: [{
       type: "test_result",
       ref: "receipt-1",
@@ -199,6 +200,8 @@ test("redactAll drops unsafe property names while retaining protocol metadata an
   }
   strictEqual(value.unknown_payload, "[REDACTED]");
   strictEqual(value.action, "guard:A:block");
+  strictEqual(Object.hasOwn(value, "root_cause"), true);
+  strictEqual(value.root_cause, "[REDACTED_PATH]");
   deepStrictEqual((value.artifact_refs as Array<{ stats: Record<string, unknown> }>)[0]?.stats, {
     passed: 1,
     suite: "unit",
