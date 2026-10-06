@@ -60,6 +60,7 @@ not a source of execution, merge, release or promotion authorization.
 |---|---|
 | `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
+| `@pi-vista/adapter-pi` | Low-coupling Pi session/run context and safe tool summaries |
 | `@pi-vista/adapter-workspace-guard` | Public adapter for sanitized workspace-guard observations |
 | `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
 | `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
@@ -150,8 +151,11 @@ records.
 
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
+- [Pi run-context adapter](docs/adapters/pi.md)
 
-Additional adapters are future work; the links above are the only adapter guides shipped in Phase 1.
+The Pi adapter is a public helper only: Pi private extensions call it explicitly;
+pi-vista does not install, patch, or hook Pi automatically. It does not own Pi
+execution, fallback, watchdog, permission, or model-routing decisions.
 
 ---
 

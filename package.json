@@ -7,11 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build --workspace=@pi-vista/adapter-workspace-guard && npm run build --workspace=@pi-vista/cli && npm run build --workspace=@pi-vista/checks",
-    "test": "npm run build && npm run test --workspace=@pi-vista/core && npm run test --workspace=@pi-vista/protocol && npm run test --workspace=@pi-vista/adapter-workspace-guard && npm run test --workspace=@pi-vista/cli && npm run test --workspace=@pi-vista/checks",
+    "build": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build --workspace=@pi-vista/adapter-pi && npm run build --workspace=@pi-vista/adapter-workspace-guard && npm run build --workspace=@pi-vista/cli && npm run build --workspace=@pi-vista/checks",
+    "test": "npm run build && npm run test --workspace=@pi-vista/core && npm run test --workspace=@pi-vista/protocol && npm run test --workspace=@pi-vista/adapter-pi && npm run test --workspace=@pi-vista/adapter-workspace-guard && npm run test --workspace=@pi-vista/cli && npm run test --workspace=@pi-vista/checks",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/adapter-workspace-guard && npm run typecheck --workspace=@pi-vista/cli && npm run typecheck --workspace=@pi-vista/checks",
-    "pack:dry-run": "npm pack --dry-run --workspace=@pi-vista/protocol && npm pack --dry-run --workspace=@pi-vista/core && npm pack --dry-run --workspace=@pi-vista/adapter-workspace-guard && npm pack --dry-run --workspace=@pi-vista/cli && npm pack --dry-run --workspace=@pi-vista/checks"
+    "typecheck": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/core && npm run typecheck --workspace=@pi-vista/protocol && npm run typecheck --workspace=@pi-vista/adapter-pi && npm run typecheck --workspace=@pi-vista/adapter-workspace-guard && npm run typecheck --workspace=@pi-vista/cli && npm run typecheck --workspace=@pi-vista/checks",
+    "pack:dry-run": "npm pack --dry-run --workspace=@pi-vista/protocol && npm pack --dry-run --workspace=@pi-vista/core && npm pack --dry-run --workspace=@pi-vista/adapter-pi && npm pack --dry-run --workspace=@pi-vista/adapter-workspace-guard && npm pack --dry-run --workspace=@pi-vista/cli && npm pack --dry-run --workspace=@pi-vista/checks"
   },
   "keywords": [
     "ai-agent",

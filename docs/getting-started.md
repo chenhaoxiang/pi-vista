@@ -3,7 +3,7 @@
 ## 1. Install the Phase 1 package
 
 ```bash
-npm install @pi-vista/core
+npm install @pi-vista/core @pi-vista/adapter-pi
 ```
 
 `@pi-vista/core` declares the matching published `@pi-vista/protocol` package
@@ -28,12 +28,17 @@ export VISTA_RUN_ID=$(node -e "console.log(crypto.randomUUID())")
 
 ## 3. Add emit calls to your adapters
 
-See the adapter docs. For public workspace-guard observation integration:
+A Pi private extension calls `@pi-vista/adapter-pi` explicitly. The public
+package does not install or patch Pi, and it does not own execution, fallback,
+watchdog, permission, or model-routing decisions.
+
+For public workspace-guard observation integration:
 
 ```bash
 npm install @pi-vista/adapter-workspace-guard
 ```
 
+- [Pi run context](adapters/pi.md)
 - [workspace-guard public adapter](adapters/workspace-guard.md)
 - [ai-gate](adapters/ai-gate.md)
 
