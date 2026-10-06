@@ -505,8 +505,10 @@ for (const mode of ["command-error", "stderr", "malformed-sha", "oversized", "ma
     const f = await fixture(t);
     const registry = await createLocalCheckRegistry(f.config);
     const original = childProcess.execFile;
+    const commands: string[][] = [];
     const exec = t.mock.method(childProcess, "execFile", (...values: unknown[]) => {
       const args = values[1] as string[];
+      commands.push(args);
       const callback = values[3] as Callback;
       let output: Buffer;
       let error: Error | null = null;
@@ -521,7 +523,8 @@ for (const mode of ["command-error", "stderr", "malformed-sha", "oversized", "ma
       else if (mode === "malformed-config") output = Buffer.from("malformed no terminator");
       else if (args.includes("config")) output = Buffer.from("core.bare\0");
       else if (mode === "malformed-mode") output = Buffer.from("unknown\0");
-      else if (args.includes("ls-files")) output = Buffer.from("100644\0");
+      else if (args.includes("--format=%(objectmode)")) output = Buffer.from("100644\0");
+      else if (args.includes("ls-files") && args.includes("-v")) output = Buffer.from("H private-entry\0");
       else output = Buffer.from("invalid status\0");
       queueMicrotask(() => callback(error, output, stderr));
       return {} as ChildProcess;
@@ -531,6 +534,7 @@ for (const mode of ["command-error", "stderr", "malformed-sha", "oversized", "ma
       const params = type === "branch_exists" ? { repo: "sample", subject: "primary" } : type === "worktree_clean" ? { repo: "sample" } : { repo: "sample", expected: f.head };
       const report = await readOnly(f, () => registry.run([definition(type, params, "WARN"), definition("path_exists", { subject: "seed" }, "STOP", "later")]));
       hardFailure(report); strictEqual(report.results[1]?.status, "skipped");
+      if (mode === "malformed-status") strictEqual(commands.some((args) => args.includes("status")), true, "malformed status still reaches the status command after index checks");
       const serialized = JSON.stringify(report);
       for (const value of [f.base, f.repo, f.head, "refs/heads/primary", "private", "stderr"]) strictEqual(serialized.includes(value), false);
     } finally { exec.mock.restore(); strictEqual(childProcess.execFile, original); }
@@ -687,4 +691,197 @@ test("null-prototype, frozen and non-enumerable own config data are accepted wit
   Object.freeze(config);
   const registry = await createLocalCheckRegistry(config);
   verdict(await probe(f, registry, "path_exists", { subject: "seed" }), true);
+});
+
+for (const state of ["assume-unchanged", "skip-worktree", "both"] as const) {
+  test(`worktree_clean refuses actual ${state} index flags even when Git status hides changed tracked content`, async (t) => {
+    const f = await fixture(t);
+    if (state !== "skip-worktree") await setupGit(f.repo, ["update-index", "--assume-unchanged", "--", "seed.txt"]);
+    if (state !== "assume-unchanged") await setupGit(f.repo, ["update-index", "--skip-worktree", "--", "seed.txt"]);
+    const flagsBefore = await setupGit(f.repo, ["ls-files", "-v", "-z"]);
+    strictEqual(flagsBefore[0], state === "assume-unchanged" ? "h" : state === "skip-worktree" ? "S" : "s");
+    await fs.writeFile(join(f.repo, "seed.txt"), "synthetic hidden tracked change\n");
+    const contentHash = digest(await fs.readFile(join(f.repo, "seed.txt")));
+    strictEqual(contentHash === digest("synthetic seed\n"), false);
+    strictEqual(await setupGit(f.repo, ["--no-optional-locks", "status", "--porcelain=v1", "-z", "--untracked-files=all"]), "");
+    const indexBefore = digest(await fs.readFile(join(f.repo, ".git/index")));
+    const gitBefore = await inventory(join(f.repo, ".git"));
+    const wholeBefore = await inventory(f.base);
+    const registry = await createLocalCheckRegistry(f.config);
+    let callbacks = 0;
+    registry.register("custom:host/after-flags", () => { callbacks += 1; return true; });
+    const original = childProcess.execFile;
+    const commands: string[][] = [];
+    const exec = t.mock.method(childProcess, "execFile", (...args: unknown[]) => {
+      commands.push(args[1] as string[]);
+      return Reflect.apply(original, childProcess, args);
+    });
+    try {
+      for (const onFail of ["STOP", "WARN"] as const) {
+        const report = await readOnly(f, () => registry.run([
+          definition("worktree_clean", { repo: "sample" }, onFail),
+          definition("custom:host/after-flags", {}, "STOP", "after-flags"),
+        ], {}, { timeoutMs: 2_000 }));
+        hardFailure(report);
+        strictEqual(report.verification, "predicate-only"); strictEqual(report.authorization, "none");
+        strictEqual(report.results[1]?.status, "skipped"); strictEqual(report.results[1]?.reason, "stopped");
+        strictEqual(callbacks, 0);
+        strictEqual(JSON.stringify(report).includes(f.repo), false);
+        t.diagnostic(JSON.stringify({ indexFlagState: state, onFail, trackedContentChanged: true, gitStatusEmpty: true,
+          probeSatisfied: report.satisfied, status: report.results[0]?.status, reason: report.results[0]?.reason,
+          laterCallbacks: callbacks, indexSha256: indexBefore, indexSha256After: digest(await fs.readFile(join(f.repo, ".git/index"))),
+          fullGitHash: gitBefore, fullGitHashAfter: await inventory(join(f.repo, ".git")),
+          fullFixtureHash: wholeBefore, fullFixtureHashAfter: await inventory(f.base),
+          workingFileSha256: contentHash, workingFileSha256After: digest(await fs.readFile(join(f.repo, "seed.txt"))), readonly: true, markers: 0 }));
+      }
+      strictEqual(commands.filter((args) => args.includes("ls-files") && args.includes("-v") && args.includes("-z")).length, 2);
+      strictEqual(commands.some((args) => args.includes("status") || args.includes("update-index") || args.includes("--refresh")), false);
+    } finally { exec.mock.restore(); }
+    strictEqual(await setupGit(f.repo, ["ls-files", "-v", "-z"]), flagsBefore, "probe must not clear flags");
+    strictEqual(digest(await fs.readFile(join(f.repo, ".git/index"))), indexBefore);
+    strictEqual(digest(await fs.readFile(join(f.repo, "seed.txt"))), contentHash);
+    strictEqual(await inventory(join(f.repo, ".git")), gitBefore);
+    strictEqual(await inventory(f.base), wholeBefore);
+  });
+}
+
+test("clearedFlags restore ordinary clean/dirty predicates without cache or probe index repair", async (t) => {
+  const f = await fixture(t);
+  const registry = await createLocalCheckRegistry(f.config);
+  await setupGit(f.repo, ["update-index", "--assume-unchanged", "--", "seed.txt"]);
+  await setupGit(f.repo, ["update-index", "--skip-worktree", "--", "seed.txt"]);
+  hardFailure(await probe(f, registry, "worktree_clean", { repo: "sample" }, "WARN"));
+  // Only fixture setup clears flags; the probe contains no update-index operation.
+  await setupGit(f.repo, ["update-index", "--no-assume-unchanged", "--", "seed.txt"]);
+  await setupGit(f.repo, ["update-index", "--no-skip-worktree", "--", "seed.txt"]);
+  strictEqual((await setupGit(f.repo, ["ls-files", "-v", "-z"]))[0], "H");
+  const indexBefore = digest(await fs.readFile(join(f.repo, ".git/index")));
+  const gitBefore = await inventory(join(f.repo, ".git"));
+  verdict(await probe(f, registry, "worktree_clean", { repo: "sample" }), true);
+  await fs.writeFile(join(f.repo, "seed.txt"), "synthetic ordinary dirty change\n");
+  let callbacks = 0;
+  registry.register("custom:host/after-cleared", () => { callbacks += 1; return true; });
+  const dirty = await readOnly(f, () => registry.run([
+    definition("worktree_clean", { repo: "sample" }, "WARN"),
+    definition("custom:host/after-cleared", {}, "STOP", "after-cleared"),
+  ], {}, { timeoutMs: 2_000 }));
+  verdict(dirty, false); strictEqual(dirty.results[0]?.status, "warning");
+  strictEqual(dirty.results[1]?.status, "passed"); strictEqual(callbacks, 1);
+  await fs.writeFile(join(f.repo, "seed.txt"), "synthetic seed\n");
+  verdict(await probe(f, registry, "worktree_clean", { repo: "sample" }), true);
+  strictEqual(digest(await fs.readFile(join(f.repo, ".git/index"))), indexBefore);
+  strictEqual(await inventory(join(f.repo, ".git")), gitBefore);
+  t.diagnostic(JSON.stringify({ indexFlagState: "clearedFlags", cleanSatisfied: true, dirtySatisfied: false,
+    dirtyReason: dirty.results[0]?.reason, dirtyStatus: dirty.results[0]?.status, laterCallbacks: callbacks,
+    indexSha256: indexBefore, indexSha256After: digest(await fs.readFile(join(f.repo, ".git/index"))),
+    fullGitHash: gitBefore, fullGitHashAfter: await inventory(join(f.repo, ".git")), readonly: true, markers: 0 }));
+});
+
+test("sparse-checkout skip-worktree entries are unsupported without index or working-tree changes", async (t) => {
+  const f = await fixture(t);
+  await fs.mkdir(join(f.repo, "keep")); await fs.mkdir(join(f.repo, "omit"));
+  await fs.writeFile(join(f.repo, "keep/visible.txt"), "synthetic visible\n");
+  await fs.writeFile(join(f.repo, "omit/hidden.txt"), "synthetic hidden\n");
+  await setupGit(f.repo, ["add", "--", "keep", "omit"]);
+  await setupGit(f.repo, ["commit", "-m", "synthetic sparse fixture"]);
+  await setupGit(f.repo, ["sparse-checkout", "init", "--cone"]);
+  await setupGit(f.repo, ["sparse-checkout", "set", "keep"]);
+  const entries = await setupGit(f.repo, ["ls-files", "-v", "-z"]);
+  strictEqual(entries.split("\0").some((record) => record.startsWith("S ")), true);
+  strictEqual(await setupGit(f.repo, ["--no-optional-locks", "status", "--porcelain=v1", "-z"]), "");
+  const indexBefore = digest(await fs.readFile(join(f.repo, ".git/index")));
+  const gitBefore = await inventory(join(f.repo, ".git"));
+  const wholeBefore = await inventory(f.base);
+  const registry = await createLocalCheckRegistry(f.config);
+  hardFailure(await probe(f, registry, "worktree_clean", { repo: "sample" }, "WARN"));
+  strictEqual(await setupGit(f.repo, ["ls-files", "-v", "-z"]), entries);
+  strictEqual(await inventory(f.base), wholeBefore);
+  t.diagnostic(JSON.stringify({ indexFlagState: "sparse-skip-worktree", gitStatusEmpty: true, probeSatisfied: false,
+    indexSha256: indexBefore, indexSha256After: digest(await fs.readFile(join(f.repo, ".git/index"))),
+    fullGitHash: gitBefore, fullGitHashAfter: await inventory(join(f.repo, ".git")),
+    fullFixtureHash: wholeBefore, fullFixtureHashAfter: await inventory(f.base), readonly: true, markers: 0 }));
+});
+
+test("ordinary unmerged M index entries stay normal dirty predicates rather than unsupported flags", async (t) => {
+  const f = await fixture(t);
+  const blob = await setupGit(f.repo, ["rev-parse", "HEAD:seed.txt"]);
+  await new Promise<void>((resolve, reject) => {
+    const child = childProcess.execFile(GIT, ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "update-index", "--index-info"],
+      { cwd: f.repo, env: { ...SETUP_ENV }, shell: false, timeout: 5_000, maxBuffer: GIT_MAX_BUFFER },
+      (error) => error === null ? resolve() : reject(error));
+    child.stdin!.end(`0 ${"0".repeat(blob.length)}\tseed.txt\n` + [1, 2, 3].map((stage) => `100644 ${blob} ${stage}\tseed.txt\n`).join(""));
+  });
+  strictEqual((await setupGit(f.repo, ["ls-files", "-v", "-z"]))[0], "M");
+  const registry = await createLocalCheckRegistry(f.config);
+  const report = await probe(f, registry, "worktree_clean", { repo: "sample" }, "WARN");
+  verdict(report, false); strictEqual(report.results[0]?.status, "warning");
+});
+
+test("index flag parsing treats private path bytes as opaque, including invalid UTF-8 and newlines", async (t) => {
+  const f = await fixture(t);
+  const registry = await createLocalCheckRegistry(f.config);
+  let indexReads = 0;
+  let statusReads = 0;
+  const exec = simulatedGit(t, f, (args, callback) => {
+    let output: Buffer;
+    if (args.includes("config")) output = Buffer.from("core.bare\0");
+    else if (args.includes("--format=%(objectmode)")) output = Buffer.from("100644\0");
+    else if (args.includes("ls-files") && args.includes("-v")) {
+      indexReads += 1;
+      output = Buffer.concat([Buffer.from("H private-entry-"), Buffer.from([0xff, 0xfe, 10]), Buffer.from("suffix\0")]);
+    } else if (args.includes("status")) { statusReads += 1; output = Buffer.alloc(0); }
+    else throw new Error("unexpected fixed command");
+    queueMicrotask(() => callback(null, output, Buffer.alloc(0)));
+  });
+  try {
+    const report = await probe(f, registry, "worktree_clean", { repo: "sample" });
+    verdict(report, true); strictEqual(JSON.stringify(report).includes("private-entry"), false);
+    deepStrictEqual([indexReads, statusReads], [1, 1]);
+  } finally { exec.mock.restore(); }
+});
+
+test("malformed, unknown, special or oversized index-flag output fails hard before status even with WARN", async (t) => {
+  const f = await fixture(t);
+  const registry = await createLocalCheckRegistry(f.config);
+  let callbacks = 0;
+  registry.register("custom:host/after-index", () => { callbacks += 1; return true; });
+  const cases: [string, Buffer][] = [
+    ["assume-tag", Buffer.from("h private-entry\0")],
+    ["skip-tag", Buffer.from("S private-entry\0")],
+    ["both-tag", Buffer.from("s private-entry\0")],
+    ["assume-unmerged-tag", Buffer.from("m private-entry\0")],
+    ["unknown-tag", Buffer.from("Z private-entry\0")],
+    ["non-ascii-tag", Buffer.from([0xff, 32, 120, 0])],
+    ["wrong-separator", Buffer.from("H\tprivate-entry\0")],
+    ["empty-path", Buffer.from("H \0")],
+    ["missing-terminator", Buffer.from("H private-entry")],
+    ["empty-record", Buffer.from("\0")],
+    ["malformed-tail", Buffer.from("H private-entry\0tail")],
+    ["oversized", Buffer.alloc(GIT_MAX_BUFFER + 1)],
+  ];
+  for (const [name, entries] of cases) {
+    let indexReads = 0;
+    let statusReads = 0;
+    const exec = simulatedGit(t, f, (args, callback) => {
+      let output: Buffer;
+      if (args.includes("config")) output = Buffer.from("core.bare\0");
+      else if (args.includes("--format=%(objectmode)")) output = Buffer.from("100644\0");
+      else if (args.includes("ls-files") && args.includes("-v")) { indexReads += 1; output = entries; }
+      else if (args.includes("status")) { statusReads += 1; output = Buffer.alloc(0); }
+      else throw new Error("unexpected fixed command");
+      queueMicrotask(() => callback(null, output, Buffer.alloc(0)));
+    });
+    try {
+      for (const onFail of ["STOP", "WARN"] as const) {
+        const report = await readOnly(f, () => registry.run([
+          definition("worktree_clean", { repo: "sample" }, onFail),
+          definition("custom:host/after-index", {}, "STOP", "after-index"),
+        ], {}, { timeoutMs: 2_000 }));
+        hardFailure(report); strictEqual(report.results[1]?.reason, "stopped");
+        strictEqual(JSON.stringify(report).includes("private-entry"), false);
+      }
+      deepStrictEqual([indexReads, statusReads, callbacks], [2, 0, 0]);
+    } finally { exec.mock.restore(); }
+    t.diagnostic(JSON.stringify({ indexFlagOutputCase: name, hardFailure: true, statusReads, laterCallbacks: callbacks, readonly: true }));
+  }
 });

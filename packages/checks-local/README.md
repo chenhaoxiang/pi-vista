@@ -40,9 +40,12 @@ ENOENT proves absence. Ordinary repositories require their own `.git` directory;
 bare repositories, linked worktrees/git-files and parent discovery are refused.
 SHA reads actual HEAD (unlike the base metadata comparator); branch lookup uses
 exact full local refs. Cleanliness means Git porcelain status including staged,
-tracked-unstaged and untracked dirt, excluding ignored files and honoring Git's
-normal assume-unchanged/skip-worktree semantics. Filters/textconv/external diff
-config and submodules are conservatively refused before status.
+tracked-unstaged and untracked dirt, excluding ignored files. Index entries with
+assume-unchanged or skip-worktree flags (including combinations and sparse-checkout
+skip entries) are unsupported hard failures before status, even if Git status
+would be empty. The probe only reads flags; it never clears them or refreshes the
+index. Filters/textconv/external diff config and submodules are also refused
+before status.
 
 Git uses fixed `execFile` arguments, shell false, explicit cwd/git-dir/work-tree,
 2,000 ms child timeout, 65,536 byte buffers, runner AbortSignal and an allowlisted

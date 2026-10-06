@@ -83,6 +83,17 @@ async function supportedStatus(config: ConfigSnapshot, repo: string, signal: Abo
   const modes = ascii(await git(config, repo, ["ls-files", "--format=%(objectmode)", "-z"], signal));
   if (modes !== "" && (!modes.endsWith("\0") ||
     !modes.slice(0, -1).split("\0").every((mode) => /^(?:100644|100755|120000)$/u.test(mode)))) fail();
+  // -v emits lowercase tags for assume-unchanged, S/s for skip-worktree (also
+  // sparse entries). Only ordinary cached H and unmerged M entries are supported.
+  // Paths remain opaque bytes: inspect only the tag/space and NUL framing.
+  const entries = await git(config, repo, ["ls-files", "-v", "-z"], signal);
+  let start = 0;
+  while (start < entries.length) {
+    const end = entries.indexOf(0, start);
+    if (end < start + 3 || entries[start + 1] !== 32 ||
+      (entries[start] !== 72 && entries[start] !== 77)) fail();
+    start = end + 1;
+  }
 }
 
 export async function worktreeClean(config: ConfigSnapshot, repo: string, signal: AbortSignal): Promise<boolean> {

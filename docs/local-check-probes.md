@@ -95,7 +95,7 @@ There is no param for a path, ref, cwd, revision, shell, argv or executable.
 | `sha_matches` | `{ repo, expected }` | Actual `HEAD^{commit}` is a 40/64-hex SHA equal to expected, case-insensitively |
 | `branch_exists` | `{ repo, subject }` | Git reports the exact configured full local branch ref |
 | `branch_not_exists` | `{ repo, subject }` | The bounded successful ref listing lacks that exact ref |
-| `worktree_clean` | `{ repo }` | Supported Git status has no staged, tracked-unstaged or untracked entries |
+| `worktree_clean` | `{ repo }` | Supported index has no assume-unchanged/skip-worktree flags and Git status has no staged, tracked-unstaged or untracked entries |
 
 The SHA implementation reads Git; the base package's same-named optional binding
 only compares `{ expected, actual }` metadata. Neither authenticates the source
@@ -121,9 +121,13 @@ not establish the requested branch's existence.
 
 Cleanliness uses index/tracked/untracked Git porcelain v1 with NUL records,
 all untracked files, submodules not ignored and renames disabled. Ignored files
-are excluded. This is **Git status cleanliness**, not a hash of every filesystem
-body or proof that tests ran. Git's normal ignore, assume-unchanged and
-skip-worktree semantics still apply; sparse/special layouts are not attested.
+are excluded and normal Git ignore rules still apply. This is a conservative
+**Git index/status cleanliness** predicate, not a hash of every filesystem body
+or proof that tests ran. Assume-unchanged and skip-worktree flags can hide actual
+tracked changes from an empty status, so any such entry is unsupported, including
+both flags together and sparse-checkout skip entries. These are hard failures
+even under WARN, not ordinary predicate warnings. Sparse/special layouts are not
+otherwise attested. The probe never clears flags, refreshes or repairs the index.
 Git may internally examine tracked file bodies, repository config and attributes;
 these are not collected or returned as Vista data.
 
@@ -132,10 +136,15 @@ local includes). Any `filter.*`, `submodule.*`, `diff.external`, or external
 `diff.*.textconv`/`diff.*.command` configuration is conservatively unsupported,
 even if unused. This avoids executing clean/process/smudge/textconv filters while
 calling status read-only. Config names outside the accepted ASCII grammar reject.
-A modes-only index listing refuses Gitlinks/submodules and unknown modes. The
-addon neither launches filters nor rewrites config to accommodate them. Ordinary
-tracked file modes and symlink modes are supported; unsupported commands/output
-cannot silently count as clean.
+A modes-only index listing refuses Gitlinks/submodules and unknown modes. A
+separate fixed `ls-files -v -z` read checks NUL-framed tag/space/path records:
+only ordinary cached `H` and unmerged `M` tags are supported; lowercase tags
+(assume-unchanged), `S`/`s` (skip-worktree) and unknown/malformed records fail
+closed before status. Private path bytes remain opaque, without UTF-8 or newline
+decoding/logging, and the existing child buffer/deadline bounds still apply.
+The addon neither launches filters nor rewrites config or index flags to
+accommodate unsupported repositories. Ordinary tracked file and symlink modes,
+including unmerged entries reported as dirty by status, remain supported.
 
 ## Child-process and read-only controls
 
@@ -143,7 +152,7 @@ Git launches use `execFile`, fixed argument arrays, **`shell: false`**, an
 explicit private cwd/git-dir, no pager, and no optional locks. Only a configured
 full branch ref contributes to an argument; no protocol value is a revision,
 pathspec or flag. Commands are limited to namespace/HEAD `rev-parse`,
-`for-each-ref`, config-name listing, index-mode `ls-files`, and porcelain `status`.
+`for-each-ref`, config-name listing, index-mode/flag `ls-files`, and porcelain `status`.
 There is no checkout, reset, clean, add, commit, fetch, shell or network command.
 
 Each child has `GIT_TIMEOUT_MS = 2,000`, `GIT_MAX_BUFFER = 65,536` bytes,
@@ -207,6 +216,8 @@ known-pattern label validation is not a universal secret detector.
 
 Synthetic public-import tests exercise all six handlers, actual SHA-1/SHA-256
 HEADs, branch/HEAD/filesystem mutation, dirty/index/untracked/ignored states,
+actual assume-unchanged/skip-worktree/both/cleared flag states, sparse-checkout
+skip entries, unmerged index entries, opaque path bytes and malformed flag output,
 canonical/symlink/traversal/parent-discovery refusal, genuine missing versus
 errors, hostile descriptors with zero traps/getters/coercion/I/O, detached
 mutation isolation, exact alias schemas, fixed argv/environment, malformed output,
