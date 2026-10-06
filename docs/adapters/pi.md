@@ -47,6 +47,15 @@ await vista.end();
   Tool events and checkpoints bind to the current context step. No Pi hook is
   installed implicitly.
 
+Path-safe IDs are not automatically private. The adapter uses core's shared
+`hasKnownCredential` predicate for all retained identities, tool/artifact/stat
+metadata and checkpoint summaries/identifiers, including custom observer paths.
+Known-signature explicit values reject with value-free `VistaProtocolError`
+before callbacks. Unsafe own run environment values generate a safe replacement;
+unsafe own session environment values are omitted. The
+[metadata safety guide](../metadata-safety.md) documents exact signatures,
+unknown-encoding limits and pending independent candidate review.
+
 ## Safe summaries only
 
 Tool input is a closed allowlist. It accepts a short tool label, optional safe

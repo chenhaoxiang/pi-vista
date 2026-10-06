@@ -103,7 +103,7 @@ test("spawned vista four commands JSON/text and public API are offline, sanitize
   } finally { await rm(base, { recursive: true, force: true }); }
 });
 
-test("history inventory is sorted, bounded, and withholds core-safe credential-bearing run names", async () => {
+test("history inventory is sorted and bounded after core withholds credential-bearing run names", async () => {
   const base = await sandbox();
   try {
     for (const name of ["run-z", "run-b", "run-a", wrappedPat, "bad name"]) await mkdir(join(base, "runs", name), { recursive: true });
@@ -111,7 +111,9 @@ test("history inventory is sorted, bounded, and withholds core-safe credential-b
     strictEqual(view.command, "history");
     if (view.command !== "history" || view.mode !== "inventory") throw new Error("unexpected view");
     deepStrictEqual(view.runs, { items: ["run-a", "run-b"], total: 3, omitted: 1 });
-    strictEqual(view.withheld_run_ids, 1);
+    deepStrictEqual(await new EventStore(base).listRuns(), ["run-a", "run-b", "run-z"]);
+    // CLI counts only IDs returned by core, not names already filtered there.
+    strictEqual(view.withheld_run_ids, 0);
     strictEqual(JSON.stringify(view).includes(wrappedPat), false);
   } finally { await rm(base, { recursive: true, force: true }); }
 });
@@ -208,7 +210,7 @@ test("safe unknown versions are retained as recorded labels, never compatible/cu
   } finally { await rm(base, { recursive: true, force: true }); }
 });
 
-test("closed event/checkpoint projections defend core-retained wrapped tokens and unknown property names", async () => {
+test("closed event/checkpoint projections remain safe after core filters legacy wrapped-token records", async () => {
   const base = await sandbox();
   try {
     const unsafeKey = `label-${wrappedPat}`;
@@ -217,8 +219,14 @@ test("closed event/checkpoint projections defend core-retained wrapped tokens an
     await writeCheckpoint(base, "run-a_s0", { ...checkpoint(), source_sha: wrappedPat, env_fingerprint: wrappedGhp, policy_version: wrappedPat, completed_steps: [`run-a_${wrappedGhp}`], check_fn_ids: [wrappedPat], resume_requires: [wrappedGhp], [unsafeKey]: 99, task_goal: "PRIVATE_NARRATIVE" });
     await writeCheckpoint(base, `run-a_${wrappedGhp}`, { ...checkpoint(), step_id: `run-a_${wrappedGhp}` });
     const coreRecords = await new EventStore(base).readRun("run-a");
-    strictEqual(coreRecords[0]?.action, wrappedGhp, "fixture must exercise a wrapped token surviving core redaction");
-    strictEqual(coreRecords[0]?.vista_version, `future/${wrappedPat}`);
+    strictEqual(coreRecords.length, 1, "unsafe component/version and step identity records are omitted by core");
+    strictEqual(coreRecords[0]?.step_id, "run-a_long");
+    strictEqual(JSON.stringify(coreRecords).includes(wrappedGhp), false);
+    strictEqual(JSON.stringify(coreRecords).includes(wrappedPat), false);
+    const coreCheckpoints = new CheckpointStore(base);
+    strictEqual(await coreCheckpoints.load("run-a", "run-a_s0"), null);
+    strictEqual(await coreCheckpoints.load("run-a", `run-a_${wrappedGhp}`), null);
+    deepStrictEqual(await coreCheckpoints.listCheckpoints("run-a"), []);
     for (const command of ["history", "inspect", "receipts"]) {
       for (const format of [[], ["--json"]]) {
         const child = spawned([command, "run-a", ...format], base);
@@ -228,11 +236,11 @@ test("closed event/checkpoint projections defend core-retained wrapped tokens an
     }
     const view = await observe({ command: "inspect", runId: "run-a", baseDir: base });
     if (view.command !== "inspect") throw new Error("unexpected view");
-    strictEqual(view.reads.core_returned_events, 3); strictEqual(view.reads.projected_events, 2); strictEqual(view.reads.identity_withheld_events, 1);
-    strictEqual(view.withheld_checkpoint_ids, 1);
+    // These are after-core projection counts, never fabricated corruption totals.
+    strictEqual(view.reads.core_returned_events, 1); strictEqual(view.reads.projected_events, 1); strictEqual(view.reads.identity_withheld_events, 0);
+    strictEqual(view.withheld_checkpoint_ids, 0);
     strictEqual(view.events.items[0]?.action, "[REDACTED]");
-    strictEqual(view.checkpoints.items[0]?.source_sha, "[REDACTED]");
-    deepStrictEqual(view.checkpoints.items[0]?.completed_steps.items, ["[REDACTED]"]);
+    deepStrictEqual(view.checkpoints.items, []);
   } finally { await rm(base, { recursive: true, force: true }); }
 });
 
@@ -294,7 +302,12 @@ test("receipts withhold URLs, paths, credential-bearing identities, unknown fiel
     if (view.command !== "receipts") throw new Error("unexpected view");
     strictEqual(view.withheld_refs, 5); strictEqual(view.receipts.total, 1);
     deepStrictEqual(view.receipts.items[0]?.observations.items[0]?.owner_claimed_stats.items, [{ label: "count", value: 2 }, { label: "safe", value: "[REDACTED]" }]);
-    strictEqual(view.receipts.items[0]?.observations.items[0]?.withheld_stats, 2);
+    const coreRecords = await new EventStore(base).readRun("run-a");
+    strictEqual(JSON.stringify(coreRecords).includes(wrappedGhp), false);
+    strictEqual(JSON.stringify(coreRecords).includes(wrappedPat), false);
+    strictEqual(Object.hasOwn(coreRecords[0]?.artifact_refs?.[0]?.stats ?? {}, `label-${wrappedPat}`), false);
+    // Core drops the signature-bearing key; CLI separately withholds constructor.
+    strictEqual(view.receipts.items[0]?.observations.items[0]?.withheld_stats, 1);
   } finally { await rm(base, { recursive: true, force: true }); }
 });
 

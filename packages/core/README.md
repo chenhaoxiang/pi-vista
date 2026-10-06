@@ -12,6 +12,22 @@ npm install @pi-vista/core
 The matching `@pi-vista/protocol` package is installed automatically as a
 runtime dependency.
 
+## Known credential metadata
+
+`hasKnownCredential(unknown)` is a public, stateless primitive-string predicate
+for known embedded GitHub classic/fine-grained, SK, Slack and three-part JWT
+signatures, including namespace-wrapped and case variants. It never coerces or
+inspects objects. `isSafeSegment` stays lexical: path-safe does not mean private.
+
+Core redacts these signatures from retained values/keys, stats, refs and URL
+origins. Unsafe run/step identities and invalid post-redaction checkpoint IDs
+reject before writes; readers sanitize legacy metadata and `listRuns()` omits
+known-signature directory names without altering historical files. Unsafe own
+`VISTA_RUN_ID` uses a generated safe fallback. See the maintained
+[metadata safety guide](../../docs/metadata-safety.md) for exact signature limits,
+producer responsibilities and candidate review boundaries; non-matches are not
+proof of safety or authorization.
+
 ## Custom components
 
 Custom components use the structured `custom:<namespace>` form. The runtime

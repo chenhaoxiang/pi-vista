@@ -1,5 +1,7 @@
+import { types } from "node:util";
 import {
   emitVistaEvent,
+  hasKnownCredential,
   isSafeSegment,
   redactAll,
   VistaProtocolError,
@@ -32,6 +34,7 @@ const OBSERVATION_FIELDS = new Set([
   "shadow",
   "shared_input_hash",
 ]);
+const EMIT_OPTION_FIELDS = ["store", "baseDir", "runId", "stepId", "seq", "now", "clock", "persistTimeoutMs"] as const;
 const RESULTS = new Set<VistaResult>(["ok", "blocked", "failed", "unknown", "abstain"]);
 const VERDICTS = new Set<WorkspaceGuardVerdict>([
   "allow",
@@ -131,7 +134,7 @@ function requireOptionalString(snapshot: ObservationSnapshot, key: string): stri
 
 function requireSafeSegment(snapshot: ObservationSnapshot, key: string): string | undefined {
   const value = requireOptionalString(snapshot, key);
-  if (value !== undefined && !isSafeSegment(value)) {
+  if (value !== undefined && (!isSafeSegment(value) || hasKnownCredential(value))) {
     invalid(`${key} must be a path-safe identifier`);
   }
   return value;
@@ -139,7 +142,7 @@ function requireSafeSegment(snapshot: ObservationSnapshot, key: string): string 
 
 function requireSafeLabel(snapshot: ObservationSnapshot, key: string): string | undefined {
   const value = requireOptionalString(snapshot, key);
-  if (value !== undefined && !SAFE_LABEL_PATTERN.test(value)) {
+  if (value !== undefined && (!SAFE_LABEL_PATTERN.test(value) || hasKnownCredential(value))) {
     invalid(`${key} must be a safe metadata identifier`);
   }
   if (value !== undefined) {
@@ -156,7 +159,7 @@ function requireSafeSlashLabel(snapshot: ObservationSnapshot, key: string): stri
   const value = requireOptionalString(snapshot, key);
   if (
     value !== undefined &&
-    (!SAFE_SLASH_LABEL_PATTERN.test(value) || value.split("/").some((segment) => segment === "." || segment === ".."))
+    (!SAFE_SLASH_LABEL_PATTERN.test(value) || hasKnownCredential(value) || value.split("/").some((segment) => segment === "." || segment === ".."))
   ) {
     invalid(`${key} must be a safe metadata identifier`);
   }
@@ -242,7 +245,7 @@ export function toVistaEventInput(observation: WorkspaceGuardObservation): Vista
   validateFields(snapshot);
 
   const event = requireString(snapshot, "event");
-  if (!EVENT_PATTERN.test(event)) {
+  if (!EVENT_PATTERN.test(event) || hasKnownCredential(event)) {
     invalid("event must be a non-empty registry-safe identifier");
   }
 
@@ -292,10 +295,42 @@ export function toVistaEventInput(observation: WorkspaceGuardObservation): Vista
   return input;
 }
 
+/**
+ * Snapshot public emission options without reading inherited IDs or accessors.
+ * Storage paths and callbacks remain trusted plumbing, not recorded metadata.
+ */
+function snapshotEmitOptions(options: WorkspaceGuardEmitOptions | undefined): WorkspaceGuardEmitOptions {
+  const result = Object.create(null) as Record<string, unknown>;
+  if (options === undefined) return result;
+  if (!isRecord(options) || types.isProxy(options)) {
+    invalid("emission options must be own data fields");
+  }
+  for (const key of EMIT_OPTION_FIELDS) {
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(options, key);
+    } catch {
+      invalid("emission options could not be safely inspected");
+    }
+    if (descriptor === undefined) continue;
+    if (!Object.hasOwn(descriptor, "value")) {
+      invalid("emission options must be own data fields");
+    }
+    const value: unknown = descriptor.value;
+    if ((key === "runId" || key === "stepId") && value !== undefined &&
+      (!isSafeSegment(value) || hasKnownCredential(value))) {
+      invalid("emission identity must be a safe metadata identifier");
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
 /** Emit one sanitized workspace-guard observation through @pi-vista/core. */
 export async function emitWorkspaceGuardObservation(
   observation: WorkspaceGuardObservation,
   options?: WorkspaceGuardEmitOptions,
 ): Promise<VistaEvent | undefined> {
-  return emitVistaEvent(toVistaEventInput(observation), options);
+  const input = toVistaEventInput(observation);
+  return emitVistaEvent(input, snapshotEmitOptions(options));
 }

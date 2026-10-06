@@ -66,6 +66,16 @@ Invalid hashes, empty/unsafe IDs, unknown fields, and raw `command`, `cwd`,
 core emitter is called. The adapter never writes raw commands, cwd, paths,
 stderr, credentials, approvals, or free text into a VistaEvent.
 
+Core's shared `hasKnownCredential` predicate also rejects known embedded
+signatures in retained observation text and explicit emission-option run/step
+IDs before callbacks. An observation's run ID keeps its precedence but cannot
+hide an unsafe supplied option. Emission options use only own data fields;
+accessors and Proxy option objects reject without getter/trap execution, and
+inherited identities are ignored. Unsafe own `VISTA_RUN_ID` generates a safe
+fallback. Absolute `baseDir`, stores and clocks remain trusted configuration,
+not recorded metadata. See [metadata safety](../metadata-safety.md) for exact
+patterns, producer duties and the candidate's pending independent review.
+
 ## Ownership and safety boundary
 
 The public adapter consumes only sanitized observations from an owner

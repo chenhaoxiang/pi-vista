@@ -1,6 +1,8 @@
 export type { VistaCheckpoint, VistaEvent, VistaComponent, VistaResult } from "@pi-vista/protocol";
 export { VISTA_PROTOCOL_VERSION } from "@pi-vista/protocol";
 
+export { hasKnownCredential } from "./credential.js";
+
 export {
   createEmitter,
   emitVistaEvent,

@@ -3,10 +3,11 @@
  * These are deliberately narrower than the protocol's general string fields.
  */
 
+import { hasKnownCredential } from "./credential.js";
+
 const CUSTOM_COMPONENT_NAME_PATTERN = /^[^\s\p{Cc}\p{Cf}]+$/u;
 const CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN = /(?:^|[./:_-])(?:[A-Za-z0-9-]*[_-])?(?:secret|token|password|passwd|api(?:[_-]?key)?|access[_-]?key|auth|credential|private[_-]?key|ssh[_-]?key)[A-Za-z0-9_.-]*\s*[:=]/iu;
 const CUSTOM_COMPONENT_UNSAFE_PATTERN = /(?:[\\|?&=#%]|^[/\\~]|^[A-Za-z]:[/\\]|:\/|:\/\/|(?:^|\/)\.\.?(?:\/|$)|&&|\|\||[;`$<>])/iu;
-const CUSTOM_COMPONENT_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})/u;
 /**
  * Single source of truth for command words that are unsafe as opaque protocol
  * labels. Keep this list complete: redaction, component validation, and
@@ -77,7 +78,7 @@ export function isSafeCustomComponent(value: unknown): value is `custom:${string
     CUSTOM_COMPONENT_NAME_PATTERN.test(name) &&
     !CUSTOM_COMPONENT_CREDENTIAL_ASSIGNMENT_PATTERN.test(name) &&
     !CUSTOM_COMPONENT_UNSAFE_PATTERN.test(name) &&
-    !CUSTOM_COMPONENT_TOKEN_PATTERN.test(name) &&
+    !hasKnownCredential(name) &&
     !isBareCustomComponentCommand(name) &&
     name.split("/").every((segment) => segment !== "." && segment !== "..")
   );
@@ -99,7 +100,7 @@ export function isSafeVistaVersion(value: unknown): value is string {
     VISTA_VERSION_PATTERN.test(value) &&
     !VISTA_VERSION_CREDENTIAL_ASSIGNMENT_PATTERN.test(value) &&
     !VISTA_VERSION_UNSAFE_PATTERN.test(value) &&
-    !CUSTOM_COMPONENT_TOKEN_PATTERN.test(value) &&
+    !hasKnownCredential(value) &&
     value.split("/").every((segment) =>
       segment.length > 0 && segment !== "." && segment !== ".." && !isBareCommandWord(segment)
     )
@@ -115,6 +116,7 @@ export function isSafeStatsKey(value: unknown): value is string {
 export function isRetainedStatsKey(value: unknown): value is string {
   return (
     isSafeStatsKey(value) &&
+    !hasKnownCredential(value) &&
     !SENSITIVE_STATS_KEY_PATTERN.test(value.replace(/[_.:-]/gu, "").toLowerCase())
   );
 }
@@ -131,7 +133,7 @@ export function isSafeStatsValue(value: unknown): value is string {
     value.length <= MAX_STATS_VALUE_LENGTH &&
     (REDACTION_MARKER_PATTERN.test(value) || (
       STATS_VALUE_PATTERN.test(value) &&
-      !CUSTOM_COMPONENT_TOKEN_PATTERN.test(value)
+      !hasKnownCredential(value)
     ))
   );
 }

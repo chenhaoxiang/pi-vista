@@ -10,10 +10,11 @@ A model-agnostic execution augmentation and experience system for Pi.
 **Candidate checkout, not main:** this infrastructure integration combines seven
 public packages from pinned, open and unmerged source PRs. Validation is synthetic,
 offline **functional compatibility only**, not a privacy/security acceptance or
-publication claim. A confirmed embedded `ghp_` / `github_pat_` identity gap in the
-core/Pi/guard source pins remains a **live-use and release blocker**. See the
-[integration snapshot](docs/infrastructure-integration.md) for pins, evidence and
-limits.
+publication claim. The [integration snapshot](docs/infrastructure-integration.md)
+records the old source pins' confirmed embedded `ghp_` / `github_pat_` identity
+leak. This security candidate adds a [bounded shared metadata fix](docs/metadata-safety.md),
+**pending independent review and acceptance**. Local validation does not clear
+live-use or release readiness; the historical snapshot remains unchanged.
 
 ---
 
@@ -83,7 +84,7 @@ not a source of execution, merge, release or promotion authorization.
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
 4. **Hindsight is the primary memory** — pi-vista maintains only a local short-term event buffer and executable policy files. Long-term semantic memory lives in Hindsight.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
-6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. This is a required boundary, not a claim that the candidate's known credential-pattern gap is fixed.
+6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. The bounded known-pattern candidate fix does not recognize arbitrary secret encodings or replace producer sanitization.
 
 ---
 
@@ -162,6 +163,7 @@ records.
 ## Integration
 
 - [Infrastructure candidate, source pins, synthetic validation and blockers](docs/infrastructure-integration.md)
+- [Shared credential metadata safety candidate and limits](docs/metadata-safety.md)
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)

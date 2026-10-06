@@ -3,6 +3,7 @@ import { appendFile, mkdir, readdir, readFile, rename, unlink, writeFile } from 
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { VistaCheckpoint, VistaEvent } from "@pi-vista/protocol";
+import { hasKnownCredential } from "./credential.js";
 import { redactAll } from "./redact.js";
 import { assertSafeSegment, isSafeSegment } from "./path-safe.js";
 import {
@@ -128,7 +129,7 @@ export class EventStore {
     try {
       const entries = await readdir(join(this.baseDir, "runs"), { withFileTypes: true });
       return entries
-        .filter((entry) => entry.isDirectory() && isSafeSegment(entry.name))
+        .filter((entry) => entry.isDirectory() && isSafeSegment(entry.name) && !hasKnownCredential(entry.name))
         .map((entry) => entry.name)
         .sort();
     } catch {

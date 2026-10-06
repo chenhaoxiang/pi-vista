@@ -1,5 +1,7 @@
+import { types } from "node:util";
 import {
   CheckpointStore,
+  hasKnownCredential,
   emitVistaEvent,
   generateStepId,
   getOrCreateRunId,
@@ -173,7 +175,7 @@ function snapshotDataRecord(
       }
       const descriptor = descriptors[key];
       if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
-        reject(`${label}.${key} must be a data property`);
+        reject(`${label} fields must be data properties`);
       }
       result[key] = descriptor.value;
     }
@@ -262,7 +264,7 @@ function requiredString(value: unknown, label: string): string {
 
 function safeLabel(value: unknown, label: string): string {
   const result = requiredString(value, label);
-  if (!SAFE_LABEL_PATTERN.test(result) || result.includes("..")) {
+  if (!SAFE_LABEL_PATTERN.test(result) || result.includes("..") || hasKnownCredential(result)) {
     reject(`${label} must be a short metadata label`);
   }
   return result;
@@ -270,7 +272,7 @@ function safeLabel(value: unknown, label: string): string {
 
 function safeIdentifier(value: unknown, label: string): string {
   const result = requiredString(value, label);
-  if (!isSafeSegment(result)) {
+  if (!isSafeSegment(result) || hasKnownCredential(result)) {
     reject(`${label} must be a path-safe identifier`);
   }
   return result;
@@ -294,6 +296,7 @@ function safeSummary(value: unknown, label: string): string {
   const result = requiredString(value, label);
   if (
     result.length > 256 ||
+    hasKnownCredential(result) ||
     CONTROL_CHARACTER_PATTERN.test(result) ||
     (!REDACTION_MARKER_PATTERN.test(result) &&
       (!SUMMARY_PATTERN.test(result) || RAW_SUMMARY_PATTERN.test(result) || SHELL_SYNTAX_PATTERN.test(result)))
@@ -382,7 +385,7 @@ function normalizeArtifactRef(value: unknown, label: string): PiArtifactRefInput
     }
     stats = {};
     for (const [key, stat] of entries) {
-      if (!SAFE_STATS_KEY_PATTERN.test(key) || SENSITIVE_STATS_KEY_PATTERN.test(key.replace(/[_.:-]/gu, "").toLowerCase())) {
+      if (!SAFE_STATS_KEY_PATTERN.test(key) || hasKnownCredential(key) || SENSITIVE_STATS_KEY_PATTERN.test(key.replace(/[_.:-]/gu, "").toLowerCase())) {
         reject(`${label}.stats contains an unsafe key`);
       }
       if (typeof stat === "number") {
@@ -390,7 +393,7 @@ function normalizeArtifactRef(value: unknown, label: string): PiArtifactRefInput
           reject(`${label}.stats.${key} must be finite`);
         }
         stats[key] = stat;
-      } else if (typeof stat === "string" && (REDACTION_MARKER_PATTERN.test(stat) || SAFE_STATS_VALUE_PATTERN.test(stat))) {
+      } else if (typeof stat === "string" && !hasKnownCredential(stat) && (REDACTION_MARKER_PATTERN.test(stat) || SAFE_STATS_VALUE_PATTERN.test(stat))) {
         stats[key] = stat;
       } else {
         reject(`${label}.stats.${key} must be a short metadata value`);
@@ -411,7 +414,7 @@ function ownProcessEnvironmentValue(key: string): unknown {
       return undefined;
     }
     const environment = processDescriptor.value;
-    if (!isObject(environment)) {
+    if (!isObject(environment) || types.isProxy(environment)) {
       return undefined;
     }
     const descriptor = Object.getOwnPropertyDescriptor(environment, key);
@@ -441,7 +444,7 @@ function resolveIdentity(options: SnapshotRecord): { runId: string; sessionId: s
     sessionId = safeIdentifier(explicitSessionId, "session_id");
   } else {
     const environmentSessionId = ownProcessEnvironmentValue("PI_SESSION_ID");
-    sessionId = isSafeSegment(environmentSessionId) ? environmentSessionId : undefined;
+    sessionId = isSafeSegment(environmentSessionId) && !hasKnownCredential(environmentSessionId) ? environmentSessionId : undefined;
   }
   return { runId, sessionId };
 }
@@ -828,6 +831,7 @@ class PiRunContextImpl implements PiRunContext {
   }
 
   nextStep(): string {
+    safeIdentifier(this.runId, "run_id");
     const step: PiStep = {
       runId: this.runId,
       seq: this.sequence,
@@ -839,11 +843,17 @@ class PiRunContextImpl implements PiRunContext {
   }
 
   private ensureStep(): PiStep {
-    return this.currentStep ?? {
+    safeIdentifier(this.runId, "run_id");
+    optionalSafeIdentifier(this.sessionId, "session_id");
+    const step = this.currentStep ?? {
       runId: this.runId,
       seq: this.sequence,
       stepId: this.nextStep(),
     };
+    if (step.runId !== this.runId || !isVistaStepIdForRun(this.runId, step.stepId)) {
+      reject("current step must match the context run");
+    }
+    return step;
   }
 
   private track<T>(operation: Promise<T>): Promise<T> {

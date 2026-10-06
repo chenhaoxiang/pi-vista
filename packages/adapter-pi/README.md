@@ -40,7 +40,14 @@ await vista.end();
 
 - `run_id` is selected from an explicit option, a safe `VISTA_RUN_ID`, or
   `@pi-vista/core`'s generated ID. Unsafe environment values are never copied.
-- `session_id` is selected from an explicit option or a safe `PI_SESSION_ID`.
+- `session_id` is selected from an explicit option or a safe `PI_SESSION_ID`;
+  unsafe own environment session values are omitted.
+- All retained identities, tool/ref/stat and checkpoint metadata use core's
+  shared known-credential predicate before custom `emit`/`append`/`save` paths.
+  Explicit known-signature values reject with value-free `VistaProtocolError`;
+  a path-safe shape alone does not establish safe metadata. See the
+  [metadata safety guide](../../docs/metadata-safety.md) for exact pattern limits
+  and the candidate's pending independent review.
 - Tool calls and results use a closed allowlist of summary fields. Raw args,
   commands, paths, prompts, model input/output, stdout, stderr, cwd, and
   credentials are rejected before core redaction. Options, tool inputs,

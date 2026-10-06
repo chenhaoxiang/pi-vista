@@ -1,4 +1,5 @@
 import type { VistaCheckpoint, VistaComponent, VistaEvent, VistaResult } from "@pi-vista/protocol";
+import { hasKnownCredential } from "./credential.js";
 import { isSafeSegment } from "./path-safe.js";
 import {
   isSafeCustomComponent,
@@ -30,6 +31,8 @@ export function isVistaStepIdForRun(runId: unknown, stepId: unknown): stepId is 
   return (
     isSafeSegment(runId) &&
     isSafeSegment(stepId) &&
+    !hasKnownCredential(runId) &&
+    !hasKnownCredential(stepId) &&
     stepId.startsWith(`${runId}_`) &&
     stepId.length > runId.length + 1
   );

@@ -1,6 +1,7 @@
 import type { VistaComponent, VistaEvent, VistaResult } from "@pi-vista/protocol";
 import { VISTA_PROTOCOL_VERSION } from "@pi-vista/protocol";
 import { getOrCreateRunId, generateStepId, isSafeSegment } from "./run-id.js";
+import { hasKnownCredential } from "./credential.js";
 import { redactAll } from "./redact.js";
 import { EventStore } from "./store.js";
 import { assertVistaEvent, VistaProtocolError } from "./validation.js";
@@ -87,7 +88,7 @@ export async function emitVistaEvent(partial: VistaEventInput, options: EmitOpti
   const runId = partial.run_id !== undefined
     ? partial.run_id
     : (options.runId !== undefined ? options.runId : getOrCreateRunId());
-  if (!isSafeSegment(runId)) {
+  if (!isSafeSegment(runId) || hasKnownCredential(runId)) {
     throw new VistaProtocolError("event run_id must be a path-safe identifier");
   }
   if (options.seq !== undefined && (!Number.isInteger(options.seq) || options.seq < 0)) {

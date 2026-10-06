@@ -19,15 +19,17 @@ The infrastructure candidate includes `@pi-vista/protocol`, `@pi-vista/core`,
 Build protocol/core first, then the other public packages. Root tests include
 all existing package tests plus public-import synthetic integration tests.
 Candidate availability does not imply a main merge or release acceptance.
-The integration snapshot records a confirmed core/Pi/guard embedded-credential
-identity gap; functional compatibility checks do not clear that live/release
-blocker or permit modifying protected source pins opportunistically.
+The integration snapshot records the old candidate's confirmed core/Pi/guard
+embedded-credential identity gap. The bounded security candidate fix is described
+in docs/metadata-safety.md and still requires independent review; functional
+checks alone do not clear live/release blockers or permit opportunistic pin edits.
 
 ## Public document map
 
 - [README.md](README.md): package overview and implementation status
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
 - [docs/infrastructure-integration.md](docs/infrastructure-integration.md): candidate inventory, public source pins, functional validation snapshot and open blockers
+- [docs/metadata-safety.md](docs/metadata-safety.md): shared known-credential metadata boundaries, historical defect and candidate review limits
 - [docs/cli.md](docs/cli.md): maintained observation CLI/API, privacy and limits
 - [docs/check-functions.md](docs/check-functions.md): programmatic predicate registry/runner, fail-closed limits and no authorization
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases

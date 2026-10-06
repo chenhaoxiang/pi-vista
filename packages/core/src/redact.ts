@@ -1,3 +1,4 @@
+import { hasKnownCredential } from "./credential.js";
 import { isSafeSegment } from "./path-safe.js";
 import {
   isBareCommandWord,
@@ -22,7 +23,6 @@ const URL_QUERY_PARAMETER_PATTERN = /([?&])([^=?&#\s]+)=([^&#\s]*)/gu;
 const ASSIGNMENT_SECRET_PATTERN = /\b([a-z][a-z\d_.-]*)\s*([:=])\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/giu;
 const BEARER_PATTERN = /\b(?:basic|bearer)\s+[A-Za-z0-9._~+/=-]+/giu;
 const PEM_PATTERN = /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/gu;
-const TOKEN_PATTERN = /\b(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/g;
 const WINDOWS_PATH_PATTERN = /(?:\b[A-Za-z]:[\\/]+|\\\\[A-Za-z0-9._-]+[\\/]+)[^\s"'`<>|;&]+/g;
 const POSIX_PATH_PATTERN = /(?<![\w:/])(?:\/[A-Za-z0-9._~@%+\-]+)+/g;
 const ROOT_PATH_PATTERN = /(?<![\w:/])\/(?=$|[\s"'`<>|;&])/g;
@@ -133,6 +133,7 @@ function isUnsafePropertyKey(key: string): boolean {
     return false;
   }
   return (
+    hasKnownCredential(key) ||
     CONTROL_CHARACTER_PATTERN.test(key) ||
     /[\\/]/u.test(key) ||
     key.startsWith("~") ||
@@ -153,13 +154,15 @@ function redactPathFragments(value: string): string {
 }
 
 function redactCredentialFragments(value: string): string {
+  if (hasKnownCredential(value)) {
+    return REDACTED_CREDENTIAL_MARKER;
+  }
   return value
     .replace(PEM_PATTERN, REDACTED_CREDENTIAL_MARKER)
     .replace(BEARER_PATTERN, REDACTED_CREDENTIAL_MARKER)
     .replace(ASSIGNMENT_SECRET_PATTERN, (match: string, key: string, separator: string) =>
       isCredentialKey(key) ? `${key}${separator}${REDACTED_CREDENTIAL_MARKER}` : match,
-    )
-    .replace(TOKEN_PATTERN, REDACTED_CREDENTIAL_MARKER);
+    );
 }
 
 function markerForFragments(value: string): string {
@@ -188,6 +191,9 @@ function redactUrl(value: string): string {
     const parsed = new URL(value);
     if (parsed.protocol === "file:") {
       return REDACTED_PATH_MARKER;
+    }
+    if (hasKnownCredential(`${parsed.protocol}//${parsed.host}`)) {
+      return REDACTED_CREDENTIAL_MARKER;
     }
     // URLSearchParams decodes both keys and values before classification.
     // Even unknown query keys/values are opaque data, not safe metadata.

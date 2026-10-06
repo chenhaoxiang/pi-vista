@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { types } from "node:util";
+import { hasKnownCredential } from "./credential.js";
 import { assertSafeSegment, isSafeSegment } from "./path-safe.js";
 
 const RUN_ID_ENV = "VISTA_RUN_ID";
@@ -12,7 +14,7 @@ function ownEnvironmentValue(key: string): unknown {
       return undefined;
     }
     const environment = processDescriptor.value;
-    if (environment === null || typeof environment !== "object") {
+    if (environment === null || typeof environment !== "object" || types.isProxy(environment)) {
       return undefined;
     }
     const descriptor = Object.getOwnPropertyDescriptor(environment, key);
@@ -32,7 +34,7 @@ function setOwnEnvironmentValue(key: string, value: string): void {
       return;
     }
     const environment = processDescriptor.value;
-    if (environment === null || typeof environment !== "object") {
+    if (environment === null || typeof environment !== "object" || types.isProxy(environment)) {
       return;
     }
     Object.defineProperty(environment, key, {
@@ -64,6 +66,9 @@ export function generateRunId(): string {
  */
 export function generateStepId(runId: string, seq: number): string {
   assertSafeSegment(runId, "runId");
+  if (hasKnownCredential(runId)) {
+    throw new TypeError("runId must not contain a known credential signature");
+  }
   if (!Number.isInteger(seq) || seq < 0) {
     throw new TypeError("seq must be a non-negative integer");
   }
@@ -78,7 +83,7 @@ export function generateStepId(runId: string, seq: number): string {
  */
 export function currentRunId(): string | undefined {
   const value = ownEnvironmentValue(RUN_ID_ENV);
-  return isSafeSegment(value) ? value : undefined;
+  return isSafeSegment(value) && !hasKnownCredential(value) ? value : undefined;
 }
 
 /**

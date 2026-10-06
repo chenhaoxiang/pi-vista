@@ -44,6 +44,17 @@ properties are accepted. Accessors and symbol keys are rejected, and
 prototype/inherited properties are never read; an inherited-only `event`,
 `result`, or `verdict` therefore does not satisfy the contract.
 
+Known embedded credential signatures use core's shared primitive-string
+predicate at both the observation and effective emission-identity boundaries.
+Explicit run/step emission options are checked even when an observation's run
+ID takes precedence. Options use own data fields, not inherited values or
+getters; Proxy option objects are rejected without inspecting traps. Unsafe
+own `VISTA_RUN_ID` uses core's generated safe fallback. Trusted `baseDir`, store
+and clock plumbing remains valid configuration, not persisted metadata. See the
+[metadata safety guide](../../docs/metadata-safety.md) for exact pattern limits
+and pending independent candidate review; this is not a general secret scanner
+or guard authorization.
+
 ## Mapping contract
 
 - `component` is always `guard`.
