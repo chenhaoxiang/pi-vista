@@ -90,6 +90,17 @@ its original value. Safe explicit IDs still take precedence and safe own
 environment IDs remain usable. Inherited/accessor environment values cannot
 supply identities; hostile environment proxies are not inspected.
 
+A generation-only follow-up addresses the candidate's base-36 timestamp collision:
+normal timestamp suffixes `ghp`/`gho`/`ghu`/`ghs`/`ghr`, followed by `_` and the
+eight random hex digits, formerly matched the detector and rejected implicit
+observation. New IDs use a 14-digit zero-padded hexadecimal timestamp. Its alphabet
+cannot synthesize those known prefixes; fixed clocks complete without retries or
+relaxing credential detection. Padding retains lexical time order for non-negative
+safe-integer milliseconds, and the random suffix and base-36 step sequence are
+unchanged. Run IDs remain opaque: safe historical base-36 IDs are still readable
+and reusable, without rewriting files or requiring a timestamp decoder. This
+follow-up does not itself establish independent acceptance or live readiness.
+
 ## Scope and evidence limits
 
 The fix changes core/Pi/guard, not protocol interfaces, package versions or

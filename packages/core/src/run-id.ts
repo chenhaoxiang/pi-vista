@@ -54,7 +54,9 @@ function setOwnEnvironmentValue(key: string, value: string): void {
  * as a directory name.
  */
 export function generateRunId(): string {
-  const timestamp = Date.now().toString(36);
+  // Hex cannot form known credential prefixes beside the random suffix.
+  // Padding preserves lexical time order for non-negative safe integers.
+  const timestamp = Date.now().toString(16).padStart(14, "0");
   const random = randomBytes(4).toString("hex");
   return assertSafeSegment(`vr_${timestamp}_${random}`, "runId");
 }

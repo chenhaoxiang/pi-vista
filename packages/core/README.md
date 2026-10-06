@@ -28,6 +28,17 @@ known-signature directory names without altering historical files. Unsafe own
 producer responsibilities and candidate review boundaries; non-matches are not
 proof of safety or authorization.
 
+## Generated run IDs
+
+New run IDs keep the opaque `vr_<alphanumeric timestamp>_<8 hex random>` shape.
+The timestamp now uses 14-digit zero-padded hexadecimal rather than base 36:
+hex cannot form a known credential prefix next to the random suffix, even at
+fixed clock boundaries that previously ended in `ghp`/`gho`/`ghu`/`ghs`/`ghr`.
+Padding preserves lexical creation-time order for non-negative safe-integer
+milliseconds; the eight random hex digits and base-36 step sequence are unchanged.
+Safe historical base-36 IDs remain reusable/readable opaque IDs, with no decoder
+contract or file migration. This candidate follow-up still requires review.
+
 ## Custom components
 
 Custom components use the structured `custom:<namespace>` form. The runtime
