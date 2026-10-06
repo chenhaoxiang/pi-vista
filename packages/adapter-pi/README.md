@@ -58,6 +58,15 @@ await vista.end();
 - `flush()`/`end()` wait only a bounded best-effort period for pending observer
   writes. They do not control Pi execution, fallback, watchdogs, permissions,
   or model routing.
+- `store`/`eventStore` and `checkpointStore` require an own data function or a
+  data method on a class prototype (`append` or `save` respectively). The
+  adapter resolves methods from descriptors without invoking getters and calls
+  them with their original instance as `this`; `Object.prototype` methods and
+  hostile descriptor/prototype proxies are rejected. A custom `emit` must be a
+  callable data value and is subject to the same safe descriptor inspection.
+- `withRunContext` recognizes only contexts created by this module. It does
+  not accept structural lookalikes, accessor contexts, or proxy-wrapped
+  contexts as explicit contexts.
 
 `withRunContext` is a convenience for passing an explicitly created context
 through extension code. It does not patch Pi, install hooks, or automatically

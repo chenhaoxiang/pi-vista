@@ -1,17 +1,25 @@
-import { deepStrictEqual, rejects, strictEqual } from "node:assert/strict";
+import { deepStrictEqual, notStrictEqual, rejects, strictEqual } from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { CheckpointStore, EventStore, isSafeSegment, type VistaEvent } from "@pi-vista/core";
-import { createPiRunContext, VistaProtocolError, type PiCheckpointInput } from "./index.js";
+import {
+  createPiRunContext,
+  VistaProtocolError,
+  withRunContext,
+  type PiCheckpointInput,
+} from "./index.js";
 
 async function temporaryDirectory(): Promise<string> {
   return mkdtemp(join(tmpdir(), "pi-vista-adapter-pi-"));
 }
 
 function withEnvironment<T>(values: Record<string, string | undefined>, callback: () => T): T {
-  const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
+  const previous = Object.fromEntries(Object.keys(values).map((key) => [
+    key,
+    Object.getOwnPropertyDescriptor(process.env, key)?.value as string | undefined,
+  ]));
   for (const [key, value] of Object.entries(values)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -76,6 +84,78 @@ test("run and session IDs use explicit values, safe environments, and safe fallb
     strictEqual(context.runId, process.env.VISTA_RUN_ID);
     strictEqual(context.runId.includes("../"), false);
     strictEqual(context.sessionId, undefined);
+  });
+});
+
+test("environment identity ignores inherited data and getters", async () => {
+  let getterCalls = 0;
+  await withObjectPrototypeProperties({
+    VISTA_RUN_ID: { value: "polluted-run", writable: true },
+    PI_SESSION_ID: { value: "polluted-session", writable: true },
+  }, async () => {
+    withEnvironment({ VISTA_RUN_ID: undefined, PI_SESSION_ID: undefined }, () => {
+      const context = createPiRunContext();
+      notStrictEqual(context.runId, "polluted-run");
+      strictEqual(context.sessionId, undefined);
+    });
+  });
+  await withObjectPrototypeProperties({
+    VISTA_RUN_ID: {
+      get(): never {
+        getterCalls += 1;
+        throw new Error("run ID getter must not run");
+      },
+    },
+    PI_SESSION_ID: {
+      get(): never {
+        getterCalls += 1;
+        throw new Error("session ID getter must not run");
+      },
+    },
+  }, async () => {
+    withEnvironment({ VISTA_RUN_ID: undefined, PI_SESSION_ID: undefined }, () => {
+      const context = createPiRunContext();
+      strictEqual(isSafeSegment(context.runId), true);
+      strictEqual(context.sessionId, undefined);
+    });
+  });
+  strictEqual(getterCalls, 0);
+});
+
+test("withRunContext accepts only branded contexts despite prototype pollution", async () => {
+  const fake = {};
+  await withObjectPrototypeProperties({
+    getRunId: { value: () => "polluted-run", writable: true },
+    nextStep: { value: () => "polluted-step", writable: true },
+    emitToolCall: { value: () => Promise.resolve(undefined), writable: true },
+  }, async () => {
+    const context = await withRunContext(fake, (value) => value);
+    notStrictEqual(context, fake);
+    strictEqual(context.getRunId(), context.runId);
+    await rejects(
+      async () => {
+        const accessor = {};
+        Object.defineProperty(accessor, "getRunId", {
+          get(): never {
+            throw new Error("context accessor must not run");
+          },
+          enumerable: true,
+        });
+        withRunContext(accessor, () => undefined);
+      },
+      VistaProtocolError,
+    );
+    await rejects(
+      async () => {
+        const proxied = new Proxy(createPiRunContext({ runId: "run-proxy-context" }), {
+          get(): never {
+            throw new Error("context proxy getter must not run");
+          },
+        });
+        withRunContext(proxied, () => undefined);
+      },
+      VistaProtocolError,
+    );
   });
 });
 
@@ -499,6 +579,16 @@ test("custom emitter protocol errors remain visible before timeout", async () =>
   await context.end();
 });
 
+test("custom checkpoint protocol errors remain visible before timeout", async () => {
+  const context = createPiRunContext({
+    runId: "run-custom-checkpoint-protocol-error",
+    checkpointStore: {
+      save: async () => { throw new VistaProtocolError("invalid checkpoint"); },
+    },
+  });
+  await rejects(() => context.checkpoint(checkpointInput()), VistaProtocolError);
+});
+
 test("default core emitter retains its event result when append times out", { timeout: 1000 }, async () => {
   const context = createPiRunContext({
     runId: "run-core-timeout",
@@ -512,6 +602,155 @@ test("default core emitter retains its event result when append times out", { ti
   strictEqual(event?.ts, 123);
   strictEqual(event?.result, "ok");
   await context.end();
+});
+
+test("custom observer methods use safe descriptors and preserve class receivers", async () => {
+  class RecordingEventStore {
+    readonly owner = this;
+    calls = 0;
+
+    append(_event: VistaEvent): Promise<void> {
+      strictEqual(this, this.owner);
+      this.calls += 1;
+      return Promise.resolve();
+    }
+  }
+  class RecordingCheckpointStore {
+    readonly owner = this;
+    calls = 0;
+
+    save(_checkpoint: unknown): Promise<void> {
+      strictEqual(this, this.owner);
+      this.calls += 1;
+      return Promise.resolve();
+    }
+  }
+  const store = new RecordingEventStore();
+  const checkpointStore = new RecordingCheckpointStore();
+  const context = createPiRunContext({
+    runId: "run-observer-contract",
+    store,
+    checkpointStore,
+    emit: async (event, options) => {
+      await options?.store?.append(event as VistaEvent);
+      return event as VistaEvent;
+    },
+  });
+  await context.emitToolResult({ tool: "read", result: "ok" });
+  await context.checkpoint(checkpointInput());
+  strictEqual(store.calls, 1);
+  strictEqual(checkpointStore.calls, 1);
+});
+
+test("invalid observer wiring rejects before calling stores or getters", async () => {
+  let appendCalls = 0;
+  let saveCalls = 0;
+  let getterCalls = 0;
+  const inheritedStore = Object.create({
+    append(): Promise<void> {
+      appendCalls += 1;
+      return Promise.resolve();
+    },
+  }) as Pick<EventStore, "append">;
+  const inheritedCheckpoint = Object.create({
+    save(): Promise<void> {
+      saveCalls += 1;
+      return Promise.resolve();
+    },
+  }) as Pick<CheckpointStore, "save">;
+  const accessorStore = {} as Pick<EventStore, "append">;
+  Object.defineProperty(accessorStore, "append", {
+    get(): never {
+      getterCalls += 1;
+      throw new Error("append getter must not run");
+    },
+  });
+  const accessorCheckpoint = {} as Pick<CheckpointStore, "save">;
+  Object.defineProperty(accessorCheckpoint, "save", {
+    get(): never {
+      getterCalls += 1;
+      throw new Error("save getter must not run");
+    },
+  });
+  const hostileStore = new Proxy({ append(): Promise<void> { return Promise.resolve(); } }, {
+    ownKeys(): never {
+      throw new Error("store proxy trap");
+    },
+  });
+  const hostileCheckpoint = new Proxy({ save(): Promise<void> { return Promise.resolve(); } }, {
+    getOwnPropertyDescriptor(): never {
+      throw new Error("checkpoint proxy trap");
+    },
+  });
+  const hostilePrototypeStore = new Proxy({ append(): Promise<void> { return Promise.resolve(); } }, {
+    getPrototypeOf(): never {
+      throw new Error("store prototype trap");
+    },
+  });
+  const hostileMethodStore = {
+    append: new Proxy(async () => undefined, {
+      ownKeys(): never {
+        throw new Error("method proxy trap");
+      },
+    }),
+  } as Pick<EventStore, "append">;
+  await rejects(async () => { createPiRunContext({ runId: "run-invalid-store", store: inheritedStore }); }, VistaProtocolError);
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-invalid-checkpoint", checkpointStore: inheritedCheckpoint });
+  }, VistaProtocolError);
+  await rejects(async () => { createPiRunContext({ runId: "run-accessor-store", store: accessorStore }); }, VistaProtocolError);
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-accessor-checkpoint", checkpointStore: accessorCheckpoint });
+  }, VistaProtocolError);
+  await rejects(async () => { createPiRunContext({ runId: "run-hostile-store", store: hostileStore }); }, VistaProtocolError);
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-hostile-checkpoint", checkpointStore: hostileCheckpoint });
+  }, VistaProtocolError);
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-hostile-prototype-store", store: hostilePrototypeStore });
+  }, VistaProtocolError);
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-hostile-method-store", store: hostileMethodStore });
+  }, VistaProtocolError);
+  const accessorEmitOptions = {};
+  Object.defineProperty(accessorEmitOptions, "emit", {
+    get(): never {
+      getterCalls += 1;
+      throw new Error("emit getter must not run");
+    },
+  });
+  await rejects(async () => { createPiRunContext(accessorEmitOptions); }, VistaProtocolError);
+  const hostileEmit = new Proxy(async () => undefined, {
+    ownKeys(): never {
+      throw new Error("emit proxy trap");
+    },
+  });
+  await rejects(async () => {
+    createPiRunContext({ runId: "run-hostile-emit", emit: hostileEmit });
+  }, VistaProtocolError);
+  strictEqual(appendCalls, 0);
+  strictEqual(saveCalls, 0);
+  strictEqual(getterCalls, 0);
+});
+
+test("inherited observer options cannot override defaults", async () => {
+  let inheritedEmitCalls = 0;
+  await withObjectPrototypeProperties({
+    emit: {
+      value: () => {
+        inheritedEmitCalls += 1;
+      },
+      writable: true,
+    },
+  }, async () => {
+    const context = createPiRunContext({
+      runId: "run-inherited-observer",
+      store: { append: () => Promise.resolve() },
+    });
+    const event = await context.emitToolResult({ tool: "read", result: "ok" });
+    strictEqual(event?.run_id, "run-inherited-observer");
+  });
+  strictEqual(inheritedEmitCalls, 0);
 });
 
 test("real core stores can be used without a Pi-private dependency", async () => {

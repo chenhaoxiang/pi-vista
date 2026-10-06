@@ -5,6 +5,48 @@ const RUN_ID_ENV = "VISTA_RUN_ID";
 
 export { assertSafeSegment, isSafeSegment } from "./path-safe.js";
 
+function ownEnvironmentValue(key: string): unknown {
+  try {
+    const processDescriptor = Object.getOwnPropertyDescriptor(process, "env");
+    if (processDescriptor === undefined || !Object.hasOwn(processDescriptor, "value")) {
+      return undefined;
+    }
+    const environment = processDescriptor.value;
+    if (environment === null || typeof environment !== "object") {
+      return undefined;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(environment, key);
+    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
+      return undefined;
+    }
+    return descriptor.value;
+  } catch {
+    return undefined;
+  }
+}
+
+function setOwnEnvironmentValue(key: string, value: string): void {
+  try {
+    const processDescriptor = Object.getOwnPropertyDescriptor(process, "env");
+    if (processDescriptor === undefined || !Object.hasOwn(processDescriptor, "value")) {
+      return;
+    }
+    const environment = processDescriptor.value;
+    if (environment === null || typeof environment !== "object") {
+      return;
+    }
+    Object.defineProperty(environment, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  } catch {
+    // A replaced or hostile process.env must not prevent a safe in-memory ID
+    // from being returned to the caller.
+  }
+}
+
 /**
  * Generate a run identifier that is sortable by creation time and safe to use
  * as a directory name.
@@ -35,7 +77,7 @@ export function generateStepId(runId: string, seq: number): string {
  * Read the current run ID, returning undefined without changing process.env.
  */
 export function currentRunId(): string | undefined {
-  const value = process.env[RUN_ID_ENV];
+  const value = ownEnvironmentValue(RUN_ID_ENV);
   return isSafeSegment(value) ? value : undefined;
 }
 
@@ -49,6 +91,6 @@ export function getOrCreateRunId(): string {
   }
 
   const runId = generateRunId();
-  process.env[RUN_ID_ENV] = runId;
+  setOwnEnvironmentValue(RUN_ID_ENV, runId);
   return runId;
 }

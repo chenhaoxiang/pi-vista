@@ -13,7 +13,7 @@ import {
   redactPath,
 } from "./redact.js";
 import { CheckpointStore, EventStore } from "./store.js";
-import { generateRunId, generateStepId, isSafeSegment } from "./run-id.js";
+import { currentRunId, generateRunId, generateStepId, getOrCreateRunId, isSafeSegment } from "./run-id.js";
 import { BARE_COMMAND_WORDS, isSafeCustomComponent } from "./safe-fields.js";
 import { isVistaComponent, isVistaEvent, VistaProtocolError } from "./validation.js";
 
@@ -768,6 +768,41 @@ test("generated IDs use the same safe segment grammar as stores", () => {
   const stepId = generateStepId(runId, 12);
   strictEqual(isSafeSegment(runId), true);
   strictEqual(isSafeSegment(stepId), true);
+});
+
+test("run ID lookup ignores inherited environment data and getters", () => {
+  const key = "VISTA_RUN_ID";
+  const previousEnvironment = Object.getOwnPropertyDescriptor(process.env, key);
+  const previousPrototype = Object.getOwnPropertyDescriptor(Object.prototype, key);
+  try {
+    delete process.env[key];
+    Object.defineProperty(Object.prototype, key, {
+      value: "inherited-run",
+      writable: true,
+      configurable: true,
+    });
+    strictEqual(currentRunId(), undefined);
+    const generatedFromData = getOrCreateRunId();
+    strictEqual(isSafeSegment(generatedFromData), true);
+    strictEqual(generatedFromData, Object.getOwnPropertyDescriptor(process.env, key)?.value);
+
+    delete process.env[key];
+    Object.defineProperty(Object.prototype, key, {
+      get(): never {
+        throw new Error("inherited run ID getter must not run");
+      },
+      configurable: true,
+    });
+    strictEqual(currentRunId(), undefined);
+    const generatedFromGetter = getOrCreateRunId();
+    strictEqual(isSafeSegment(generatedFromGetter), true);
+    strictEqual(generatedFromGetter, Object.getOwnPropertyDescriptor(process.env, key)?.value);
+  } finally {
+    if (previousEnvironment === undefined) delete process.env[key];
+    else Object.defineProperty(process.env, key, previousEnvironment);
+    if (previousPrototype === undefined) Reflect.deleteProperty(Object.prototype, key);
+    else Object.defineProperty(Object.prototype, key, previousPrototype);
+  }
 });
 
 test("emitVistaEvent is fail-open when the store fails", async () => {

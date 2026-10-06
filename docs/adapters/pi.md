@@ -72,6 +72,16 @@ rejection. The default core emitter keeps its own append-timeout semantics
 and still returns the constructed event after a persistence timeout.
 `flush()` and `end()` provide bounded best-effort waiting for observer writes.
 
+Observer wiring is descriptor-based: `store`/`eventStore` must expose an own
+`append` data function or a data method on a class prototype, and
+`checkpointStore` follows the same contract for `save`. The adapter never
+invokes an accessor while validating these options, rejects inherited
+`Object.prototype` methods and unsafe descriptor/prototype proxies, and calls
+accepted class methods with their original instance as `this`. A custom
+`emit` must be a callable data value. `withRunContext` accepts only an exact
+context created by `createPiRunContext`; structural lookalikes and
+accessor/proxy contexts are rejected.
+
 ## Integration boundary
 
 The adapter imports only public `@pi-vista/core` APIs and has no dependency on

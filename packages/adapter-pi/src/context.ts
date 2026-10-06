@@ -34,6 +34,18 @@ const SAFE_STATS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/u;
 const SAFE_STATS_VALUE_PATTERN = /^[A-Za-z0-9._:@+\-]{1,64}$/u;
 const VISTA_RESULTS = new Set<VistaResult>(["ok", "blocked", "failed", "unknown", "abstain"]);
 const DEFAULT_PERSIST_TIMEOUT_MS = 250;
+const PI_RUN_CONTEXTS = new WeakSet<object>();
+const CONTEXT_METHOD_KEYS = new Set([
+  "getRunId",
+  "getSessionId",
+  "nextStep",
+  "checkpoint",
+  "emitToolCall",
+  "emitToolResult",
+  "withRunContext",
+  "flush",
+  "end",
+]);
 
 const CONTEXT_OPTION_KEYS = new Set([
   "runId",
@@ -103,6 +115,11 @@ interface NormalizedToolInput {
   readonly result: VistaResult | undefined;
 }
 
+interface BoundObserverMethod {
+  readonly owner: object;
+  readonly method: Function;
+}
+
 interface NormalizedOptions {
   readonly runId: string;
   readonly sessionId: string | undefined;
@@ -154,7 +171,7 @@ function snapshotDataRecord(
         reject(`${label} contains an unknown own key`);
       }
       const descriptor = descriptors[key];
-      if (descriptor === undefined || !("value" in descriptor)) {
+      if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
         reject(`${label}.${key} must be a data property`);
       }
       result[key] = descriptor.value;
@@ -193,7 +210,7 @@ function snapshotArray(value: unknown, label: string): unknown[] {
     for (let index = 0; index < length; index += 1) {
       const key = String(index);
       const descriptor = descriptors[key];
-      if (descriptor === undefined || !("value" in descriptor)) {
+      if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
         reject(`${label} contains a hole or accessor`);
       }
       result.push(descriptor.value);
@@ -309,7 +326,7 @@ function ensureNoConflict<T>(left: T | undefined, right: T | undefined, label: s
   if (left !== undefined && right !== undefined) {
     reject(`${label} has conflicting values`);
   }
-  return left ?? right;
+  return left !== undefined ? left : right;
 }
 
 function normalizeToolInput(value: unknown, requireResult: boolean): NormalizedToolInput {
@@ -386,6 +403,26 @@ function normalizeArtifactRef(value: unknown, label: string): PiArtifactRefInput
   return result as unknown as PiArtifactRefInput;
 }
 
+function ownProcessEnvironmentValue(key: string): unknown {
+  try {
+    const processDescriptor = Object.getOwnPropertyDescriptor(process, "env");
+    if (processDescriptor === undefined || !Object.hasOwn(processDescriptor, "value")) {
+      return undefined;
+    }
+    const environment = processDescriptor.value;
+    if (!isObject(environment)) {
+      return undefined;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(environment, key);
+    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
+      return undefined;
+    }
+    return descriptor.value;
+  } catch {
+    return undefined;
+  }
+}
+
 function resolveIdentity(options: SnapshotRecord): { runId: string; sessionId: string | undefined } {
   const explicitRunId = aliasValue(options, ["runId", "run_id"], "run_id");
   let runId: string;
@@ -402,10 +439,166 @@ function resolveIdentity(options: SnapshotRecord): { runId: string; sessionId: s
   if (explicitSessionId !== undefined) {
     sessionId = safeIdentifier(explicitSessionId, "session_id");
   } else {
-    const environmentSessionId = process.env.PI_SESSION_ID;
+    const environmentSessionId = ownProcessEnvironmentValue("PI_SESSION_ID");
     sessionId = isSafeSegment(environmentSessionId) ? environmentSessionId : undefined;
   }
   return { runId, sessionId };
+}
+
+function safeObserverDescriptors(
+  value: object,
+  label: string,
+  requireDataProperties = false,
+): Record<PropertyKey, PropertyDescriptor> {
+  try {
+    const keys = Reflect.ownKeys(value);
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<PropertyKey, PropertyDescriptor>;
+    const descriptorKeys = Reflect.ownKeys(descriptors);
+    if (keys.length !== descriptorKeys.length || keys.some((key) => !Object.hasOwn(descriptors, key))) {
+      reject(`${label} contains unsupported own properties`);
+    }
+    if (requireDataProperties && keys.some((key) => !Object.hasOwn(descriptors[key] as PropertyDescriptor, "value"))) {
+      reject(`${label} contains an accessor property`);
+    }
+    return descriptors;
+  } catch (error) {
+    if (error instanceof VistaProtocolError) {
+      throw error;
+    }
+    reject(`${label} could not be safely inspected`);
+  }
+}
+
+function rejectUnbrandedContext(value: unknown): void {
+  if (!isObject(value)) {
+    return;
+  }
+  try {
+    const descriptors = safeObserverDescriptors(value, "withRunContext context");
+    for (const key of CONTEXT_METHOD_KEYS) {
+      if (Object.hasOwn(descriptors, key)) {
+        reject("withRunContext requires a context created by createPiRunContext");
+      }
+    }
+  } catch (error) {
+    if (error instanceof VistaProtocolError) {
+      throw error;
+    }
+    reject("withRunContext context could not be safely inspected");
+  }
+}
+
+function isClassPrototype(value: object): boolean {
+  try {
+    const constructorDescriptor = Object.getOwnPropertyDescriptor(value, "constructor");
+    if (constructorDescriptor === undefined || !Object.hasOwn(constructorDescriptor, "value")) {
+      return false;
+    }
+    if (typeof constructorDescriptor.value !== "function") {
+      return false;
+    }
+    const prototypeDescriptor = Object.getOwnPropertyDescriptor(constructorDescriptor.value, "prototype");
+    return prototypeDescriptor !== undefined
+      && Object.hasOwn(prototypeDescriptor, "value")
+      && prototypeDescriptor.value === value;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve an observer method from descriptors only. Own data methods are
+ * allowed for plain objects; inherited methods are allowed only from a class
+ * prototype. No property getter is invoked and the returned pair preserves
+ * the original owner for class methods that use `this`.
+ */
+function observerFunction(value: unknown, label: string): Function {
+  if (typeof value !== "function") {
+    reject(`${label} must be a function`);
+  }
+  try {
+    Object.getPrototypeOf(value);
+  } catch {
+    reject(`${label} could not be safely inspected`);
+  }
+  safeObserverDescriptors(value, label, true);
+  return value;
+}
+
+function observerMethod(value: unknown, property: string, label: string): BoundObserverMethod {
+  try {
+    if (!isObject(value) || Array.isArray(value)) {
+      reject(`${label} must be an object`);
+    }
+    const owner = value as object;
+    // Inspect the prototype even for own methods so a revoked/hostile Proxy
+    // cannot bypass the boundary merely by supplying an own function.
+    const ownerPrototype = Object.getPrototypeOf(owner);
+    const ownDescriptors = safeObserverDescriptors(owner, label);
+    const ownDescriptor = Object.hasOwn(ownDescriptors, property)
+      ? ownDescriptors[property]
+      : undefined;
+    if (ownDescriptor !== undefined) {
+      if (!Object.hasOwn(ownDescriptor, "value")) {
+        reject(`${label}.${property} must be an own data function`);
+      }
+      return { owner, method: observerFunction(ownDescriptor.value, `${label}.${property}`) };
+    }
+
+    const visited = new Set<object>();
+    let prototype = ownerPrototype;
+    while (prototype !== null && prototype !== Object.prototype) {
+      if (visited.has(prototype)) {
+        reject(`${label} has a cyclic prototype chain`);
+      }
+      visited.add(prototype);
+      const descriptors = safeObserverDescriptors(prototype, label);
+      const descriptor = Object.hasOwn(descriptors, property)
+        ? descriptors[property]
+        : undefined;
+      if (descriptor !== undefined) {
+        if (!isClassPrototype(prototype)) {
+          reject(`${label}.${property} must be an own data function or class prototype method`);
+        }
+        if (!Object.hasOwn(descriptor, "value")) {
+          reject(`${label}.${property} must be a data function`);
+        }
+        return { owner, method: observerFunction(descriptor.value, `${label}.${property}`) };
+      }
+      prototype = Object.getPrototypeOf(prototype);
+    }
+    reject(`${label} must provide ${property}`);
+  } catch (error) {
+    if (error instanceof VistaProtocolError) {
+      throw error;
+    }
+    reject(`${label} could not be safely inspected`);
+  }
+}
+
+function normalizeEventStore(value: unknown): Pick<EventStore, "append"> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const { owner, method } = observerMethod(value, "append", "event store");
+  return {
+    append: (event) => Reflect.apply(method, owner, [event]) as Promise<void>,
+  };
+}
+
+function normalizeCheckpointStore(value: unknown): Pick<CheckpointStore, "save"> {
+  const candidate = value === undefined ? new CheckpointStore() : value;
+  const { owner, method } = observerMethod(candidate, "save", "checkpointStore");
+  return {
+    save: (checkpoint) => Reflect.apply(method, owner, [checkpoint]) as Promise<void>,
+  };
+}
+
+function normalizeEmitter(value: unknown): VistaEmitter {
+  if (value === undefined) {
+    return emitVistaEvent;
+  }
+  return observerFunction(value, "emit") as VistaEmitter;
 }
 
 function normalizeOptions(value: unknown): NormalizedOptions {
@@ -426,20 +619,14 @@ function normalizeOptions(value: unknown): NormalizedOptions {
   if (clockValue !== undefined && typeof clockValue !== "function") {
     reject("clock must be a function");
   }
-  const store = ensureNoConflict(
-    ownValue(options, "store") as Pick<EventStore, "append"> | undefined,
-    ownValue(options, "eventStore") as Pick<EventStore, "append"> | undefined,
+  const rawStore = ensureNoConflict(
+    ownValue(options, "store"),
+    ownValue(options, "eventStore"),
     "event store",
   );
-  const checkpointStore = (ownValue(options, "checkpointStore") as Pick<CheckpointStore, "save"> | undefined)
-    ?? new CheckpointStore();
-  const emit = (ownValue(options, "emit") as VistaEmitter | undefined) ?? emitVistaEvent;
-  if (typeof emit !== "function") {
-    reject("emit must be a function");
-  }
-  if (!isObject(checkpointStore) || typeof checkpointStore.save !== "function") {
-    reject("checkpointStore must provide save");
-  }
+  const store = normalizeEventStore(rawStore);
+  const checkpointStore = normalizeCheckpointStore(ownValue(options, "checkpointStore"));
+  const emit = normalizeEmitter(ownValue(options, "emit"));
   return {
     runId,
     sessionId,
@@ -574,6 +761,7 @@ class PiRunContextImpl implements PiRunContext {
     this.options = options;
     this.runId = options.runId;
     this.sessionId = options.sessionId;
+    PI_RUN_CONTEXTS.add(this);
   }
 
   get stepId(): string | undefined {
@@ -638,7 +826,11 @@ class PiRunContextImpl implements PiRunContext {
   }
 
   private async dispatch(input: VistaEventInput, step: PiStep): Promise<VistaEvent | undefined> {
-    const operation = Promise.resolve().then(() => this.options.emit(input, eventOptions(this.options, step)));
+    const emit = this.options.emit;
+    const operation = Promise.resolve().then(() => Reflect.apply(emit, undefined, [
+      input,
+      eventOptions(this.options, step),
+    ]));
     const bounded = this.options.emit === emitVistaEvent
       ? operation
       : awaitWithTimeout(operation, this.observerTimeout());
@@ -692,7 +884,10 @@ class PiRunContextImpl implements PiRunContext {
     const operation = Promise.resolve().then(() => this.options.checkpointStore.save(checkpoint));
     try {
       await this.track(awaitWithTimeout(operation, this.observerTimeout()));
-    } catch {
+    } catch (error) {
+      if (error instanceof VistaProtocolError) {
+        throw error;
+      }
       // Checkpoint persistence is observation only. Match core's fail-open
       // contract even when a test or extension supplies a custom store.
     }
@@ -740,19 +935,22 @@ export function withRunContext<T>(
   if (typeof callback !== "function") {
     reject("withRunContext callback must be a function");
   }
-  const context = isPiRunContext(contextOrOptions)
-    ? contextOrOptions
-    : createPiRunContext(contextOrOptions);
+  let context: PiRunContext;
+  if (isPiRunContext(contextOrOptions)) {
+    context = contextOrOptions;
+  } else {
+    rejectUnbrandedContext(contextOrOptions);
+    context = createPiRunContext(contextOrOptions);
+  }
   return callback(context);
 }
 
 function isPiRunContext(value: unknown): value is PiRunContext {
-  return (
-    isObject(value) &&
-    typeof (value as { getRunId?: unknown }).getRunId === "function" &&
-    typeof (value as { nextStep?: unknown }).nextStep === "function" &&
-    typeof (value as { emitToolCall?: unknown }).emitToolCall === "function"
-  );
+  try {
+    return isObject(value) && PI_RUN_CONTEXTS.has(value);
+  } catch {
+    return false;
+  }
 }
 
 export { VistaProtocolError } from "@pi-vista/core";
