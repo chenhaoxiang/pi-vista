@@ -4,6 +4,8 @@
 
 ```bash
 npm install @pi-vista/core
+# Optional owner-side ai-gate evidence observer:
+npm install @pi-vista/adapter-ai-gate
 ```
 
 `@pi-vista/core` declares the matching published `@pi-vista/protocol` package
@@ -31,6 +33,10 @@ export VISTA_RUN_ID=$(node -e "console.log(crypto.randomUUID())")
 See the adapter docs:
 - [workspace-guard](adapters/workspace-guard.md)
 - [ai-gate](adapters/ai-gate.md)
+
+For ai-gate, pass only owner-side evidence that has already been structured
+and redacted. The public adapter does not run `gh` or APIs, read PR/CI/review
+text, inspect gate configuration, make gate decisions, merge, or deploy.
 
 ## 4. Planned Phase 2 tools
 

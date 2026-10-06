@@ -1,0 +1,34 @@
+{
+  "name": "@pi-vista/adapter-ai-gate",
+  "version": "0.1.0",
+  "description": "Low-coupling adapter for sanitized, structured ai-gate evidence",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": {
+    "@pi-vista/core": "0.1.0",
+    "@pi-vista/protocol": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT"
+}

@@ -57,6 +57,7 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 |---|---|
 | `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
+| `@pi-vista/adapter-ai-gate` | Read-only mapping of sanitized owner-side gate evidence |
 
 ---
 
@@ -86,6 +87,8 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 
 ```bash
 npm install @pi-vista/core
+# Optional owner-side evidence observer:
+npm install @pi-vista/adapter-ai-gate
 ```
 
 `@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so
@@ -122,7 +125,12 @@ records.
 - [workspace-guard adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 
-Additional adapters are future work; the links above are the only adapter guides shipped in Phase 1.
+`@pi-vista/adapter-ai-gate` consumes only owner-side, already-sanitized and
+structured evidence. It is model-agnostic and read-only: it does not run
+`gh`/API calls, read PR/CI/review content or gate configuration, infer a gate
+result, or change ai-gate admission, merge, or deployment behavior.
+
+Additional adapters are future work; the links above are the adapter guides shipped in Phase 1.
 
 ---
 
