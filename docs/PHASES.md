@@ -22,20 +22,32 @@ cat ~/.pi/vista/runs/<run_id>/events.jsonl | jq .component | sort | uniq
 
 ## Phase 2: Observation tools (weeks 3-5)
 
-**Goal**: make any task's evidence chain inspectable.
+**Goal**: make a task's recorded evidence chain inspectable without changing
+execution or safety authority.
 
-**Planned deliverables (the Phase 1 release does not ship this CLI)**:
+**Implemented bounded slice in this checkout**: `@pi-vista/cli`, the offline,
+read-only `vista` bin, and a testable public API:
 ```
-vista history <run_id>
+vista history [run_id]
 vista inspect <run_id> [--step <step_id>]
 vista compare <run_id_a> <run_id_b>
 vista receipts <run_id>
 ```
 
-**Acceptance**:
-- Can answer "which checks did this merge pass?"
-- Can identify "which step failed and why?"
-- Can diff two runs that had different outcomes
+**Checked acceptance for this slice**:
+- Sorted run inventory and deterministic recorded timelines/count differences
+- Run/step-bound checkpoint inspection without resume or execution
+- Deduplicated opaque receipt refs with explicit owner-claim provenance, not
+  independently verified checks or merge authorization
+- Strict parsing, fixed safe errors, closed privacy projection and bounded output
+- Parser/API and spawned-bin JSON/text tests on disposable synthetic fixtures;
+  before/after directory/file hashes and absent-store checks prove no writes
+
+Core storage is best-effort: empty/omitted records do not prove an exhaustive
+history, audit PASS, or successful run. Unknown safe versions remain untrusted
+recorded labels. See [cli.md](cli.md) for exact limits and trust boundaries.
+This implementation status does not claim registry publication or deployment;
+Phase 3 replay/check-registry/promotion is not included.
 
 ---
 
@@ -62,8 +74,8 @@ Priority coverage:
 vista promote <run_id> [--dry-run]
 ```
 
-This is a future command; no `vista` CLI is shipped in Phase 1. Dry-run is
-intended to show exactly what will be written before committing.
+This is a future command, not part of the implemented observation CLI. Dry-run
+is intended to show exactly what will be written before committing.
 
 ### Track C: Failure analysis
 

@@ -32,20 +32,35 @@ See the adapter docs:
 - [workspace-guard](adapters/workspace-guard.md)
 - [ai-gate](adapters/ai-gate.md)
 
-## 4. Planned Phase 2 tools
+## 4. Offline Phase 2 observation
 
-Phase 1 does not ship a `vista` CLI. The following commands describe the
-planned Phase 2 interface; they are not runnable in this release:
+This checkout implements `@pi-vista/cli` with the `vista` bin and a public
+read-only API. Build a checkout and run its entrypoint directly:
 
 ```bash
-vista history <run_id>
-vista inspect <run_id>
+npm run build
+node packages/cli/dist/bin.js history --base-dir ./synthetic-store
+node packages/cli/dist/bin.js history run-example --base-dir ./synthetic-store --json
+node packages/cli/dist/bin.js inspect run-example --step run-example_s0 --base-dir ./synthetic-store
+node packages/cli/dist/bin.js compare run-example run-other --base-dir ./synthetic-store
+node packages/cli/dist/bin.js receipts run-example --base-dir ./synthetic-store --json
 ```
+
+The installed package's bin name is `vista`. Source availability does not claim
+registry publication, clean consumer installation, or deployment. Use a local
+synthetic store for tests; omitting `--base-dir` reads core's default store.
+
+These commands observe recorded data only. Core readers can silently omit
+missing, unreadable, corrupt or invalid records; empty output is not a PASS.
+Receipts are opaque refs with owner-claimed metadata, never fetched content,
+independent verification, or merge/execution permission. See the maintained
+[CLI guide](cli.md) for strict parsing, closed privacy projection, deterministic
+ordering, exact bounds, API and exit codes.
 
 ## 5. Planned Phase 3 promotion
 
-Promotion to Hindsight is also future work. These commands are design notes,
-not an available Phase 1 CLI:
+Promotion to Hindsight is future work. These commands are design notes,
+not implemented by the observation CLI:
 
 ```bash
 vista promote <run_id> --dry-run   # planned preview

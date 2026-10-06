@@ -14,8 +14,8 @@ A model-agnostic execution augmentation and experience system for Pi.
 `pi-vista` gives any Pi session a persistent, verifiable execution memory:
 
 - **Record** every tool call, guard decision, gate check, and test result as a unified event stream
-- **Define** the evidence model for inspecting tasks and merges (Phase 2 tools are planned)
-- **Prepare** replay validation with Check Functions (Phase 2/3 implementation is planned)
+- **Inspect** recorded histories, checkpoints, count differences, and opaque receipt refs with the offline, read-only Phase 2 CLI
+- **Prepare** replay validation with Check Functions (Phase 3 implementation is planned)
 - **Specify** promotion of verified experiences into Hindsight (future Phase 3 work)
 - **Adapt** — each verified run makes the next run better, regardless of which model executes it
 
@@ -36,8 +36,8 @@ A model-agnostic execution augmentation and experience system for Pi.
 │  event store │ checkpoint │ artifact refs        │
 │  check fn registry │ experience lifecycle        │
 │                                                  │
-│  Phase 2+ tools: inspect / history / compare    │
-│  replay / promote (planned)                     │
+│  Phase 2: history / inspect / compare / receipts │
+│  replay / promote (planned)                      │
 └──────────────────────┬──────────────────────────┘
                        │  verified + redacted → promote
                        ▼
@@ -57,6 +57,7 @@ pi-vista is **fail-open**: if it crashes or is unavailable, Pi continues executi
 |---|---|
 | `@pi-vista/protocol` | Zero-dependency TypeScript interfaces |
 | `@pi-vista/core` | Event store, checkpoint store, artifact refs |
+| `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
 
 ---
 
@@ -96,10 +97,25 @@ npm installs the matching published protocol package automatically. Install
 npm install @pi-vista/protocol
 ```
 
-Phase 1 ships the protocol interfaces, redaction, event emission, and local
-stores. The `vista` history/inspect CLI is planned for Phase 2; experience
-promotion is planned for Phase 3. Neither CLI is included in this release. See
-[docs/getting-started.md](docs/getting-started.md) for adapter setup.
+Phase 1 provides protocol interfaces, redaction, event emission, and local
+stores. This checkout also implements the bounded Phase 2 `@pi-vista/cli`
+observation slice; this is not a registry-publication or deployment claim.
+Experience promotion, replay, and Check Function execution remain future work.
+
+```bash
+npm run build
+node packages/cli/dist/bin.js history --base-dir ./synthetic-store
+node packages/cli/dist/bin.js inspect run-example --base-dir ./synthetic-store --json
+node packages/cli/dist/bin.js compare run-example run-other --base-dir ./synthetic-store
+node packages/cli/dist/bin.js receipts run-example --base-dir ./synthetic-store
+```
+
+An installed CLI package exposes the same entrypoint as `vista`. All views are
+recorded-only and core-best-effort, not exhaustive audits. Receipt `verified`
+flags and `ok` results are owner claims, not independent verification or
+execution/merge authorization. The CLI never resolves artifact content or writes
+storage. See [docs/cli.md](docs/cli.md) for privacy, limits and exit semantics,
+and [docs/getting-started.md](docs/getting-started.md) for adapter setup.
 
 ### Artifact statistics
 
