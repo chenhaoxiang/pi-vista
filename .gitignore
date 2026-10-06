@@ -1,5 +1,7 @@
 node_modules/
 dist/
+/dist-integration/
+/tmp/
 *.js.map
 *.d.ts.map
 .DS_Store

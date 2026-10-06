@@ -1,6 +1,40 @@
 # Getting started with pi-vista
 
-## 1. Install the Phase 1 package
+## Candidate source checkout
+
+This infrastructure candidate is not merged into main. Its source PRs are open
+and unmerged; package-consumer examples below do not establish publication.
+Synthetic offline validation demonstrates functional compatibility only. A
+confirmed core/Pi/guard embedded `ghp_` / `github_pat_` identity gap remains a
+live-use and release blocker; see the [integration snapshot](infrastructure-integration.md).
+Do not use real sessions, credentials or owner services as fixtures.
+
+| Candidate package | Contract |
+| --- | --- |
+| `@pi-vista/protocol` | Shared interfaces and recorded version label |
+| `@pi-vista/core` | Fail-open event and checkpoint storage/redaction |
+| `@pi-vista/adapter-pi` | Explicit run/step context and summarized tool observations |
+| `@pi-vista/adapter-workspace-guard` | Already-sanitized guard observations, shadow/hash references |
+| `@pi-vista/adapter-ai-gate` | Already-sanitized owner evidence, explicit SHA relation and original mismatch outcome |
+| `@pi-vista/cli` | Offline/read-only recorded views and `vista` bin |
+| `@pi-vista/checks` | Trusted, opt-in metadata predicates; fail-closed, authorization none |
+
+With the checkout's existing locked developer tools and local workspace links:
+
+```bash
+npm run typecheck
+npm run build
+npm test
+npm_config_offline=true npm run pack:dry-run
+```
+
+The fixed root build order compiles protocol/core before all three adapters,
+CLI and checks. Root typecheck covers all packages and the integration test
+source; root tests preserve every package test and add the synthetic cross-package
+suite. No integration test contacts a real owner, model or network service.
+Offline pack/extraction smoke is not an npm clean install or consumer TSC check.
+
+## 1. Package-consumer usage syntax
 
 ```bash
 npm install @pi-vista/core @pi-vista/adapter-pi
@@ -8,16 +42,17 @@ npm install @pi-vista/core @pi-vista/adapter-pi
 npm install @pi-vista/adapter-ai-gate
 ```
 
-`@pi-vista/core` declares the matching published `@pi-vista/protocol` package
-as a runtime dependency, so npm installs it automatically. For an adapter that
+`@pi-vista/core` declares the matching `@pi-vista/protocol` package
+as a runtime dependency; a consumer installation requires both. For an adapter that
 uses only the TypeScript interfaces, install the protocol package directly:
 
 ```bash
 npm install @pi-vista/protocol
 ```
 
-The published packages include their compiled `dist` entry points; no checkout
-build step is required after installation.
+The package manifests include compiled `dist` entry points in tarballs. A
+published consumer package would not require a checkout build after installation;
+source build/pack evidence alone does not establish that publication.
 
 ## 2. Set VISTA_RUN_ID in your Pi session
 

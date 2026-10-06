@@ -7,6 +7,14 @@ A model-agnostic execution augmentation and experience system for Pi.
 > Every model call produces experience. Every model call consumes experience.  
 > No model is permanently "strong" or "weak" — the system grows regardless of which model runs.
 
+**Candidate checkout, not main:** this infrastructure integration combines seven
+public packages from pinned, open and unmerged source PRs. Validation is synthetic,
+offline **functional compatibility only**, not a privacy/security acceptance or
+publication claim. A confirmed embedded `ghp_` / `github_pat_` identity gap in the
+core/Pi/guard source pins remains a **live-use and release blocker**. See the
+[integration snapshot](docs/infrastructure-integration.md) for pins, evidence and
+limits.
+
 ---
 
 ## What it does
@@ -75,7 +83,7 @@ not a source of execution, merge, release or promotion authorization.
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
 4. **Hindsight is the primary memory** — pi-vista maintains only a local short-term event buffer and executable policy files. Long-term semantic memory lives in Hindsight.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
-6. **Redaction at source** — raw commands, paths, and credentials never enter Hindsight, never enter the experience store, and never reach any model.
+6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. This is a required boundary, not a claim that the candidate's known credential-pattern gap is fixed.
 
 ---
 
@@ -94,12 +102,13 @@ Most agent observability tools stop at "record and replay." pi-vista adds:
 
 ```bash
 npm install @pi-vista/core
-# Optional owner-side evidence observer:
-npm install @pi-vista/adapter-ai-gate
+# Optional explicit observation helpers:
+npm install @pi-vista/adapter-pi @pi-vista/adapter-workspace-guard @pi-vista/adapter-ai-gate
 ```
 
-`@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so
-npm installs the matching published protocol package automatically. Install
+These are package-consumer usage examples, not evidence of registry availability.
+`@pi-vista/core` declares `@pi-vista/protocol` as its runtime dependency, so a
+consumer install requires the matching protocol package too. Install
 `@pi-vista/protocol` separately when importing its interfaces directly:
 
 ```bash
@@ -152,6 +161,7 @@ records.
 
 ## Integration
 
+- [Infrastructure candidate, source pins, synthetic validation and blockers](docs/infrastructure-integration.md)
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)
