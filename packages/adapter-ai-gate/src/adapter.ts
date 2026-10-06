@@ -32,9 +32,16 @@ const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/u;
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@+-]*(?:\/[A-Za-z0-9][A-Za-z0-9._:@+-]*)*$/u;
 const SHA_PATTERN = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/iu;
 const OPAQUE_REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u;
-const CREDENTIAL_LABEL_PATTERN = /(?:^|[./_:@+-])(?:secret|token|password|passwd|api[_-]?key|access[_-]?key|auth|credential|cookie|private[_-]?key|ssh[_-]?key)(?:$|[./_:@+-])/iu;
+const CREDENTIAL_LABEL_PATTERN = /(?:^|[./_:@+-])(?:secret|token|bearer|password|passwd|api[_-]?key|access[_-]?key|auth|credential|cookie|private[_-]?key|ssh[_-]?key)(?:$|[./_:@+-])/iu;
+// Retained strings are stricter than core's generic redaction: a credential
+// can be hidden behind an otherwise safe-looking prefix, including in IDs and
+// action/model metadata. These signatures deliberately match when embedded.
+const EMBEDDED_TOKEN_PATTERN = /(?:gh[pousr]_[A-Za-z0-9_]{8,}|sk-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|eyJ[A-Za-z0-9_-]{10,})/iu;
 
 type EvidenceSnapshot = ReadonlyMap<string, unknown>;
+type OwnerOutcome =
+  | { result: VistaResult; metadataKey: "owner_result"; metadataValue: VistaResult }
+  | { result: VistaResult; metadataKey: "owner_status"; metadataValue: AiGateStatus };
 
 function invalid(message: string): never {
   throw new VistaProtocolError(`ai-gate evidence ${message}`);
@@ -88,7 +95,7 @@ function optionalBoolean(snapshot: EvidenceSnapshot, key: string): boolean | und
 function assertSafeText(value: string, coreKey: string, inputKey: string): void {
   // Use core's public redaction contract, not copied private safety helpers.
   const redacted = redactAll({ [coreKey]: value });
-  if (redacted[coreKey] !== value || CREDENTIAL_LABEL_PATTERN.test(value)) {
+  if (redacted[coreKey] !== value || CREDENTIAL_LABEL_PATTERN.test(value) || EMBEDDED_TOKEN_PATTERN.test(value)) {
     invalid(`${inputKey} must contain only sanitized metadata`);
   }
 }
@@ -141,20 +148,22 @@ function actionFor(snapshot: EvidenceSnapshot): string {
   return `gate:${value}`;
 }
 
-function resultFor(snapshot: EvidenceSnapshot): VistaResult {
+function outcomeFor(snapshot: EvidenceSnapshot): OwnerOutcome {
   if (snapshot.has("result") === snapshot.has("status")) {
     invalid("must provide exactly one of result or status");
   }
   if (snapshot.has("result")) {
     const value = requireString(snapshot, "result");
     if (!RESULTS.has(value as VistaResult)) invalid("result must be a VistaResult");
-    return value as VistaResult;
+    const result = value as VistaResult;
+    return { result, metadataKey: "owner_result", metadataValue: result };
   }
-  const status = requireString(snapshot, "status");
-  if (!Object.hasOwn(STATUS_RESULTS, status)) {
+  const value = requireString(snapshot, "status");
+  if (!Object.hasOwn(STATUS_RESULTS, value)) {
     invalid("status must be pending, success, failure, cancelled, skipped, or neutral");
   }
-  return STATUS_RESULTS[status as AiGateStatus];
+  const status = value as AiGateStatus;
+  return { result: STATUS_RESULTS[status], metadataKey: "owner_status", metadataValue: status };
 }
 
 function metadataRef(stats: Record<string, number | string>): ArtifactRef | undefined {
@@ -174,7 +183,8 @@ function metadataRef(stats: Record<string, number | string>): ArtifactRef | unde
 export function toVistaEventInput(evidence: AiGateEvidence): VistaEventInput {
   const snapshot = snapshotEvidence(evidence);
   const action = actionFor(snapshot);
-  const observedResult = resultFor(snapshot);
+  const ownerOutcome = outcomeFor(snapshot);
+  const observedResult = ownerOutcome.result;
   const runId = optionalIdentifier(snapshot, "run_id");
   const sessionId = optionalIdentifier(snapshot, "session_id");
   const traceId = optionalIdentifier(snapshot, "trace_id");
@@ -246,6 +256,10 @@ export function toVistaEventInput(evidence: AiGateEvidence): VistaEventInput {
     metadata.source_sha = sourceSha;
     metadata.sha_relation = shaMismatch ? "mismatch" : "match";
   }
+  // A conflict changes the event outcome, not what the owner observed. Retain
+  // only the already-validated enum and its alias as evidence, never a PASS or
+  // authorization signal, and never choose either SHA as the event binding.
+  if (shaMismatch) metadata[ownerOutcome.metadataKey] = ownerOutcome.metadataValue;
   const metadataArtifact = metadataRef(metadata);
   if (metadataArtifact !== undefined) artifactRefs.push(metadataArtifact);
   if (artifactRefs.length > 0) event.artifact_refs = artifactRefs;

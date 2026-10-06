@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { EventStore, isVistaEvent, VistaProtocolError, type VistaEvent } from "@pi-vista/core";
+import { EventStore, isVistaEvent, redactAll, VistaProtocolError, type VistaEvent } from "@pi-vista/core";
 import {
   emitAiGateEvidence,
   emitAiGateObservation,
@@ -13,6 +13,46 @@ import {
 
 const SOURCE_SHA = "0123456789abcdef0123456789abcdef01234567";
 const OTHER_SHA = "fedcba9876543210fedcba9876543210fedcba98";
+const MISMATCH_OUTCOMES = [
+  ["result", "ok", "unknown"],
+  ["result", "blocked", "unknown"],
+  ["result", "failed", "failed"],
+  ["result", "unknown", "unknown"],
+  ["result", "abstain", "unknown"],
+  ["status", "pending", "unknown"],
+  ["status", "success", "unknown"],
+  ["status", "failure", "failed"],
+  ["status", "cancelled", "failed"],
+  ["status", "skipped", "unknown"],
+  ["status", "neutral", "unknown"],
+] as const;
+const REF_FIELDS = ["review_hash", "escalation_hash", "receipt_ref", "artifact_ref"] as const;
+const TOKEN_LIKE_TEXT = [
+  ...[
+    `ghp_${"A".repeat(36)}`,
+    `sk-${"A".repeat(36)}`,
+    `xoxb-${"A".repeat(24)}`,
+    `eyJ${"A".repeat(12)}.${"B".repeat(12)}.${"C".repeat(12)}`,
+  ].flatMap((token) => [token, `receipt_${token}`, `review_${token}`, `artifact-${token}`, `safe${token}-ref`]),
+  `artifact_token-${"A".repeat(36)}`,
+  `RECEIPT_GHP_${"A".repeat(36)}`,
+];
+const UNSAFE_REFS = [
+  ...TOKEN_LIKE_TEXT,
+  "https://example.test/receipt?token=secret",
+  "https://example.test/receipt?%61ccess_token=secret",
+  `https://example.test/receipt?ref=receipt_%67%68%70_${"A".repeat(36)}`,
+  "https://example.test/receipt?%2561ccess%255Ftoken=secret",
+  "receipt?%61pi%5Fkey=private-value", "receipt%3Ftoken%3Dprivate-value",
+  "https://user:pass@example.test/receipt",
+  "https://example.test/receipt#secret",
+  "PR body with untrusted text", "CI log: failure at line 1",
+  "receipt_credential-123", "receipt_bearer-123", "receipt_cookie-123",
+  "review_private-key-123", "artifact_API_key-123", "artifact_secret-123",
+  "ghp_1234567890abcdef", "sk-1234567890abcdef", "session_cookie", "token-123",
+  "/private/artifact.json", "C:\\private\\artifact.json", "./artifact.json", "../receipt",
+  "git status", "rm -rf /private", "pwd", "$(whoami)", "receipt\nraw", "receipt%2Fprivate", "",
+];
 
 function evidence(overrides: Record<string, unknown> = {}): AiGateEvidence {
   const value: Record<string, unknown> = {
@@ -128,10 +168,37 @@ test("SHA mismatch retains both safe summaries, explicit relation, and owner rea
   strictEqual(mapped.source_sha, undefined);
   strictEqual(mapped.result, "unknown");
   strictEqual(mapped.reason_code, "ci_observed");
-  deepStrictEqual(gateStats(mapped), { head_sha: OTHER_SHA, source_sha: SOURCE_SHA, sha_relation: "mismatch" });
+  deepStrictEqual(gateStats(mapped), { head_sha: OTHER_SHA, source_sha: SOURCE_SHA, sha_relation: "mismatch", owner_result: "ok" });
   strictEqual(toVistaEventInput(evidence({ head_sha: OTHER_SHA })).reason_code, "sha_mismatch");
   strictEqual(toVistaEventInput(evidence({ head_sha: OTHER_SHA, result: "failed" })).result, "failed");
   strictEqual(toVistaEventInput(evidence({ head_sha: "b".repeat(64), status: "success" })).result, "unknown");
+});
+
+test("SHA mismatch retains every owner result/status enum through core redaction without authorization", () => {
+  for (const [field, ownerValue, result] of MISMATCH_OUTCOMES) {
+    for (const [source_sha, head_sha] of [[SOURCE_SHA, OTHER_SHA], ["a".repeat(64), "b".repeat(64)]]) {
+      const mapped = toVistaEventInput(evidence({ [field]: ownerValue, source_sha, head_sha, passed: true, required: false }));
+      strictEqual(mapped.result, result, `${field}:${ownerValue}`);
+      strictEqual(Object.hasOwn(mapped, "source_sha"), false);
+      strictEqual(Object.hasOwn(mapped, "head_sha"), false);
+      deepStrictEqual(gateStats(mapped), {
+        passed: 1, required: 0, head_sha, source_sha, sha_relation: "mismatch", [`owner_${field}`]: ownerValue,
+      });
+      deepStrictEqual(redactAll(mapped), mapped);
+      strictEqual(mapped.artifact_refs?.some((artifact) => Object.hasOwn(artifact, "verified")), false);
+    }
+  }
+});
+
+test("SHA mismatch rejects free-text outcomes and caller-supplied owner metadata before the store", async () => {
+  let appendCalls = 0;
+  const store = { async append(): Promise<void> { appendCalls += 1; } };
+  for (const field of ["result", "status", "owner_result", "owner_status"]) {
+    const invalidEvidence = evidence({ head_sha: OTHER_SHA, [field]: "raw-private-content PASS authorized" });
+    expectProtocolError(() => toVistaEventInput(invalidEvidence), /VistaResult|status must be|unsupported field/u);
+    await rejects(() => emitAiGateEvidence(invalidEvidence, { store }), VistaProtocolError);
+  }
+  strictEqual(appendCalls, 0);
 });
 
 test("rejects illegal SHA summaries and a head SHA without source", () => {
@@ -162,21 +229,60 @@ test("maps opaque review, escalation, receipt, and artifact refs without content
   ]);
 });
 
-test("rejects URL query secrets, tokens/cookies, paths, raw commands, and content in refs", () => {
-  const unsafe = [
-    "https://example.test/receipt?token=secret",
-    "https://example.test/receipt?%61ccess_token=secret",
-    "https://user:pass@example.test/receipt",
-    "https://example.test/receipt#secret",
-    "PR body with untrusted text", "CI log: failure at line 1",
-    "ghp_1234567890abcdef", "sk-1234567890abcdef", "session_cookie", "token-123",
-    "/private/artifact.json", "C:\\private\\artifact.json", "./artifact.json", "../receipt",
-    "git status", "rm -rf /private", "pwd", "$(whoami)", "receipt\nraw", "receipt%2Fprivate", "",
-  ];
-  for (const field of ["review_hash", "escalation_hash", "receipt_ref", "artifact_ref"]) {
-    for (const value of unsafe) {
+test("rejects wrapped tokens/credentials, encoded URL query secrets, paths, commands, and content in refs", () => {
+  for (const field of REF_FIELDS) {
+    for (const value of UNSAFE_REFS) {
       expectProtocolError(() => toVistaEventInput(evidence({ [field]: value })), /safe opaque|sanitized metadata/u);
     }
+  }
+});
+
+test("embedded token signatures reject at every retained-string entry before any mock store call", async () => {
+  let appendCalls = 0;
+  const store = { async append(): Promise<void> { appendCalls += 1; } };
+  const fields = [
+    ...REF_FIELDS, "action", "check_type", "run_id", "session_id", "trace_id", "repo",
+    "reason_code", "decision", "verdict", "model_id", "reviewer_id",
+  ];
+  for (const field of fields) {
+    for (const value of TOKEN_LIKE_TEXT) {
+      const invalidEvidence = evidence({ [field]: value });
+      throws(() => toVistaEventInput(invalidEvidence), (error: unknown) =>
+        error instanceof VistaProtocolError && !error.message.includes(value));
+      await rejects(() => emitAiGateEvidence(invalidEvidence, { store }), (error: unknown) =>
+        error instanceof VistaProtocolError && !error.message.includes(value));
+    }
+  }
+  strictEqual(appendCalls, 0);
+});
+
+test("preserves safe opaque IDs and hexadecimal hashes across ref fields", () => {
+  for (const field of REF_FIELDS) {
+    for (const value of ["receipt-123", "review_abc123", "artifact.release-42", "task-123", SOURCE_SHA, "e".repeat(64)]) {
+      const mapped = toVistaEventInput(evidence({ [field]: value }));
+      strictEqual(mapped.artifact_refs?.[0]?.ref, value);
+      deepStrictEqual(redactAll(mapped), mapped);
+    }
+  }
+});
+
+test("wrapped token and credential refs never reach or persist in EventStore", async () => {
+  const baseDir = await mkdtemp(join(tmpdir(), "pi-vista-ai-gate-refs-"));
+  try {
+    const store = new EventStore({ baseDir });
+    const safeEvent = await emitAiGateEvidence(evidence({ receipt_ref: "receipt-safe-1" }), { store, seq: 0, now: 123 });
+    const eventsPath = join(baseDir, "runs", "run-ai-gate", "events.jsonl");
+    const before = await readFile(eventsPath, "utf8");
+    for (const field of REF_FIELDS) {
+      for (const value of UNSAFE_REFS) {
+        await rejects(() => emitAiGateEvidence(evidence({ [field]: value }), { store }), VistaProtocolError);
+      }
+    }
+    strictEqual(await readFile(eventsPath, "utf8"), before);
+    deepStrictEqual(await store.readRun("run-ai-gate"), [safeEvent]);
+    deepStrictEqual(await store.listRuns(), ["run-ai-gate"]);
+  } finally {
+    await rm(baseDir, { recursive: true, force: true });
   }
 });
 
@@ -294,19 +400,43 @@ test("mock emission retains safe metadata, refs, and core-added identity", async
   strictEqual(emitAiGateObservation, emitAiGateEvidence);
 });
 
-test("emission and EventStore round-trip preserve an explicit mismatch without raw data", async () => {
+test("emission and EventStore round-trip preserve every mismatch owner outcome without raw data", async () => {
   const baseDir = await mkdtemp(join(tmpdir(), "pi-vista-ai-gate-"));
   try {
     const store = new EventStore({ baseDir });
-    const event = await emitAiGateEvidence(evidence({ status: "success", head_sha: OTHER_SHA, reason_code: "ci_observed", review_hash: "review-1", required: false }), { store, seq: 0, now: 123 });
-    deepStrictEqual(await store.readRun("run-ai-gate"), [event]);
-    strictEqual(event?.result, "unknown");
-    strictEqual(event?.source_sha, undefined);
-    strictEqual(gateStats(event ?? {})?.sha_relation, "mismatch");
-    const jsonl = await readFile(join(baseDir, "runs", "run-ai-gate", "events.jsonl"), "utf8");
+    const events: VistaEvent[] = [];
+    for (const [field, ownerValue, result] of MISMATCH_OUTCOMES) {
+      const event = await emitAiGateEvidence(evidence({
+        [field]: ownerValue, head_sha: OTHER_SHA, reason_code: "ci_observed", review_hash: "review-1", passed: true, required: false,
+      }), { store, seq: events.length, now: 123 });
+      strictEqual(isVistaEvent(event), true);
+      if (event === undefined) throw new Error("expected emitted event");
+      strictEqual(event.result, result);
+      strictEqual(Object.hasOwn(event, "source_sha"), false);
+      strictEqual(event.reason_code, "ci_observed");
+      deepStrictEqual(gateStats(event), {
+        passed: 1, required: 0, head_sha: OTHER_SHA, source_sha: SOURCE_SHA, sha_relation: "mismatch", [`owner_${field}`]: ownerValue,
+      });
+      strictEqual(event.artifact_refs?.some((artifact) => Object.hasOwn(artifact, "verified")), false);
+      deepStrictEqual(redactAll(event), event);
+      events.push(event);
+    }
+    deepStrictEqual(await store.readRun("run-ai-gate"), events);
+    const eventsPath = join(baseDir, "runs", "run-ai-gate", "events.jsonl");
+    const jsonl = await readFile(eventsPath, "utf8");
+    deepStrictEqual(jsonl.trim().split("\n").map((line) => JSON.parse(line) as unknown), events);
+    for (const field of ["result", "status", "owner_result", "owner_status"]) {
+      await rejects(() => emitAiGateEvidence(evidence({
+        head_sha: OTHER_SHA, [field]: "raw-private-content PASS authorized",
+      }), { store }), VistaProtocolError);
+    }
+    strictEqual(await readFile(eventsPath, "utf8"), jsonl);
     strictEqual(jsonl.includes(OTHER_SHA), true);
     strictEqual(jsonl.includes(SOURCE_SHA), true);
     strictEqual(jsonl.includes("raw-private-content"), false);
+    strictEqual(jsonl.includes("PASS"), false);
+    strictEqual(jsonl.includes("verified"), false);
+    strictEqual(jsonl.includes("authorized"), false);
   } finally {
     await rm(baseDir, { recursive: true, force: true });
   }

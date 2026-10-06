@@ -39,7 +39,12 @@ pull-request/CI/review reader.
 Identity/model identifiers are at most 128 characters, actions 128, codes 64,
 and opaque refs 256. References are single-segment IDs containing only ASCII
 letters, numbers, dots, underscores, and hyphens; paths and URLs are rejected.
-All retained text also has to pass the existing public core redaction contract.
+Every retained-string input also rejects embedded token signatures, including
+safe-looking wrappers such as `receipt_ghp_…`, `review_sk-…`, or wrapped Slack/JWT
+values. The same check covers IDs, actions/check types, codes, and model/reviewer
+metadata; it is not limited to refs. Credential labels such as `token`, `bearer`,
+`cookie`, `private-key`, `api-key`, and `secret` are rejected too. All retained
+text also has to pass the existing public core redaction contract.
 
 ## Mapping
 
@@ -100,7 +105,13 @@ corrected or used to overwrite either SHA: the adapter omits the conflicting
 `source_sha` event binding, retains both summaries plus
 `sha_relation: "mismatch"` in metadata, maps a non-failed result to `unknown`
 (an explicit `failed` remains `failed`), and uses `sha_mismatch` only when no
-owner-provided `reason_code` is present.
+owner-provided `reason_code` is present. The original owner outcome is preserved
+on mismatch as exactly one output-only metadata stat: `owner_result` accepts
+only `ok`, `blocked`, `failed`, `unknown`, or `abstain`; `owner_status` accepts
+only the status enum in the mapping table above. These stats are derived from
+the validated `result`/`status` input, not additional accepted input fields,
+free text, or PASS/verification/authorization claims. Neither SHA is selected
+as the event binding on mismatch.
 
 The core protocol intentionally is not extended with a `head_sha` property.
 The adapter uses a metadata artifact reference for the second SHA.

@@ -74,7 +74,10 @@ normal `source_sha` event field and as safe metadata; a mismatch is never
 silently corrected. The adapter emits `unknown` for a non-failed mismatch
 (an explicit `failed` remains `failed`), keeps both safe SHA summaries and
 `sha_relation: "mismatch"` in metadata, and uses `sha_mismatch` only when the
-owner did not provide a `reason_code`.
+owner did not provide a `reason_code`. On mismatch, metadata also retains the
+original outcome alias as exactly one of `owner_result` (a protocol result enum)
+or `owner_status` (an ai-gate status enum). These output-only stats are evidence,
+not a PASS/verification/authorization signal or an additional accepted input.
 The core protocol has no `head_sha` field and is not extended by this package.
 
 The adapter rejects unknown fields, custom prototypes, accessors, all Proxy
@@ -87,7 +90,12 @@ gate operation.
 Identifiers are bounded (identity/model IDs: 128 characters, action: 128,
 codes: 64, opaque single-segment refs: 256). Refs allow only ASCII letters,
 numbers, dots, underscores, and hyphens; paths and URLs are not opaque IDs.
-All retained text must also pass the existing core redaction contract.
+Token signatures are rejected even when embedded behind a safe-looking prefix,
+for example `receipt_ghp_…`, `review_sk-…`, or wrapped Slack/JWT values. This
+check applies to every retained-string input, including IDs, actions, codes,
+and model/reviewer metadata, not just references. Credential labels such as
+`token`, `bearer`, `cookie`, `private-key`, `api-key`, and `secret` are also
+rejected. All retained text must pass the existing core redaction contract.
 
 `lane`, `tier`, `decision`, `verdict`, `passed`, `required`, and SHA summaries
 are projected as observational `gate_metadata` artifact stats, not as PASS,
