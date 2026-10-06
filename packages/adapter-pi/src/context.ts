@@ -457,6 +457,9 @@ function safeObserverDescriptors(
     if (keys.length !== descriptorKeys.length || keys.some((key) => !Object.hasOwn(descriptors, key))) {
       reject(`${label} contains unsupported own properties`);
     }
+    if (keys.some((key) => typeof key !== "string")) {
+      reject(`${label} contains an unsupported symbol property`);
+    }
     if (requireDataProperties && keys.some((key) => !Object.hasOwn(descriptors[key] as PropertyDescriptor, "value"))) {
       reject(`${label} contains an accessor property`);
     }
@@ -506,12 +509,7 @@ function isClassPrototype(value: object): boolean {
   }
 }
 
-/**
- * Resolve an observer method from descriptors only. Own data methods are
- * allowed for plain objects; inherited methods are allowed only from a class
- * prototype. No property getter is invoked and the returned pair preserves
- * the original owner for class methods that use `this`.
- */
+/** Validate a callable data value without invoking it or its accessors. */
 function observerFunction(value: unknown, label: string): Function {
   if (typeof value !== "function") {
     reject(`${label} must be a function`);
@@ -525,49 +523,70 @@ function observerFunction(value: unknown, label: string): Function {
   return value;
 }
 
+/**
+ * Resolve an observer method from descriptors only. A receiver may be a
+ * null-prototype object or an ordinary object with an own data method; an
+ * inherited method is allowed only from a class prototype. The complete
+ * prototype chain is inspected before either form is accepted, while
+ * Object.prototype itself is never an allowed receiver. No property getter is
+ * invoked and the returned pair preserves the original owner for class
+ * methods that use `this`.
+ */
 function observerMethod(value: unknown, property: string, label: string): BoundObserverMethod {
   try {
     if (!isObject(value) || Array.isArray(value)) {
       reject(`${label} must be an object`);
     }
     const owner = value as object;
-    // Inspect the prototype even for own methods so a revoked/hostile Proxy
-    // cannot bypass the boundary merely by supplying an own function.
+    if (owner === Object.prototype) {
+      reject(`${label} must not use Object.prototype as its receiver`);
+    }
+
+    // Inspect the owner and every prototype before accepting any method. An
+    // own method must not hide a hostile prototype, and a late rejection from
+    // the chain must never expose a raw Proxy trap error to the caller.
     const ownerPrototype = Object.getPrototypeOf(owner);
-    const ownDescriptors = safeObserverDescriptors(owner, label);
+    const ownDescriptors = safeObserverDescriptors(owner, label, true);
     const ownDescriptor = Object.hasOwn(ownDescriptors, property)
       ? ownDescriptors[property]
       : undefined;
+    let method: Function | undefined;
     if (ownDescriptor !== undefined) {
       if (!Object.hasOwn(ownDescriptor, "value")) {
         reject(`${label}.${property} must be an own data function`);
       }
-      return { owner, method: observerFunction(ownDescriptor.value, `${label}.${property}`) };
+      method = observerFunction(ownDescriptor.value, `${label}.${property}`);
     }
 
     const visited = new Set<object>();
     let prototype = ownerPrototype;
-    while (prototype !== null && prototype !== Object.prototype) {
+    while (prototype !== null) {
       if (visited.has(prototype)) {
         reject(`${label} has a cyclic prototype chain`);
       }
       visited.add(prototype);
-      const descriptors = safeObserverDescriptors(prototype, label);
+      const descriptors = safeObserverDescriptors(prototype, label, prototype !== Object.prototype);
       const descriptor = Object.hasOwn(descriptors, property)
         ? descriptors[property]
         : undefined;
       if (descriptor !== undefined) {
-        if (!isClassPrototype(prototype)) {
+        if (prototype === Object.prototype || !isClassPrototype(prototype)) {
           reject(`${label}.${property} must be an own data function or class prototype method`);
         }
         if (!Object.hasOwn(descriptor, "value")) {
           reject(`${label}.${property} must be a data function`);
         }
-        return { owner, method: observerFunction(descriptor.value, `${label}.${property}`) };
+        if (method === undefined) {
+          method = observerFunction(descriptor.value, `${label}.${property}`);
+        }
       }
       prototype = Object.getPrototypeOf(prototype);
     }
-    reject(`${label} must provide ${property}`);
+
+    if (method === undefined) {
+      reject(`${label} must provide ${property}`);
+    }
+    return { owner, method };
   } catch (error) {
     if (error instanceof VistaProtocolError) {
       throw error;

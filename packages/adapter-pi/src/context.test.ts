@@ -642,6 +642,108 @@ test("custom observer methods use safe descriptors and preserve class receivers"
   strictEqual(checkpointStore.calls, 1);
 });
 
+test("null-prototype observer receivers with own methods remain valid", async () => {
+  let appendCalls = 0;
+  let saveCalls = 0;
+  const store = Object.create(null) as Pick<EventStore, "append">;
+  store.append = () => {
+    appendCalls += 1;
+    return Promise.resolve();
+  };
+  const checkpointStore = Object.create(null) as Pick<CheckpointStore, "save">;
+  checkpointStore.save = () => {
+    saveCalls += 1;
+    return Promise.resolve();
+  };
+  const context = createPiRunContext({
+    runId: "run-null-observer",
+    store,
+    checkpointStore,
+    emit: async (event, options) => {
+      await options?.store?.append(event as VistaEvent);
+      return event as VistaEvent;
+    },
+  });
+  await context.emitToolResult({ tool: "read", result: "ok" });
+  await context.checkpoint(checkpointInput());
+  strictEqual(appendCalls, 1);
+  strictEqual(saveCalls, 1);
+});
+
+test("own observer methods cannot bypass hostile prototype inspection", async () => {
+  let appendCalls = 0;
+  let saveCalls = 0;
+  const hostilePrototype = new Proxy(Object.create(null), {
+    ownKeys(): never {
+      throw new Error("hostile observer prototype");
+    },
+  });
+  const hostileStore = Object.create(hostilePrototype) as Pick<EventStore, "append">;
+  hostileStore.append = () => {
+    appendCalls += 1;
+    return Promise.resolve();
+  };
+  const hostileCheckpointStore = Object.create(hostilePrototype) as Pick<CheckpointStore, "save">;
+  hostileCheckpointStore.save = () => {
+    saveCalls += 1;
+    return Promise.resolve();
+  };
+  await rejects(
+    async () => { createPiRunContext({ runId: "run-hostile-own-store", store: hostileStore }); },
+    (error: unknown) => error instanceof VistaProtocolError
+      && error.message === "event store could not be safely inspected",
+  );
+  await rejects(
+    async () => {
+      createPiRunContext({ runId: "run-hostile-own-checkpoint", checkpointStore: hostileCheckpointStore });
+    },
+    (error: unknown) => error instanceof VistaProtocolError
+      && error.message === "checkpointStore could not be safely inspected",
+  );
+  strictEqual(appendCalls, 0);
+  strictEqual(saveCalls, 0);
+});
+
+test("Object.prototype is never accepted as an observer receiver", async () => {
+  let appendCalls = 0;
+  let saveCalls = 0;
+  await withObjectPrototypeProperties({
+    append: {
+      value: () => {
+        appendCalls += 1;
+        return Promise.resolve();
+      },
+    },
+    save: {
+      value: () => {
+        saveCalls += 1;
+        return Promise.resolve();
+      },
+    },
+  }, async () => {
+    await rejects(
+      async () => {
+        createPiRunContext({
+          runId: "run-object-prototype-store",
+          store: Object.prototype as unknown as Pick<EventStore, "append">,
+        });
+      },
+      VistaProtocolError,
+    );
+    await rejects(
+      async () => {
+        createPiRunContext({
+          runId: "run-object-prototype-checkpoint",
+          checkpointStore: Object.prototype as unknown as Pick<CheckpointStore, "save">,
+        });
+      },
+      VistaProtocolError,
+    );
+  });
+  strictEqual(appendCalls, 0);
+  strictEqual(saveCalls, 0);
+});
+
 test("invalid observer wiring rejects before calling stores or getters", async () => {
   let appendCalls = 0;
   let saveCalls = 0;
