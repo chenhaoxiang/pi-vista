@@ -13,6 +13,7 @@ import {
   type VistaEventInput,
   type VistaResult,
 } from "@pi-vista/core";
+import { assertVistaCheckpoint, isVistaStepIdForRun } from "@pi-vista/core/validation";
 import type {
   PiArtifactRefInput,
   PiCheckpointInput,
@@ -731,9 +732,10 @@ function normalizeCheckpoint(
     aliasValue(record, ["resumeRequires", "resume_requires"], "resume_requires"),
     "resume_requires",
     true,
+    safeResumeRequirement,
   );
   const ts = optionalFiniteNumber(ownValue(record, "ts"), "ts") ?? timestamp(options);
-  return {
+  const checkpoint: VistaCheckpoint = {
     run_id: runId,
     step_id: currentStep.stepId,
     ts,
@@ -748,20 +750,38 @@ function normalizeCheckpoint(
     resumable,
     ...(resumeRequires === undefined ? {} : { resume_requires: resumeRequires }),
   };
+  // Validate an own-data snapshot so a polluted Object.prototype cannot alter
+  // core's optional-field lookup; keep the protocol output shape unchanged.
+  const validationCheckpoint: VistaCheckpoint = { ...checkpoint, resume_requires: resumeRequires };
+  assertVistaCheckpoint(validationCheckpoint);
+  return checkpoint;
 }
 
-function normalizeIdentifierArray(value: unknown, label: string, allowUndefined = false): string[] | undefined {
+function normalizeIdentifierArray(
+  value: unknown,
+  label: string,
+  allowUndefined = false,
+  normalizeIdentifier: (value: unknown, label: string) => string = safeIdentifier,
+): string[] | undefined {
   if (value === undefined) {
     if (allowUndefined) return undefined;
     return [];
   }
-  return snapshotArray(value, label).map((item, index) => safeIdentifier(item, `${label}[${index}]`));
+  return snapshotArray(value, label).map((item, index) => normalizeIdentifier(item, `${label}[${index}]`));
+}
+
+function safeResumeRequirement(value: unknown, label: string): string {
+  const result = safeIdentifier(value, label);
+  if (result.includes("..")) {
+    reject(`${label} must be a safe resume requirement`);
+  }
+  return result;
 }
 
 function normalizeStepArray(value: unknown, runId: string, label: string): string[] {
   const stepIds = normalizeIdentifierArray(value, label) ?? [];
   return stepIds.map((stepId) => {
-    if (!stepId.startsWith(`${runId}_`)) {
+    if (!isVistaStepIdForRun(runId, stepId)) {
       reject(`${label} must contain steps from the context run`);
     }
     return stepId;

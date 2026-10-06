@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CheckpointStore, EventStore, isSafeSegment, type VistaEvent } from "@pi-vista/core";
+import { CheckpointStore, EventStore, isSafeSegment, isVistaCheckpoint, type VistaCheckpoint, type VistaEvent } from "@pi-vista/core";
 import {
   createPiRunContext,
   VistaProtocolError,
@@ -225,6 +225,168 @@ test("steps are monotonically sequenced and checkpoints bind run and step", asyn
     }),
     (error: unknown) => error instanceof VistaProtocolError,
   );
+});
+
+test("checkpoint identifier arrays reject core-invalid values before custom persistence", async () => {
+  const runId = "run-checkpoint-contract";
+  const saved: VistaCheckpoint[] = [];
+  const context = createPiRunContext({
+    runId,
+    now: 123,
+    checkpointStore: {
+      async save(checkpoint): Promise<void> {
+        saved.push(checkpoint);
+      },
+    },
+  });
+  const stepId = context.nextStep();
+  const baseCheckpoint = {
+    ...checkpointInput(),
+    run_id: runId,
+    step_id: stepId,
+    ts: 123,
+    completed_steps: [],
+    pending_steps: [],
+    check_fn_ids: [],
+  };
+  strictEqual(isVistaCheckpoint(baseCheckpoint), true);
+  const fields = [
+    {
+      keys: ["completedSteps", "completed_steps"],
+      protocolKey: "completed_steps",
+      validId: stepId,
+      invalidIds: [`${runId}_`, "other-run_s0", "", `${runId}_nested/step`, `${runId}_nested\\step`],
+    },
+    {
+      keys: ["pendingSteps", "pending_steps"],
+      protocolKey: "pending_steps",
+      validId: stepId,
+      invalidIds: [`${runId}_`, "other-run_s0", "", `${runId}_nested/step`, `${runId}_nested\\step`],
+    },
+    {
+      keys: ["checkFnIds", "check_fn_ids"],
+      protocolKey: "check_fn_ids",
+      validId: "check-1",
+      invalidIds: ["", ".", "..", "check/a", "check\\a"],
+    },
+    {
+      keys: ["resumeRequires", "resume_requires"],
+      protocolKey: "resume_requires",
+      validId: "source_sha_matches",
+      invalidIds: ["foo..bar", "", ".", "..", "nested/condition", "nested\\condition"],
+    },
+  ];
+  for (const { keys, protocolKey, validId, invalidIds } of fields) {
+    for (const key of keys) {
+      for (const invalidId of invalidIds) {
+        const identifiers = [validId, invalidId];
+        const label = `${key}: ${JSON.stringify(invalidId)}`;
+        strictEqual(isVistaCheckpoint({ ...baseCheckpoint, [protocolKey]: identifiers }), false, label);
+        await rejects(
+          () => context.checkpoint({ ...checkpointInput(), [key]: identifiers }),
+          VistaProtocolError,
+          label,
+        );
+        strictEqual(saved.length, 0, label);
+      }
+    }
+  }
+  await context.flush();
+  await context.end();
+  deepStrictEqual(saved, []);
+});
+
+test("checkpoint identifier arrays accept core-valid values with either alias spelling", async () => {
+  const runId = "run-valid-checkpoint";
+  const completedSteps = [`${runId}_step-a`, `${runId}_foo..bar`];
+  const pendingSteps = [`${runId}_s2`, `${runId}__`];
+  const checkFnIds = ["check-1", "foo..bar"];
+  const resumeRequires = ["source_sha_matches", "worktree_clean", "custom.condition-1"];
+  const saved: VistaCheckpoint[] = [];
+  const context = createPiRunContext({
+    runId,
+    now: 123,
+    checkpointStore: {
+      async save(checkpoint): Promise<void> {
+        strictEqual(isVistaCheckpoint(checkpoint), true);
+        saved.push(checkpoint);
+      },
+    },
+  });
+  const stepId = context.nextStep();
+  for (const identifiers of [
+    {
+      completed_steps: completedSteps,
+      pending_steps: pendingSteps,
+      check_fn_ids: checkFnIds,
+      resume_requires: resumeRequires,
+    },
+    { completedSteps, pendingSteps, checkFnIds, resumeRequires },
+  ]) {
+    await context.checkpoint({ ...checkpointInput(), ...identifiers });
+  }
+  const expected = {
+    ...checkpointInput(),
+    run_id: runId,
+    step_id: stepId,
+    ts: 123,
+    completed_steps: completedSteps,
+    pending_steps: pendingSteps,
+    check_fn_ids: checkFnIds,
+    resume_requires: resumeRequires,
+  };
+  deepStrictEqual(saved, [expected, expected]);
+});
+
+test("checkpoint resume requirements may be omitted or an empty array", async () => {
+  const saved: VistaCheckpoint[] = [];
+  const context = createPiRunContext({
+    runId: "run-optional-resume-requirements",
+    checkpointStore: {
+      async save(checkpoint): Promise<void> {
+        strictEqual(isVistaCheckpoint(checkpoint), true);
+        saved.push(checkpoint);
+      },
+    },
+  });
+  await context.checkpoint(checkpointInput());
+  await context.checkpoint({ ...checkpointInput(), resume_requires: [] });
+  await context.checkpoint({ ...checkpointInput(), resumeRequires: [] });
+  strictEqual(saved.length, 3);
+  strictEqual(Object.hasOwn(saved[0] as VistaCheckpoint, "resume_requires"), false);
+  deepStrictEqual(saved[1]?.resume_requires, []);
+  deepStrictEqual(saved[2]?.resume_requires, []);
+});
+
+test("checkpoint validation ignores inherited resume requirement getters", async () => {
+  let getterCalls = 0;
+  let saveCalls = 0;
+  let saved: VistaCheckpoint | undefined;
+  await withObjectPrototypeProperties({
+    resume_requires: {
+      get(): never {
+        getterCalls += 1;
+        throw new Error("inherited resume requirement getter must not run");
+      },
+    },
+  }, async () => {
+    const context = createPiRunContext({
+      runId: "run-resume-requirement-prototype",
+      checkpointStore: {
+        async save(checkpoint): Promise<void> {
+          saveCalls += 1;
+          const ownDataSnapshot = Object.assign(Object.create(null), checkpoint, { resume_requires: undefined }) as VistaCheckpoint;
+          strictEqual(isVistaCheckpoint(ownDataSnapshot), true);
+          strictEqual(Object.hasOwn(checkpoint, "resume_requires"), false);
+          saved = checkpoint;
+        },
+      },
+    });
+    await context.checkpoint(checkpointInput());
+  });
+  strictEqual(getterCalls, 0);
+  strictEqual(saveCalls, 1);
+  strictEqual(saved !== undefined, true);
 });
 
 test("tool call and result inputs map only safe VistaEvent fields", async () => {
