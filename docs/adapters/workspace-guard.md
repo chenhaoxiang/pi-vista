@@ -32,7 +32,12 @@ await emitWorkspaceGuardObservation({
 });
 ```
 
-The observation fields are stable IDs/labels only:
+The observation fields are stable IDs/labels only. Before validation, the
+adapter takes one own-data snapshot using each property's descriptor value.
+Both enumerable and non-enumerable own string data properties are accepted;
+accessors and symbol keys are rejected. Prototype/inherited properties are
+never read, so an inherited-only `event`, `result`, or `verdict` does not
+satisfy the contract.
 
 - optional `run_id`, `session_id`, `trace_id`, `source_sha`, `repo`, and
   `branch`;

@@ -38,6 +38,12 @@ may be carried in `trace_id`, but the adapter does not expose or derive raw
 pair data. `model_id` is retained for statistics only and never participates
 in trust or guard decisions.
 
+Before validation, the adapter takes one own-data snapshot from property
+`descriptor.value`. Both enumerable and non-enumerable own string data
+properties are accepted. Accessors and symbol keys are rejected, and
+prototype/inherited properties are never read; an inherited-only `event`,
+`result`, or `verdict` therefore does not satisfy the contract.
+
 ## Mapping contract
 
 - `component` is always `guard`.

@@ -58,43 +58,87 @@ const RAW_FIELD_PATTERNS: Array<[RegExp, string]> = [
   [/stderr|stdout/iu, "raw process output"],
 ];
 
+type ObservationSnapshot = ReadonlyMap<PropertyKey, unknown>;
+
 function invalid(message: string): never {
   throw new VistaProtocolError(`workspace-guard observation ${message}`);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isRecord(value: unknown): value is object {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  try {
+    return !Array.isArray(value);
+  } catch {
+    // A revoked or otherwise hostile top-level Proxy must not leak its native
+    // trap error through the adapter boundary.
+    return false;
+  }
 }
 
-function hasOwn(record: Record<string, unknown>, key: string): boolean {
-  return Object.hasOwn(record, key);
+/**
+ * Read the observation boundary once. Descriptor values are copied into a
+ * detached snapshot so no later validation step can invoke a getter, walk a
+ * prototype, or trigger a Proxy `get` trap.
+ */
+function snapshotObservation(observation: unknown): ObservationSnapshot {
+  if (!isRecord(observation)) {
+    invalid("must be an object");
+  }
+
+  let keys: (string | symbol)[];
+  try {
+    keys = Reflect.ownKeys(observation);
+  } catch {
+    invalid("must have readable field names");
+  }
+
+  const snapshot = new Map<PropertyKey, unknown>();
+  for (const key of keys) {
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(observation, key);
+    } catch {
+      invalid("contains an unreadable field");
+    }
+    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
+      invalid("fields must be data fields, not accessors");
+    }
+    snapshot.set(key, descriptor.value);
+  }
+  return snapshot;
 }
 
-function requireString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
+function hasOwn(snapshot: ObservationSnapshot, key: string): boolean {
+  return snapshot.has(key);
+}
+
+function requireString(snapshot: ObservationSnapshot, key: string): string {
+  const value = snapshot.get(key);
   if (typeof value !== "string") {
     invalid(`${key} must be a string`);
   }
   return value;
 }
 
-function requireOptionalString(record: Record<string, unknown>, key: string): string | undefined {
-  if (!hasOwn(record, key)) {
+function requireOptionalString(snapshot: ObservationSnapshot, key: string): string | undefined {
+  if (!hasOwn(snapshot, key)) {
     return undefined;
   }
-  return requireString(record, key);
+  return requireString(snapshot, key);
 }
 
-function requireSafeSegment(record: Record<string, unknown>, key: string): string | undefined {
-  const value = requireOptionalString(record, key);
+function requireSafeSegment(snapshot: ObservationSnapshot, key: string): string | undefined {
+  const value = requireOptionalString(snapshot, key);
   if (value !== undefined && !isSafeSegment(value)) {
     invalid(`${key} must be a path-safe identifier`);
   }
   return value;
 }
 
-function requireSafeLabel(record: Record<string, unknown>, key: string): string | undefined {
-  const value = requireOptionalString(record, key);
+function requireSafeLabel(snapshot: ObservationSnapshot, key: string): string | undefined {
+  const value = requireOptionalString(snapshot, key);
   if (value !== undefined && !SAFE_LABEL_PATTERN.test(value)) {
     invalid(`${key} must be a safe metadata identifier`);
   }
@@ -108,8 +152,8 @@ function requireSafeLabel(record: Record<string, unknown>, key: string): string 
   return value;
 }
 
-function requireSafeSlashLabel(record: Record<string, unknown>, key: string): string | undefined {
-  const value = requireOptionalString(record, key);
+function requireSafeSlashLabel(snapshot: ObservationSnapshot, key: string): string | undefined {
+  const value = requireOptionalString(snapshot, key);
   if (
     value !== undefined &&
     (!SAFE_SLASH_LABEL_PATTERN.test(value) || value.split("/").some((segment) => segment === "." || segment === ".."))
@@ -119,49 +163,43 @@ function requireSafeSlashLabel(record: Record<string, unknown>, key: string): st
   return value;
 }
 
-function requireBoolean(record: Record<string, unknown>, key: string): boolean | undefined {
-  if (!hasOwn(record, key)) {
+function requireBoolean(snapshot: ObservationSnapshot, key: string): boolean | undefined {
+  if (!hasOwn(snapshot, key)) {
     return undefined;
   }
-  const value = record[key];
+  const value = snapshot.get(key);
   if (typeof value !== "boolean") {
     invalid(`${key} must be a boolean`);
   }
   return value;
 }
 
-function requireResult(record: Record<string, unknown>): VistaResult {
-  const value = record.result;
+function requireResult(snapshot: ObservationSnapshot): VistaResult {
+  const value = snapshot.get("result");
   if (typeof value !== "string" || !RESULTS.has(value as VistaResult)) {
     invalid("result must be a VistaResult");
   }
   return value as VistaResult;
 }
 
-function requireVerdict(record: Record<string, unknown>): VistaResult {
-  const value = record.verdict;
+function requireVerdict(snapshot: ObservationSnapshot): VistaResult {
+  const value = snapshot.get("verdict");
   if (typeof value !== "string" || !VERDICTS.has(value as WorkspaceGuardVerdict)) {
     invalid("verdict must be allow, deny, abstain, timeout, or unavailable");
   }
   return VERDICT_RESULTS[value as WorkspaceGuardVerdict];
 }
 
-function requireSharedInputHash(record: Record<string, unknown>): string | undefined {
-  const value = requireOptionalString(record, "shared_input_hash");
+function requireSharedInputHash(snapshot: ObservationSnapshot): string | undefined {
+  const value = requireOptionalString(snapshot, "shared_input_hash");
   if (value !== undefined && !SHARED_INPUT_HASH_PATTERN.test(value)) {
     invalid("shared_input_hash must be exactly 64 hexadecimal characters");
   }
   return value;
 }
 
-function validateFields(record: Record<string, unknown>): void {
-  let keys: (string | symbol)[];
-  try {
-    keys = Reflect.ownKeys(record);
-  } catch {
-    invalid("must have readable field names");
-  }
-  for (const key of keys) {
+function validateFields(snapshot: ObservationSnapshot): void {
+  for (const key of snapshot.keys()) {
     if (typeof key !== "string" || !OBSERVATION_FIELDS.has(key)) {
       // Unknown property names may themselves contain raw data. Include only a
       // fixed category in the error, never an untrusted field name.
@@ -171,15 +209,6 @@ function validateFields(record: Record<string, unknown>): void {
       invalid(category === undefined
         ? "contains an unsupported field; only sanitized observation fields are allowed"
         : `contains a forbidden ${category} field`);
-    }
-    let descriptor: PropertyDescriptor | undefined;
-    try {
-      descriptor = Object.getOwnPropertyDescriptor(record, key);
-    } catch {
-      invalid("contains an unreadable field");
-    }
-    if (descriptor === undefined || !Object.hasOwn(descriptor, "value")) {
-      invalid("fields must be data fields, not accessors");
     }
   }
 }
@@ -195,13 +224,13 @@ function validateRetainedFields(input: VistaEventInput): void {
   }
 }
 
-function resultFor(record: Record<string, unknown>): VistaResult {
-  const hasResult = hasOwn(record, "result");
-  const hasVerdict = hasOwn(record, "verdict");
+function resultFor(snapshot: ObservationSnapshot): VistaResult {
+  const hasResult = hasOwn(snapshot, "result");
+  const hasVerdict = hasOwn(snapshot, "verdict");
   if (hasResult === hasVerdict) {
     invalid("must provide exactly one of result or verdict");
   }
-  return hasResult ? requireResult(record) : requireVerdict(record);
+  return hasResult ? requireResult(snapshot) : requireVerdict(snapshot);
 }
 
 /**
@@ -209,31 +238,29 @@ function resultFor(record: Record<string, unknown>): VistaResult {
  * This function performs no shell, path, approval, or model processing.
  */
 export function toVistaEventInput(observation: WorkspaceGuardObservation): VistaEventInput {
-  if (!isRecord(observation)) {
-    invalid("must be an object");
-  }
-  validateFields(observation);
+  const snapshot = snapshotObservation(observation);
+  validateFields(snapshot);
 
-  const event = requireString(observation, "event");
+  const event = requireString(snapshot, "event");
   if (!EVENT_PATTERN.test(event)) {
     invalid("event must be a non-empty registry-safe identifier");
   }
 
-  const runId = requireSafeSegment(observation, "run_id");
-  const sessionId = requireSafeSegment(observation, "session_id");
-  const traceId = requireSafeSegment(observation, "trace_id");
-  const sourceSha = requireSafeSegment(observation, "source_sha");
-  const repo = requireSafeLabel(observation, "repo");
-  const branch = requireSafeSlashLabel(observation, "branch");
-  const rule = requireSafeLabel(observation, "rule");
-  const layer = requireSafeLabel(observation, "layer");
-  const policyVersion = requireSafeLabel(observation, "policy_version");
-  const modelId = requireSafeSlashLabel(observation, "model_id");
-  const targetClass = requireSafeLabel(observation, "target_class");
-  const reasonCode = requireSafeLabel(observation, "reason_code");
-  const shadow = requireBoolean(observation, "shadow");
-  const sharedInputHash = requireSharedInputHash(observation);
-  const result = resultFor(observation);
+  const runId = requireSafeSegment(snapshot, "run_id");
+  const sessionId = requireSafeSegment(snapshot, "session_id");
+  const traceId = requireSafeSegment(snapshot, "trace_id");
+  const sourceSha = requireSafeSegment(snapshot, "source_sha");
+  const repo = requireSafeLabel(snapshot, "repo");
+  const branch = requireSafeSlashLabel(snapshot, "branch");
+  const rule = requireSafeLabel(snapshot, "rule");
+  const layer = requireSafeLabel(snapshot, "layer");
+  const policyVersion = requireSafeLabel(snapshot, "policy_version");
+  const modelId = requireSafeSlashLabel(snapshot, "model_id");
+  const targetClass = requireSafeLabel(snapshot, "target_class");
+  const reasonCode = requireSafeLabel(snapshot, "reason_code");
+  const shadow = requireBoolean(snapshot, "shadow");
+  const sharedInputHash = requireSharedInputHash(snapshot);
+  const result = resultFor(snapshot);
 
   const input: VistaEventInput = {
     component: "guard",

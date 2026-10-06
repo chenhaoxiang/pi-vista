@@ -116,6 +116,112 @@ test("rejects an unsafe shared input hash", () => {
   }
 });
 
+test("requires event and outcomes to be own data fields", () => {
+  const inherited = Object.create({ event: "blocked" }) as Record<string, unknown>;
+  Object.defineProperty(inherited, "result", { value: "blocked", enumerable: true });
+  throws(
+    () => toVistaEventInput(inherited as unknown as WorkspaceGuardObservation),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+
+  const throwingPrototype = {};
+  Object.defineProperty(throwingPrototype, "event", {
+    get(): never {
+      throw new Error("prototype getter must not run");
+    },
+  });
+  const prototypeGetter = Object.create(throwingPrototype) as Record<string, unknown>;
+  Object.defineProperty(prototypeGetter, "result", { value: "blocked", enumerable: true });
+  throws(
+    () => toVistaEventInput(prototypeGetter as unknown as WorkspaceGuardObservation),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+
+  const ownGetter = observation() as unknown as Record<string, unknown>;
+  Object.defineProperty(ownGetter, "event", {
+    get(): never {
+      throw new Error("own getter must not run");
+    },
+    enumerable: true,
+  });
+  throws(
+    () => toVistaEventInput(ownGetter as unknown as WorkspaceGuardObservation),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+});
+
+test("accepts own non-enumerable data fields and rejects symbols", () => {
+  const value = observation() as unknown as Record<string, unknown>;
+  Object.defineProperty(value, "event", {
+    value: "blocked",
+    enumerable: false,
+  });
+  strictEqual(toVistaEventInput(value as unknown as WorkspaceGuardObservation).action, "guard:blocked");
+
+  const symbolField = Symbol("unsupported");
+  const withSymbol = observation() as unknown as Record<string | symbol, unknown>;
+  Object.defineProperty(withSymbol, symbolField, { value: "not-allowed" });
+  throws(
+    () => toVistaEventInput(withSymbol as unknown as WorkspaceGuardObservation),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+});
+
+test("normalizes Proxy ownKeys and descriptor trap errors", () => {
+  const ownKeysProxy = new Proxy(observation(), {
+    ownKeys(): never {
+      throw new Error("ownKeys trap failed");
+    },
+  });
+  throws(
+    () => toVistaEventInput(ownKeysProxy),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+
+  const descriptorProxy = new Proxy(observation(), {
+    getOwnPropertyDescriptor(): never {
+      throw new Error("descriptor trap failed");
+    },
+  });
+  throws(
+    () => toVistaEventInput(descriptorProxy),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+});
+
+test("does not read the top-level observation through a Proxy get trap", () => {
+  let getCalls = 0;
+  const proxy = new Proxy(observation(), {
+    get(): never {
+      getCalls += 1;
+      throw new Error("get trap must not run");
+    },
+  });
+  strictEqual(toVistaEventInput(proxy).action, "guard:blocked");
+  strictEqual(getCalls, 0);
+});
+
+test("boundary failures do not call the store", async () => {
+  let appendCalls = 0;
+  const store = {
+    async append(): Promise<void> {
+      appendCalls += 1;
+    },
+  };
+  const ownGetter = observation() as unknown as Record<string, unknown>;
+  Object.defineProperty(ownGetter, "event", {
+    get(): never {
+      throw new Error("own getter must not run");
+    },
+    enumerable: true,
+  });
+  await rejects(
+    () => emitWorkspaceGuardObservation(ownGetter as unknown as WorkspaceGuardObservation, { store }),
+    (error: unknown) => error instanceof VistaProtocolError,
+  );
+  strictEqual(appendCalls, 0);
+});
+
 test("rejects raw command, cwd, path, and credential fields before emission", async () => {
   const store = {
     append(): Promise<void> {
