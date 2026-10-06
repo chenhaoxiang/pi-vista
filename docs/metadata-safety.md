@@ -12,12 +12,15 @@ verification_boundary: synthetic-offline-candidate
 
 # Shared credential metadata safety
 
-This security candidate repairs the **known embedded credential-signature gap**
-in core, Pi and workspace-guard. The completed [integration snapshot](infrastructure-integration.md)
+The merged source repairs the **known embedded credential-signature gap** in
+core, Pi and workspace-guard, including safe default-ID generation. Reviewed
+source `68b382ce20da47c6c43c6a271e645724c262056b` entered `main` through PR #7;
+isolated post-merge validation passed 232 tests. See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md)
+for commits and evidence boundaries. The completed [integration snapshot](infrastructure-integration.md)
 records the old `64c110e9403634600ccbd8ba16d943f083facdf2` candidate and its four
 actual-EventStore reproductions; it remains historical evidence, not a claim
-that the defect never existed. The candidate fix requires independent review
-and acceptance. It does not establish live-use, registry or release readiness.
+that the defect never existed. Source review does not establish live-use,
+registry publication, universal secret recognition or release readiness.
 
 ## One bounded detector
 

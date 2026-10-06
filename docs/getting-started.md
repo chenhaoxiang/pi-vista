@@ -1,15 +1,20 @@
 # Getting started with pi-vista
 
-## Candidate source checkout
+## Merged source checkout
 
-This infrastructure candidate is not merged into main. Its source PRs are open
-and unmerged; package-consumer examples below do not establish publication.
-Synthetic offline validation demonstrates functional compatibility only. A
-confirmed core/Pi/guard embedded `ghp_` / `github_pat_` identity gap remains a
-live-use and release blocker; see the [integration snapshot](infrastructure-integration.md).
-Do not use real sessions, credentials or owner services as fixtures.
+The seven-package infrastructure and bounded metadata/generation repairs were
+merged into `main` through [PR #7](https://github.com/chenhaoxiang/pi-vista/pull/7).
+Exact-source review and isolated post-merge validation passed, including 232
+tests. Registry publication, Node 20 validation, clean consumer installation,
+consumer TypeScript compilation and real owner/live integration remain
+unverified. Package-consumer syntax below does not establish publication.
+See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
+and boundaries. The [integration snapshot](infrastructure-integration.md)
+records the old known defect; the [metadata guide](metadata-safety.md) documents
+the repaired, bounded contract. Do not use real sessions, credentials or owner
+services as fixtures.
 
-| Candidate package | Contract |
+| Source package | Contract |
 | --- | --- |
 | `@pi-vista/protocol` | Shared interfaces and recorded version label |
 | `@pi-vista/core` | Fail-open event and checkpoint storage/redaction |
