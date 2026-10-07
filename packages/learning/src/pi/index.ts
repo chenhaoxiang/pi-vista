@@ -181,6 +181,7 @@ export function createPiObservation(config: PiObservationConfig): PiObservationA
     pi.on("session_start", () => { controller.reset(); return undefined; });
     pi.on("session_shutdown", () => { controller.shutdown(); return undefined; });
     pi.on("agent_start", () => {
+      if (shut) return undefined;
       try {
         if (!epoch?.active) {
           const e = newEpoch(true); const step = generateStepId(e.run, e.sequence++);

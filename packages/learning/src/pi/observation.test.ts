@@ -55,8 +55,9 @@ for (const reason of ["startup", "reload", "new", "fork", "resume"]) test(`sessi
 });
 test("shutdown is idempotent and late resolver cannot revive previous epoch", async () => {
   const d = deferred<unknown>(); const h = harness({ resolve_task: () => d.promise }); h.fire("agent_start"); await delay(1);
-  h.fire("session_shutdown"); h.controller.shutdown(); d.resolve(TASK); await idle(h.controller);
+  h.fire("session_shutdown"); h.controller.shutdown(); h.fire("agent_start"); h.fire("tool_execution_start", startCall("obsolete")); d.resolve(TASK); await idle(h.controller);
   assert.equal(h.controller.status().phase, "shutdown"); assert.equal(h.controller.status().binding, undefined); assert.equal(h.events.length, 0);
+  h.fire("session_start"); h.fire("agent_start"); await idle(h.controller); assert.equal(h.controller.status().phase, "active");
 });
 for (const port of ["events", "checkpoints"] as const) for (const fault of ["throw", "reject", "hang", "late-reject", "thenable"] as const) test(`${port} ${fault} preserves synchronous notifications and consumes late failure`, async () => {
   const d = deferred<unknown>(); const callback = () => {
