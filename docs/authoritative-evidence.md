@@ -22,7 +22,12 @@ produces this contract through an authorized provenance boundary.
 createEvidenceVerifier requires sources with unique symbolic subjects, pinned
 issuer/kind and an Ed25519 **public** PEM, plus trusted native-promise read
 callbacks. There is no default file resolver, HTTP client or signing API.
-No private PEM is accepted. The host also pins gate_version, gate_config_digest,
+No private PEM is accepted. The separate opt-in
+[`@pi-vista/evidence/files`](receipt-files.md) provides fixed private POSIX file
+callbacks under an explicit canonical v1 encoding; the root API/verifier stays
+unchanged. Actual compatible owner producers/public-key provenance remain
+**MISSING / not accepted**; audit/observation/manifest/ticket/App flags cannot
+upgrade to current evidence. The host also pins gate_version, gate_config_digest,
 nonempty required gate_checks/test_suites, a trusted now clock, max_age_ms
 (1–86,400,000, default 600,000) and timeout_ms (1–10,000, default 1,000).
 The factory snapshots configuration; later caller mutation cannot redirect it.

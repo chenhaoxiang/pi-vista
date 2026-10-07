@@ -65,6 +65,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/handoff/2026-10-07-verified-learning-source-closeout.md](docs/handoff/2026-10-07-verified-learning-source-closeout.md): PR10/source-main pins, actual hosted/post-merge evidence and remaining durable/live scope
 - [docs/handoff/2026-10-07-verified-learning-p1-fixes.md](docs/handoff/2026-10-07-verified-learning-p1-fixes.md): preserved full-review BLOCK, own-only/native-case corrections and bounded local evidence
 - [docs/authoritative-evidence.md](docs/authoritative-evidence.md): opt-in signed owner receipts, opaque provenance and non-authorizing probes
+- [docs/receipt-files.md](docs/receipt-files.md): explicit private read-only v1 file consumer; actual owner producers/key provenance MISSING, no authority upgrade
 - [docs/learning.md](docs/learning.md): process-local verified learning, exact confirmed sink/readback, failure/replay and character-bounded retrieval
 - [docs/handoff/2026-10-07-portable-recall-source-closeout.md](docs/handoff/2026-10-07-portable-recall-source-closeout.md): PR12 pins/CI/current-main restart proofs, historical-vs-current trust and remaining host/live scope
 - [docs/handoff/2026-10-07-portable-recall-entry-fixes.md](docs/handoff/2026-10-07-portable-recall-entry-fixes.md): original portable review BLOCK, new-identity/public-counter corrections and bounded local proof

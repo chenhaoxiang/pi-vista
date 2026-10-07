@@ -210,7 +210,11 @@ trusted-host limits. The observation CLI still has no check commands.
 [Authority-bound evidence](authoritative-evidence.md) requires an explicitly
 configured `createEvidenceVerifier` with pinned public keys, required checks/
 suites, trusted synthetic receipt readers and a clock. Legacy audit flags,
-predicate reports and shadow votes are not verified evidence.
+predicate reports and shadow votes are not verified evidence. The explicit
+[`@pi-vista/evidence/files`](receipt-files.md) addon can supply bounded read-only
+private POSIX file sources under the exact canonical v1 transport contract; it is
+not default discovery, signing or an owner adapter. Actual compatible owner
+producers/public-key provenance remain **MISSING / not accepted**.
 
 [Learning](learning.md) is programmatic and process-local:
 
