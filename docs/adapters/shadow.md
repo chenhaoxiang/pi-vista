@@ -69,8 +69,18 @@ non-enumerable own data fields. Each record is snapshotted from descriptors;
 accessors, symbols, custom prototypes, arrays, Proxies (including revoked
 ones), unknown keys and explicit `undefined` values reject without source
 getters, Proxy traps or coercion. Nested records have the same boundary.
-Validation completes before any configured callback or persistence. Projected
-records, artifact arrays and stats are detached and recursively frozen.
+Validation completes before any configured callback or persistence. Private
+normalized correlation/observation/row/asset/options records retain null
+prototypes through all optional reads; omitted fields cannot regain inherited
+data or getters during normalization. Core handoff explicitly shadows its known
+optional reads with own data, then removes bridge-only undefined fields before
+storage callbacks/public return, preserving the original event identity/JSON
+shape. Freezing reads optional artifacts/stats only when they are own fields.
+Projected records, artifact arrays and stats are detached and recursively frozen.
+Host-global getter-only destination properties can make unchanged core redaction
+unusable; mapping rejects with the fixed protocol error or core emission stays
+fail-open, without reading source getters. This is not a universal hostile-JS
+realm sandbox and does not modify the eight existing package runtimes.
 
 Required `ShadowObservation` fields:
 

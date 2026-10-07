@@ -6,7 +6,8 @@ import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { ROOT, allowedPackagePath, buildOrder, commandEnvironment, createRunDirectory, discoverPackages, npmCli, npmFlags, parseOptions, publicEntrypoints, runLogged, sha256, validateContent, validateInstalledLock, validateInventory } from "./release-utils.mjs";
-import { selectTestFiles, validateProtocolEmptyExemption } from "./run-tests.mjs";
+import { selectTestFiles, validateProtocolEmptyExemption, validateCaseCounts } from "./run-tests.mjs";
+import { countCompletion } from "./test-count-reporter.mjs";
 import { consumerSources } from "./packed-consumer.mjs";
 import { NODE20_ARCHIVE, NODE20_SHA256, validateArchiveNames, validateNode20Version, verifyOfficialChecksum } from "./node20-gate.mjs";
 
@@ -49,6 +50,38 @@ test("run-tests fails on empty directories and refuses symlinks", async () => {
     await symlink(path.join(directory, "missing.test.mjs"), path.join(compiled, "linked.test.mjs"));
     await assert.rejects(runLogged(directory, "symlink-tests", process.execPath, args));
   });
+});
+
+test("compiled empty suites and comment-only modules do not manufacture executed coverage", async () => {
+  await fixture(async directory => {
+    const compiled = path.join(directory, "compiled"); await mkdir(compiled);
+    const file = path.join(compiled, "empty.test.mjs");
+    for (const [name, source] of [
+      ["empty-suite", 'import { describe } from "node:test"; describe("synthetic empty", () => {});'],
+      ["comment-only", '// Synthetic compiled module with no explicit test.'],
+      ["diagnostic-spoof", 'console.log("tests 999"); console.log("pass 999");'],
+      ["skipped-only", 'import { test } from "node:test"; test.skip("synthetic skipped", () => {});'],
+    ]) {
+      await writeFile(file, source);
+      await assert.rejects(runLogged(directory, name, process.execPath, [path.join(ROOT, "scripts/run-tests.mjs"), compiled, ".test.mjs"]));
+      assert.match(await readFile(path.join(directory, name + ".log"), "utf8"), /No executed test cases/);
+    }
+  });
+});
+
+test("native completions exclude automatic file wrappers and suites, never stdout/diagnostic claims", () => {
+  const files = ["/synthetic/module.test.mjs"];
+  const counts = { tests: 0, passed: 0, failed: 0, cancelled: 0, skipped: 0, todo: 0, suites: 0, file_wrappers: 0 };
+  for (const type of ["test:stdout", "test:stderr", "test:diagnostic"]) countCompletion(counts, { type, data: { message: "tests 999" } }, files, "/synthetic");
+  countCompletion(counts, { type: "test:pass", data: { name: files[0], file: files[0], line: 1, column: 1, nesting: 0, details: {} } }, files, "/synthetic");
+  countCompletion(counts, { type: "test:pass", data: { name: "empty suite", details: { type: "suite" } } }, files, "/synthetic");
+  assert.equal(counts.tests, 0); assert.equal(counts.file_wrappers, 1); assert.equal(counts.suites, 1);
+  assert.throws(() => validateCaseCounts({ schema: 1, files, counts }, files), /No executed/);
+  countCompletion(counts, { type: "test:pass", data: { name: "explicit case", file: files[0], line: 2, column: 1, nesting: 0, details: {} } }, files, "/synthetic");
+  validateCaseCounts({ schema: 1, files, counts }, files);
+  assert.equal(counts.tests, 1); assert.equal(counts.passed, 1);
+  assert.throws(() => validateCaseCounts({ schema: 1, files: ["other"], counts }, files), /Invalid/);
+  assert.throws(() => validateCaseCounts({ schema: 1, files, counts: { ...counts, failed: 1 } }, files), /Invalid/);
 });
 
 test("protocol zero-test exemption is explicit, workspace-only and requires both built public artifacts", () => {
@@ -196,7 +229,7 @@ test("child environment is an allowlist and does not forward arbitrary API keys 
 
 test("all standalone script imports are side-effect-free (no npm, download, test or artifact operations)", async () => {
   await fixture(async (directory) => {
-    const scripts = ["release-utils.mjs", "run-tests.mjs", "source-gate.mjs", "packed-consumer.mjs", "node20-gate.mjs"];
+    const scripts = ["release-utils.mjs", "run-tests.mjs", "test-count-reporter.mjs", "source-gate.mjs", "packed-consumer.mjs", "node20-gate.mjs"];
     const source = scripts.map((script) => `await import(${JSON.stringify(pathToFileURL(path.join(ROOT, "scripts", script)).href)});`).join("\n");
     const before = await readdir(directory);
     const result = await exec(process.execPath, ["--input-type=module", "-e", source], { cwd: directory, env: { PATH: "/nonexistent" }, shell: false });

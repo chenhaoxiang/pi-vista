@@ -1,7 +1,8 @@
-import { lstat } from "node:fs/promises";
+import { lstat, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { ROOT, isMain, listFiles, publicEntrypoints, readJson } from "./release-utils.mjs";
+import { ROOT, createRunDirectory, isMain, listFiles, publicEntrypoints, readJson } from "./release-utils.mjs";
 
 export function selectTestFiles(files, suffix) {
   if (![".test.js", ".test.mjs"].includes(suffix)) throw new Error("Expected .test.js or .test.mjs suffix");
@@ -34,11 +35,34 @@ export async function runTests(directory, suffix, allowEmpty = false) {
   console.log(`Running ${files.length} compiled test files on ${process.version}`);
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT; // Nested synthetic runner tests must launch a real child test harness.
-  const child = spawn(process.execPath, ["--test", ...files], { env, shell: false, stdio: "inherit" });
-  return await new Promise((resolve, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code, signal) => resolve(signal === null && code === 0 ? 0 : code || 1));
-  });
+  const owned = await createRunDirectory("test-counts");
+  const reportPath = path.join(owned, "native-counts.json");
+  env.PI_VISTA_TEST_COUNT_FILE = reportPath;
+  env.PI_VISTA_TEST_FILES = JSON.stringify(files);
+  try {
+    const reporter = fileURLToPath(new URL("./test-count-reporter.mjs", import.meta.url));
+    const child = spawn(process.execPath, ["--test", `--test-reporter=${reporter}`, ...files], { env, shell: false, stdio: "inherit" });
+    const code = await new Promise((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", (value, signal) => resolve(signal === null && value === 0 ? 0 : value || 1));
+    });
+    if (code !== 0) return code;
+    const report = JSON.parse(await readFile(reportPath, "utf8"));
+    validateCaseCounts(report, files);
+    return 0;
+  } finally { await rm(owned, { recursive: true, force: true }); }
+}
+
+export function validateCaseCounts(report, files) {
+  const keys = ["tests", "passed", "failed", "cancelled", "skipped", "todo", "suites", "file_wrappers"];
+  if (report === null || typeof report !== "object" || Array.isArray(report) || Object.keys(report).length !== 3 ||
+    !["schema", "files", "counts"].every(key => Object.hasOwn(report, key)) || report.schema !== 1 ||
+    !Array.isArray(report.files) || JSON.stringify(report.files) !== JSON.stringify(files) ||
+    !report.counts || Array.isArray(report.counts) || Object.keys(report.counts).length !== keys.length ||
+    !keys.every(key => Object.hasOwn(report.counts, key) && Number.isSafeInteger(report.counts[key]) && report.counts[key] >= 0) ||
+    report.counts.tests !== report.counts.passed + report.counts.failed + report.counts.cancelled + report.counts.skipped + report.counts.todo) throw Error("Invalid native test-count report");
+  if (report.counts.tests === 0 || report.counts.passed + report.counts.failed === 0) throw Error("No executed test cases; empty suites and implicit file wrappers are not coverage");
+  if (report.counts.failed !== 0 || report.counts.cancelled !== 0) throw Error("Native test cases failed or were cancelled");
 }
 
 if (isMain(import.meta.url)) {

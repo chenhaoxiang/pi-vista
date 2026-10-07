@@ -55,6 +55,14 @@ const KNOWN_MODEL_FAMILIES: Readonly<Record<string, ShadowModelFamily>> = {
 
 type Snapshot = Readonly<Record<string, unknown>>;
 
+/** Private normalized records never regain Object.prototype optional fields. */
+function ownRecord<T extends object>(data: T): T {
+  return Object.assign(Object.create(null) as T, data);
+}
+function setOwn(target: object, key: string, value: unknown): void {
+  Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
+}
+
 function invalid(): never {
   // One fixed error for all schemas/options; no field names, values or raw errors escape.
   throw new VistaProtocolError("invalid normalized shadow observation or emission options");
@@ -117,7 +125,7 @@ function literal<T extends string>(value: unknown, allowed: readonly T[]): T {
 
 function correlation(value: unknown): ShadowCorrelation {
   const data = snapshot(value, CORRELATION_FIELDS);
-  const result: { run_id: string } & Record<string, string> = { run_id: identifier(data.run_id) };
+  const result: { run_id: string } & Record<string, string> = ownRecord({ run_id: identifier(data.run_id) });
   for (const key of ["step_id", "request_id", "pair_id"] as const) {
     if (Object.hasOwn(data, key)) result[key] = identifier(data[key]);
   }
@@ -143,7 +151,7 @@ function assertCorrelation(expected: ShadowCorrelation, supplied: ShadowCorrelat
 function rowEvidence(value: unknown): ShadowRowEvidence {
   const data = snapshot(value, ROW_FIELDS);
   if (data.ownerAdjudicationRequired !== true) invalid();
-  const result: ShadowRowEvidence = {
+  const result: ShadowRowEvidence = ownRecord({
     sample_id: identifier(data.sample_id),
     row_sha256: digest(data.row_sha256),
     ownerReviewCandidate: boolean(data.ownerReviewCandidate),
@@ -152,18 +160,18 @@ function rowEvidence(value: unknown): ShadowRowEvidence {
     ...(Object.hasOwn(data, "input_sha256") ? { input_sha256: digest(data.input_sha256) } : {}),
     ...(Object.hasOwn(data, "packet_sha256") ? { packet_sha256: digest(data.packet_sha256) } : {}),
     ...(Object.hasOwn(data, "contract_map_sha256") ? { contract_map_sha256: digest(data.contract_map_sha256) } : {}),
-  };
+  });
   return Object.freeze(result);
 }
 
 function assetEvidence(value: unknown): ShadowAssetEvidence {
   const data = snapshot(value, ASSET_FIELDS);
   if (data.verified !== false || data.realInputIsolationProven !== false) invalid();
-  const result: Record<string, unknown> = {
+  const result: Record<string, unknown> = ownRecord({
     scope: literal(data.scope, ["synthetic", "offline", "unknown"]),
     verified: false,
     realInputIsolationProven: false,
-  };
+  });
   for (const prefix of ["asset", "receipt", "isolation"] as const) {
     const refKey = `${prefix}_ref` as const;
     const shaKey = `${prefix}_sha256` as const;
@@ -191,14 +199,14 @@ function normalize(observation: unknown): ShadowObservation {
   if ((modelFamily === "intern" && modelId !== "intern-decision-4b") ||
       (modelFamily === "startlux" && modelId !== "startlux-decision-4b")) invalid();
   const binding = correlation(data.correlation);
-  const result: Record<string, unknown> = {
+  const result: Record<string, unknown> = ownRecord({
     schema: "shadow-observation/1", shadow: true, model_family: modelFamily, model_id: modelId,
     model_version: label(data.model_version),
     verdict: literal(data.verdict, ["allow", "pass", "deny", "veto", "abstain", "uncertain", "unknown"]),
     status: literal(data.status, ["observed", "timeout", "unavailable", "disagreement", "missing-context", "invalid-evidence", "unknown"]),
     context_status: literal(data.context_status, ["complete", "missing", "redacted", "truncated", "unknown"]),
     correlation: binding, humanExpectationWritten: false, trainingEligible: false, promotionEligible: false,
-  };
+  });
   for (const key of ["request", "vote"] as const) {
     if (Object.hasOwn(data, key)) {
       const supplied = correlation(data[key]);
@@ -231,13 +239,39 @@ function observedResult(observation: ShadowObservation): VistaResult {
   return "unknown";
 }
 
+function removeUndefined(record: object): void {
+  for (const key of Object.keys(record)) {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key);
+    if (descriptor !== undefined && Object.hasOwn(descriptor, "value") && descriptor.value === undefined && descriptor.configurable) Reflect.deleteProperty(record, key);
+  }
+}
 function freezeEvent<T extends VistaEventInput>(event: T): T {
-  for (const artifact of event.artifact_refs ?? []) {
-    if (artifact.stats !== undefined) Object.freeze(artifact.stats);
+  // Core handoff shadows omitted optionals; do not expose or persist added undefined fields.
+  removeUndefined(event);
+  const artifacts = Object.hasOwn(event, "artifact_refs") ? event.artifact_refs : undefined;
+  for (const artifact of artifacts ?? []) {
+    removeUndefined(artifact);
+    if (Object.hasOwn(artifact, "stats") && artifact.stats !== undefined) Object.freeze(artifact.stats);
     Object.freeze(artifact);
   }
-  if (event.artifact_refs !== undefined) Object.freeze(event.artifact_refs);
+  if (artifacts !== undefined) Object.freeze(artifacts);
   return Object.freeze(event);
+}
+
+function coreInput(event: VistaEventInput): VistaEventInput {
+  // The unchanged core creates ordinary records and reads known optional fields.
+  // Explicit own undefined entries prevent its reads from filling ambient data.
+  const input = ownRecord({ ...event });
+  for (const key of ["step_id", "ts", "vista_version", "session_id", "trace_id", "repo", "source_sha",
+    "worktree_id", "branch", "target_class", "policy_version", "layer", "reason_code", "env_fingerprint", "model_id"] as const) {
+    if (!Object.hasOwn(input, key)) setOwn(input, key, undefined);
+  }
+  input.artifact_refs = event.artifact_refs!.map(artifact => {
+    const copy = ownRecord({ ...artifact });
+    for (const key of ["sha", "verified", "stats"] as const) if (!Object.hasOwn(copy, key)) setOwn(copy, key, undefined);
+    return copy;
+  });
+  return input;
 }
 
 function project(observation: ShadowObservation): VistaEventInput {
@@ -250,8 +284,8 @@ function project(observation: ShadowObservation): VistaEventInput {
     owner_verdict: observation.verdict, owner_status: observation.status, context_status: observation.context_status,
     shadow: 1, safety_role: "observation-only", humanExpectationWritten: 0, trainingEligible: 0, promotionEligible: 0,
   };
-  if (observation.confidence !== undefined) stats.confidence = observation.confidence;
-  if (binding.fingerprint !== undefined) stats.fingerprint = binding.fingerprint;
+  if (observation.confidence !== undefined) setOwn(stats, "confidence", observation.confidence);
+  if (binding.fingerprint !== undefined) setOwn(stats, "fingerprint", binding.fingerprint);
   const artifacts: ArtifactRef[] = [{ type: "shadow_metadata", ref: "shadow-observation", stats }];
   if (binding.request_id !== undefined) artifacts.push({ type: "shadow_request", ref: binding.request_id });
   if (binding.pair_id !== undefined) artifacts.push({ type: "shadow_pair", ref: binding.pair_id });
@@ -266,7 +300,7 @@ function project(observation: ShadowObservation): VistaEventInput {
       ownerAdjudicationRequired: 1, forcedAbstain: row.forcedAbstain ? 1 : 0,
     };
     for (const key of ["packet_sha256", "contract_map_sha256"] as const) {
-      if (row[key] !== undefined) rowStats[key] = row[key];
+      if (row[key] !== undefined) setOwn(rowStats, key, row[key]);
     }
     artifacts.push({ type: "shadow_row_evidence", ref: row.sample_id, stats: rowStats });
     if (row.input_sha256 !== undefined) {
@@ -280,8 +314,8 @@ function project(observation: ShadowObservation): VistaEventInput {
       const assetSha = asset[`${prefix}_sha256`];
       if (assetRef !== undefined) {
         const assetStats: Record<string, number | string> = { scope: asset.scope, isolation_proof: "none" };
-        if (assetSha !== undefined) assetStats.digest_sha256 = assetSha;
-        if (asset.license_mode !== undefined) assetStats.license_mode = asset.license_mode;
+        if (assetSha !== undefined) setOwn(assetStats, "digest_sha256", assetSha);
+        if (asset.license_mode !== undefined) setOwn(assetStats, "license_mode", asset.license_mode);
         artifacts.push({ type: `shadow_${prefix}`, ref: assetRef, stats: assetStats });
       }
     }
@@ -290,12 +324,12 @@ function project(observation: ShadowObservation): VistaEventInput {
     component: COMPONENTS[observation.model_family], action: `shadow:${observation.model_family}:observe`,
     result: observedResult(observation), run_id: binding.run_id, model_id: observation.model_id, artifact_refs: artifacts,
   };
-  if (binding.step_id !== undefined) event.step_id = binding.step_id;
-  if (binding.source_sha !== undefined) event.source_sha = binding.source_sha;
-  if (binding.policy_version !== undefined) event.policy_version = binding.policy_version;
+  if (binding.step_id !== undefined) setOwn(event, "step_id", binding.step_id);
+  if (binding.source_sha !== undefined) setOwn(event, "source_sha", binding.source_sha);
+  if (binding.policy_version !== undefined) setOwn(event, "policy_version", binding.policy_version);
   const traceId = binding.pair_id ?? binding.request_id;
-  if (traceId !== undefined) event.trace_id = traceId;
-  if (observation.reason_code !== undefined) event.reason_code = observation.reason_code;
+  if (traceId !== undefined) setOwn(event, "trace_id", traceId);
+  if (observation.reason_code !== undefined) setOwn(event, "reason_code", observation.reason_code);
   if (!isDeepStrictEqual(redactAll(event), event)) invalid();
   return freezeEvent(event);
 }
@@ -305,14 +339,14 @@ function isCallback(value: unknown): value is (...args: unknown[]) => unknown {
 }
 
 function emissionOptions(value: unknown, event: VistaEventInput): ShadowEmitOptions {
-  const data: Snapshot = value === undefined ? Object.freeze({}) : snapshot(value, OPTION_FIELDS);
-  const result: Record<string, unknown> = { runId: event.run_id };
+  const data: Snapshot = value === undefined ? Object.freeze(ownRecord({})) : snapshot(value, OPTION_FIELDS);
+  const result: Record<string, unknown> = ownRecord({ runId: event.run_id });
   if (Object.hasOwn(data, "runId")) {
     if (identifier(data.runId) !== event.run_id) invalid();
   }
   if (Object.hasOwn(data, "stepId")) {
     const stepId = identifier(data.stepId);
-    if (!isVistaStepIdForRun(event.run_id, stepId) || (event.step_id !== undefined && event.step_id !== stepId)) invalid();
+    if (!isVistaStepIdForRun(event.run_id, stepId) || (Object.hasOwn(event, "step_id") && event.step_id !== stepId)) invalid();
     result.stepId = stepId;
   }
   if (Object.hasOwn(data, "seq")) {
@@ -345,7 +379,8 @@ function emissionOptions(value: unknown, event: VistaEventInput): ShadowEmitOpti
 
 /** Pure mapping; never reads an owner, environment, filesystem, or model runtime. */
 export function toVistaEventInput(observation: ShadowObservation): ShadowEventInput {
-  return project(normalize(observation));
+  try { return project(normalize(observation)); }
+  catch { return invalid(); }
 }
 
 /** Explicit opt-in core emission. Malformed inputs reject; persistence stays fail-open. */
@@ -353,7 +388,9 @@ export async function emitShadowObservation(
   observation: ShadowObservation,
   options?: ShadowEmitOptions,
 ): Promise<ShadowEvent | undefined> {
-  const event = project(normalize(observation));
-  const emitted = await emitVistaEvent(event, emissionOptions(options, event));
-  return emitted === undefined ? undefined : freezeEvent(emitted);
+  try {
+    const event = project(normalize(observation));
+    const emitted = await emitVistaEvent(coreInput(event), emissionOptions(options, event));
+    return emitted === undefined ? undefined : freezeEvent(emitted);
+  } catch { return invalid(); }
 }

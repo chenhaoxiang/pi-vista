@@ -343,7 +343,7 @@ and owner wiring require their own explicit integration and acceptance.
 ## Source validation and remaining boundaries
 
 The package has generated ESM/types, an MIT license, its own test tsconfig and a
-fixed unquoted `dist-test/*.test.js` shell glob compatible with Node 20 scripts.
+deterministic native executed-case runner, `scripts/run-tests.mjs dist-test .test.js`, compatible with Node 20. The new-package manifest assertion was deliberately tightened from a fixed-shell-glob requirement to this exact guarded invocation after full review exposed empty-suite acceptance. Original eight-package runtime assertions and learning behavioral assertions remain unchanged.
 Synthetic generated Ed25519 owner keys and in-memory native-promise sinks are
 excluded from runtime build products. Public-import tests exercise confirmed
 promotion and context end to end; negative assertions cover copied authority,

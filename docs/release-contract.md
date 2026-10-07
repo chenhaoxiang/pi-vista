@@ -170,7 +170,18 @@ silently reported zero). Its explicit exception accepts only this repository's
 public runtime/declaration files must exist. It emits
 `ZERO TESTS: explicit protocol-only exemption; ... no assertions counted`.
 Every other workspace, integration and script-suite invocation fails on empty
-or missing tests. Focused regressions cover default rejection, other-workspace
+or missing tests. After the full-range review, all eleven workspace scripts use
+the guarded runner. It requires nonzero executed native test cases, not merely
+matching filenames or child exit 0. A native-event reporter excludes suites and
+implicit file wrappers, ignores user stdout/diagnostic count claims, writes one
+closed per-invocation count artifact and refuses missing/malformed/zero-executed
+evidence. Empty describe suites, comment-only modules, stdout count spoofs and
+all-skipped modules fail on Node20/26. The guarded protocol exception still
+applies only to the characterized no-test-files workspace with built exports.
+An ambiguous file-named line-1/column-1 completion without entry-file metadata is
+conservatively treated as an implicit wrapper; this is not an assertion-call or
+hostile-test-code attestation system. Counts are Node test cases, not counts of
+assert-library calls. Focused regressions cover default rejection, other-workspace
 refusal, missing protocol public build files and the intentional built zero case.
 Protocol build/typecheck, packed exports and consumer compilation are still
 mandatory; this exception is not coverage.

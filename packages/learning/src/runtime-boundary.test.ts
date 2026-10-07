@@ -15,13 +15,13 @@ test("build products contain no default I/O, executor, signer, model client or t
     assert.doesNotMatch(source, /hindsight_ingest_document|hindsight_capture_initiative|hindsight_reflect/u, file);
   }
 });
-test("manifest exports generated ESM/types/license and uses Node20-compatible fixed shell test glob", () => {
+test("manifest exports generated ESM/types/license and requires the native executed-case guard", () => {
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.name, "@pi-vista/learning"); assert.equal(manifest.type, "module"); assert.equal(manifest.engines.node, ">=20");
   assert.equal(manifest.exports["."].import, "./dist/index.js"); assert.equal(manifest.exports["."].types, "./dist/index.d.ts");
   assert.ok(readFileSync(new URL("index.d.ts", runtime), "utf8").includes("createLearningLibrary"));
   assert.ok(readFileSync(new URL("../LICENSE", import.meta.url), "utf8").startsWith("MIT License"));
   assert.ok(manifest.files.includes("LICENSE")); assert.ok(manifest.files.includes("dist"));
-  assert.match(manifest.scripts.test, /node --test dist-test\/\*\.test\.js$/u);
+  assert.equal(manifest.scripts.test, "npm run build && tsc -p tsconfig.test.json && node ../../scripts/run-tests.mjs dist-test .test.js");
   assert.deepEqual(Object.keys(manifest.dependencies).sort(), ["@pi-vista/core", "@pi-vista/evidence", "@pi-vista/protocol"]);
 });
