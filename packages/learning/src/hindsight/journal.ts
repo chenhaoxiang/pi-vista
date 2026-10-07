@@ -47,7 +47,7 @@ export async function attemptJournal(root: string, identity: string, claim: stri
     } finally { await file.close(); }
   }
   async function create(suffix: string, bytes: string): Promise<boolean> {
-    await checkRoot(); let file: FileHandle;
+    await checkRoot(); check(); let file: FileHandle;
     try { file = await open(path.posix.join(root, `${name}.${suffix}`), constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
     catch (error) { if (code(error) === "EEXIST") return false; throw error; }
     try { privateFile(await file.stat()); check(); await file.writeFile(bytes, "utf8"); check(); await file.sync(); privateFile(await file.stat()); }

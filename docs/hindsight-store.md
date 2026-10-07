@@ -62,7 +62,12 @@ are not returned. Reconciliation collapses operational uncertainty to
 `not-confirmed`; invalid input still rejects. HTTP waits/streamed response bytes
 are bounded and abortable, with no hidden retry. Synchronous validation, scheduler
 delays and filesystem open/write/sync waits cannot be preempted; abort/deadline is
-rechecked before subsequent effects. An issued remote write cannot be undone.
+rechecked before subsequent effects, including immediately after awaited root
+preflight and before exclusive intent/completion creation. A cancellation already
+visible in that pre-create window does not consume an attempt. Cancellation
+becoming visible after an issued open can still leave an uncertain claim; that
+claim is never reset. An issued remote write cannot be undone.
+[Cancelling before create: original finding and correction](handoff/2026-10-07-hindsight-store-cancellation-fix.md).
 
 ## Pinned API and exact original data
 
