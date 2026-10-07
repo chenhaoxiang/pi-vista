@@ -89,7 +89,7 @@ not coverage. Repeated runs are corroboration, not extra distinct cases.
 Original54 test/spec/fixture blobs and166 protected boundaries match baseline.
 Only one export-map entry and the narrow fixture build exclusion were added;
 verifier/data/learning/other packages/root dependencies/lock/gates/CI unchanged.
-Initial failed type/fixture evidence remains retained and separated from finalSHA.
+Initial failed fixture/test evidence remains retained and separated from finalSHA.
 
 Actual isolated consumers install11 exact tarballs/18 exports, consumer-installed
 locked strictTS5.9.3, installed `vista`, and281 allowed packed files. No workspace
