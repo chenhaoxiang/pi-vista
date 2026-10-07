@@ -41,6 +41,7 @@ verified: 2026-10-07
 
 All implemented checks are source/package evidence, not publication, deployment,
 owner activation, live memory writes, model calls, training, execution or release
-permission. The CLI remains offline/read-only. Exact committed-source pin, local
-full-range diff and post-commit evidence are prepared for independent parent review;
-no remote merge/publication/operational acceptance is claimed here.
+permission. The CLI remains offline/read-only. PR10 source review, normal remote
+merge/readback and actual hosted source CI are complete at the recorded source
+pins. This documentation candidate still needs its own reviewed merge/readback;
+publication, live/durable/operational acceptance are not claimed here.

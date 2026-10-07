@@ -11,9 +11,9 @@ ssot: true
 
 # pi-vista Implementation Phases
 
-This is a maintained source-scope roadmap. The current continuation locally
-integrates **11 public packages**, not a live learning system or remote source
-acceptance. Historical seven-package merge evidence remains in the
+This is a maintained source-scope roadmap. PR #10 normally merged the current
+**11 public source packages** into remote main; actual source/consumer acceptance
+is recorded below. This is still not a live or complete durable learning system. Historical seven-package merge evidence remains in the
 [merge closeout](handoff/2026-10-06-source-merge-closeout.md); it is not rewritten
 as eleven-package evidence.
 
