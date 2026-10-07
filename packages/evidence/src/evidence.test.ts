@@ -151,6 +151,7 @@ test("private keys, duplicate sources, unsafe labels and malformed options rejec
     { ...f.config, timeout_ms: 0 }, { ...f.config, max_age_ms: Infinity },
     { ...f.config, test_suites: ["/private/fixture"] },
     { ...f.config, sources: f.config.sources.map(s => ({ ...s, public_key: f.keys.privateKey.export({ type: "pkcs8", format: "pem" }).toString() })) },
+    { ...f.config, sources: f.config.sources.map(s => ({ ...s, public_key: s.public_key + f.keys.privateKey.export({ type: "pkcs8", format: "pem" }).toString() })) },
   ]) assert.throws(() => createEvidenceVerifier(cfg), e => e instanceof EvidenceError && e.code === "invalid-config");
 });
 test("credential/path/shell content is refused rather than included in messages or proofs", async () => {

@@ -156,9 +156,10 @@ export function createEvidenceVerifier(config: EvidenceConfig): EvidenceVerifier
       const s = own(input, ["subject", "issuer", "kind", "public_key", "read"]);
       const subject = label(s.subject); const issuer = label(s.issuer); const k = kind(s.kind);
       if (sources.has(subject) || typeof s.public_key !== "string" || s.public_key.length > 4_096 ||
-        !s.public_key.startsWith("-----BEGIN PUBLIC KEY-----") || typeof s.read !== "function" || types.isProxy(s.read)) throw new EvidenceError("invalid-config");
+        !/^-----BEGIN PUBLIC KEY-----\n[A-Za-z0-9+/=\n]+\n-----END PUBLIC KEY-----\n?$/u.test(s.public_key) || typeof s.read !== "function" || types.isProxy(s.read)) throw new EvidenceError("invalid-config");
       const key = createPublicKey(s.public_key);
-      if (key.type !== "public" || key.asymmetricKeyType !== "ed25519") throw new EvidenceError("invalid-config");
+      if (key.type !== "public" || key.asymmetricKeyType !== "ed25519" ||
+        key.export({ type: "spki", format: "pem" }).toString().trim() !== s.public_key.trim()) throw new EvidenceError("invalid-config");
       sources.set(subject, freeze({ subject, issuer, kind: k, key, read: s.read as EvidenceSource["read"] }));
     }
     state = { sources, gates: labels(c.gate_checks), suites: labels(c.test_suites), now: c.now as () => number,
