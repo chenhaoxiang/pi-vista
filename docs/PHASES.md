@@ -84,7 +84,10 @@ is no default network client, real bank configuration or automatic promotion.
 maps pinned 0.10.2 HTTP retain/original GET to the existing sink. A synced exclusive
 private local POSIX intent protects cooperating cross-process attempts; existing
 claims never POST again, and explicit reconciliation is remote read-only. No
-proof/lifecycle is restored by completion metadata.
+proof/lifecycle is restored by completion metadata. [PR #14](https://github.com/chenhaoxiang/pi-vista/pull/14)
+source review, hosted CI and normal merge/readback are complete;
+[store closeout](handoff/2026-10-07-hindsight-store-source-closeout.md) records the
+exact current source and its remaining operational limits.
 
 **Pending**: actual Hindsight service/durability acceptance, distributed coordination,
 durable lifecycle storage, owner/operator integration and CLI `vista promote`.
@@ -165,6 +168,13 @@ P1-fix recheck, actual Ubuntu Node20/22/26 source/consumer CI before and after
 source merge, and isolated post-merge Node20 **567** test cases/eleven-tarball
 consumer validation. [Closeout](handoff/2026-10-07-verified-learning-source-closeout.md)
 records the exact pins, initial BLOCK and later recheck provenance.
+
+**Completed store-source acceptance (PR14)**: independent same-model full review
+plus retained cancellation correction, exact-head/main Ubuntu Node20/22/26
+source/consumer CI, normal remote merge/tree equality/ancestry/readback, isolated
+actual-main Node20 **748 cases**,11 tarballs/17 exports and installed actual
+synthetic HTTP/fresh-process proof. [Store closeout](handoff/2026-10-07-hindsight-store-source-closeout.md)
+preserves the original P2 and explicit trust/durability boundary.
 
 **Pending**: platform required-check policy configuration, fresh-cache/registry
 availability, publication/deployment and operational acceptance. Local passes do not authorize any of these. The root lint command

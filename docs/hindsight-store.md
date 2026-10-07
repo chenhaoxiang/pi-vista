@@ -133,10 +133,14 @@ Additive tests use actual random-port loopback HTTP and invocation-created fresh
 Node processes, including concurrent claim, claimed-unsent crash, remote-commit
 crash/lost ack, partial/corrupt records and historical-only restart import. Original
 assertion files are unchanged. Source/installed-tarball Node20/26 evidence and
-retained early failures are recorded in the implementation handoff, separately
-from pending independent feature review, exact-head hosted CI, source merge,
-publication, live-service durability or operational acceptance. Root lint is a
-no-op; offline cache-backed installation is not fresh registry acceptance.
+retained early failures are recorded in the implementation handoff.
+[PR #14](https://github.com/chenhaoxiang/pi-vista/pull/14) source full review plus
+retained cancellation recheck, exact-head Ubuntu Node20/22/26 CI and normal
+remote merge/readback are complete. [Source closeout](handoff/2026-10-07-hindsight-store-source-closeout.md)
+binds actual748-case/11-tarball/17-export and installed HTTP/restart evidence.
+Publication, actual live-service/durability/owner acceptance and default Pi
+activation remain pending. Root lint is a no-op; cache-backed installation is
+not fresh registry acceptance.
 
 See [learning](learning.md), [portable recall](portable-recall.md),
 [architecture](architecture.md) and [phase plan](PHASES.md).

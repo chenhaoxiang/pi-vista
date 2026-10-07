@@ -248,6 +248,15 @@ records reviewed/merged pins and isolated actual-main 659-case/installed-process
 proofs; no publication, deployment or live/durable operational acceptance is implied. See [release-contract.md](release-contract.md)
 for exact evidence and limitations.
 
+[PR #14](https://github.com/chenhaoxiang/pi-vista/pull/14) normally merged the
+explicit original-document HTTP/cooperative local-attempt addon. Full same-model
+source review plus retained cancellation recheck, actual Ubuntu Node20/22/26
+head/main CI and normal remote readback are complete. Its
+[closeout](handoff/2026-10-07-hindsight-store-source-closeout.md) records reviewed
+source/tree and isolated actual-main Node20 748-case/17-export/installed HTTP
+restart acceptance. This does not establish real service/owner/distributed
+durability, lifecycle feeds, default Pi activation or release permission.
+
 ## Protocol versions
 
 Phase 1 is currently a 0.x protocol. `vista_version` may be omitted for legacy records, but when present it must be a non-empty, control-free, safe version label. Safe unknown versions may use namespace slashes (for example, `future/1`) but must not contain credentials, paths, URLs, or shell payloads. Readers retain unknown version strings for inspection; validation checks the record shape and safety constraints only and must not treat an unknown version as the current protocol. A future compatibility decision will be explicit rather than inferred.
