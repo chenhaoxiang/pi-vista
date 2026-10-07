@@ -12,6 +12,7 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.test.*",
     "README.md",
     "LICENSE"
   ],
@@ -19,7 +20,7 @@
     "build": "tsc",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
-    "test": "node --test dist/**/*.test.js"
+    "test": "node ../../scripts/run-tests.mjs dist .test.js --allow-empty"
   },
   "license": "MIT",
   "devDependencies": {

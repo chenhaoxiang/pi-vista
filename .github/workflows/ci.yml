@@ -1,0 +1,38 @@
+name: Source and packed-consumer contract
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-consumer:
+    name: Node ${{ matrix.node }} / POSIX source evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '26']
+    steps:
+      # Public tag refs verified with git ls-remote; no floating action tags.
+      - name: Checkout untrusted source without persisted credentials
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Select runtime (setup-node supports semver majors and official dist fallback)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          token: ''
+      - name: Locked install, all source typechecks/builds/tests, script tests and package dry-runs
+        run: node scripts/source-gate.mjs --network
+      - name: Actual isolated tarball install, all public imports/bins and consumer TypeScript
+        run: node scripts/packed-consumer.mjs --network
+      - name: Public dependency advisory check (not a platform trust-root check)
+        run: npm audit --audit-level=high --registry=https://registry.npmjs.org
+      - name: Whitespace check
+        run: git diff --check

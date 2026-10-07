@@ -1,3 +1,14 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-05
+verified: 2026-10-07
+ssot: true
+---
+
 # pi-vista Architecture
 
 ## Overview
@@ -20,6 +31,11 @@ effective_capability =
 
 ---
 
+This capability equation is a design goal, not measured model capability or
+automatic Pi integration. The current 11-package continuation implements explicit
+observation/evidence/learning/shadow APIs and offline synthetic evaluation.
+No model calls, owner activation or executable replay are installed.
+
 ## Storage layers
 
 ### Layer 1: Local event buffer (high-frequency, never enters Hindsight)
@@ -37,6 +53,12 @@ effective_capability =
 └── index/
     └── experience.jsonl           # experience promotion log (append-only)
 ```
+
+Only the event/checkpoint stores above are implemented persistence. The
+`policy/`, `meta.json` and `index/experience.jsonl` layout is a roadmap, not an
+installed policy loader or durable learning store. Learning identities, lifecycle,
+selection and idempotency are bounded and process-local. Serialized views cannot
+restore their provenance; durable storage/reconciliation remains host work.
 
 Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins (last-writer-wins). A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
 
@@ -86,15 +108,22 @@ invalid component is never persisted or returned as a valid event.
 
 ### Layer 2: Hindsight (primary long-term memory)
 
-Hindsight provides the semantic memory layer. pi-vista writes to it only when an experience passes promotion criteria:
+Hindsight is the intended semantic memory layer. The new programmatic
+`@pi-vista/learning` library has **no default transport or bank integration**.
+It accepts only an exact `@pi-vista/evidence` verifier identity: pinned Ed25519
+issuer/kind public keys, required successful gate checks/test suites, complete
+clean guard coverage, content hashes, freshness and all five
+run/repo/source/policy/environment bindings. Unsigned owner logs, CLI flags,
+predicate reports and shadow votes cannot mint opaque proof.
 
-- gate receipt present and verified
-- tests passed
-- guard events clean (no A-layer blocks)
-- content redacted (no raw commands, paths, credentials)
-- source SHA bound
+A safe observation is nominated, verified with that proof, and rendered as an
+exact read-only dry-run. Only explicit preview-digest confirmation triggers fresh
+receipt revalidation and an injected host sink's ingest **and exact readback**.
+Failures/uncertain writes never mint trusted state; callbacks must truthfully
+observe persistence. No actual Hindsight durability is validated here.
 
-Two custom knowledge pages are added to each repo's Hindsight bank:
+The exported `HINDSIGHT_CUSTOM_PAGES` is configuration data only; these pages
+are **not automatically added** to any real bank:
 
 ```json
 {
@@ -117,27 +146,35 @@ pi-vista stores references to artifacts (receipts, diffs, test results), never t
 
 ---
 
-## Core data flow
+## Explicit data flows
 
+```text
+sanitized observation -> fail-open core event/checkpoint stores
+                      -> unchanged offline/read-only CLI views
+
+safe synthetic script/steps -> observed -> candidate
+pinned signed gate/test/guard receipts -> opaque fresh evidence -> verified
+verified -> exact dry-run preview (no reads/writes)
+explicit digest confirmation -> re-read unchanged receipts
+                             -> host-injected ingest + exact readback -> trusted
 ```
-execution event
-    │
-    ▼ redact()
-VistaEvent written to runs/<run_id>/events.jsonl
-    │
-    │ on task complete
-    ▼
-promotion check:
-  sha_bound? gate_passed? tests_passed? guard_clean? redactable?
-    │
-    │ pass
-    ▼
-generate VistaExperience (script + steps + failure_analysis)
-    │
-    ▼
-hindsight_ingest_document(title, redacted_summary)
-experience.status = "trusted"
-```
+
+These are independent opt-in flows, not a task-complete hook. All evidence,
+learning, replay, retrieval and predicate views say `authorization: none`.
+`retrieve` accepts only current minted verified/trusted handles and truthful
+repo/source/policy/environment/task query bindings. It performs no receipt or
+Hindsight reads; subsequent revocation/owner changes are not discovered offline.
+`compileContext` carries receipt-digest provenance and whole-entry **character**
+budgets, not token limits. Fixture evaluation is selection coverage, not capability
+lift. No automatic Pi context injection or cross-session recall is implemented.
+
+`planReplay`/`compareRecorded` are same-run symbolic metadata views with
+`executable: false`. They invoke no tools or repairs. The additive shadow adapter
+requires explicit owner normalization, maps pass/allow to unknown, preserves
+veto/abstention/missing context, and never emits ok or grants truth, isolation,
+training/promotion eligibility. Digests are metadata, not source/authority proof.
+See [evidence](authoritative-evidence.md), [learning](learning.md), and
+[shadow](adapters/shadow.md) for bounded contracts and trusted-host limits.
 
 ---
 
@@ -145,7 +182,7 @@ experience.status = "trusted"
 
 | Component | Owns | Does NOT own |
 |---|---|---|
-| pi-vista | event recording, checkpoint, experience lifecycle, promotion | safety decisions, gate admission, model routing |
+| pi-vista | explicit observation stores, process-local lifecycle, signed-proof checking, confirmed injected sink, offline context | safety decisions, gate admission, model routing, live producer wiring, durable Hindsight recall |
 | workspace-guard | shell parsing, path resolution, A-layer blocking | experience storage, model input |
 | ai-gate | CI, review, SHA binding, merge admission | experience indexing, model input |
 | Laya | semantic shadow judgment, council | raw event storage, experience promotion |
@@ -168,6 +205,16 @@ execution. The optional programmatic checks API is **fail-closed** only for its
 own predicate satisfaction report. It neither intercepts execution nor grants
 replay, merge, release or promotion permission. Actual safety decisions remain
 with the owners listed above.
+
+## Source/package validation boundary
+
+Root gates cover 11 source packages and synthetic public-import integration.
+Repeatable scripts perform offline locked npm ci, actual local tarball installation,
+all public exports/bin checks and strict consumer TypeScript on actual Node20.
+Local content/advisory checks are bounded, not an App-trusted owner receipt,
+universal secret detector or release authority. Hosted GitHub CI and independent
+exact-source acceptance remain separate; no publication/deployment is implied.
+See [release-contract.md](release-contract.md) for exact evidence and limitations.
 
 ## Protocol versions
 

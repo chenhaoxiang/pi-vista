@@ -1,3 +1,13 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-05
+verified: 2026-10-07
+---
+
 # pi-vista
 
 **Pi VISTA** — Verified Interaction, State, Trajectory & Adaptation
@@ -6,6 +16,9 @@ A model-agnostic execution augmentation and experience system for Pi.
 
 > Every model call produces experience. Every model call consumes experience.  
 > No model is permanently "strong" or "weak" — the system grows regardless of which model runs.
+
+This is the design goal. Current APIs are explicit and offline/synthetic-validated,
+not automatic model-call instrumentation or demonstrated capability improvement.
 
 **Merged source, not a published or live system:** [PR #7](https://github.com/chenhaoxiang/pi-vista/pull/7)
 integrated the seven public packages and bounded metadata/generation repairs into
@@ -17,17 +30,26 @@ preserves the old source pins' credential defect as historical evidence; the
 [shared metadata guide](docs/metadata-safety.md) describes the repaired contract
 and its limits. Producer sanitization remains required.
 
+**Current continuation checkout: 11 public source packages.** The additive
+`evidence`, `learning` and `adapter-shadow` APIs and repeatable source/packed-consumer
+scripts are locally integrated, not yet independently accepted or merged to
+remote `main`. Learning/retrieval is a process-local programmatic library;
+shadow observation requires explicit owner normalization. The observation CLI
+is unchanged. See [learning](docs/learning.md), [shadow](docs/adapters/shadow.md),
+[evidence](docs/authoritative-evidence.md), and the
+[release contract](docs/release-contract.md) for checked scope and remaining limits.
+
 ---
 
 ## What it does
 
-`pi-vista` gives any Pi session a persistent, verifiable execution memory:
+`pi-vista` provides explicit source APIs, not automatic session instrumentation:
 
-- **Record** every tool call, guard decision, gate check, and test result as a unified event stream
+- **Record** sanitized tool/guard/gate and owner-normalized shadow observations as a best-effort event stream
 - **Inspect** recorded histories, checkpoints, count differences, and opaque receipt refs with the offline, read-only Phase 2 CLI
-- **Prepare** validation with a bounded, opt-in programmatic Check Function registry (Phase 3A predicate-only foundation, not replay or owner verification)
-- **Specify** promotion of verified experiences into Hindsight (future Phase 3 work)
-- **Adapt** — each verified run makes the next run better, regardless of which model executes it
+- **Prepare** validation with opt-in predicate registries and separately verify host-pinned signed gate/test/guard receipts
+- **Preview and confirm** exact safe learning documents through an explicitly injected ingest/readback sink; no default Hindsight transport
+- **Reuse offline** fresh verified/trusted handles as bounded script/step context and non-executing replay views; no cross-session Hindsight recall, live context injection or demonstrated model capability lift
 
 ---
 
@@ -47,9 +69,9 @@ and its limits. Producer sanitization remains required.
 │  check fn registry │ experience lifecycle        │
 │                                                  │
 │  Phase 2: history / inspect / compare / receipts │
-│  replay / promote (planned)                      │
+│  programmatic recorded replay / confirmed sink   │
 └──────────────────────┬──────────────────────────┘
-                       │  verified + redacted → promote
+                       │  explicit digest confirmation + host sink
                        ▼
 ┌─────────────────────────────────────────────────┐
 │              Hindsight  (long-term memory)       │
@@ -76,15 +98,18 @@ not a source of execution, merge, release or promotion authorization.
 | `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
 | `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
 | `@pi-vista/checks-local` | Explicit trusted-host actual local FS/Git predicates; private aliases/config, read-only and no authority |
+| `@pi-vista/evidence` | Opt-in pinned Ed25519 gate/test/guard receipts and opaque, non-authorizing proofs |
+| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, failure views, verified-only context and non-executing replay |
+| `@pi-vista/adapter-shadow` | Explicit owner-normalized Laya/Kev/Intern/StartLux observations; never verification or permission |
 
 ---
 
 ## Design principles
 
 1. **Model-agnostic** — no "teacher" or "student". Any call produces and consumes experience.
-2. **Verification-first** — unverified content never becomes experience. Promotion requires evidence.
+2. **Verification-first** — observations may become candidates, but verified/trusted learning requires fresh opaque owner evidence; trusted promotion additionally requires exact confirmation and successful readback.
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
-4. **Hindsight is the primary memory** — pi-vista maintains only a local short-term event buffer and executable policy files. Long-term semantic memory lives in Hindsight.
+4. **Hindsight is the intended long-term memory** — this checkout has local observation stores and process-local learning handles. Durable memory, policy loading and cross-session recall require separate host implementation.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
 6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. The bounded known-pattern candidate fix does not recognize arbitrary secret encodings or replace producer sanitization.
 
@@ -94,7 +119,7 @@ not a source of execution, merge, release or promotion authorization.
 
 Most agent observability tools stop at "record and replay." pi-vista adds:
 
-- **Check Functions** — each experience carries executable validation steps that verify the environment before replay proceeds (inspired by AgentRR, IPADS/SJTU 2025)
+- **Check Functions** — symbolic check definitions use explicit trusted predicates; repair/executable replay is refused (inspired by AgentRR, IPADS/SJTU 2025)
 - **Two-level experience** — Script-level (task skeleton) and Step-level (specific tool calls) stored separately so partial reuse is possible (inspired by Mem^p 2025)
 - **Failure loop closure** — failures are analysed and stored, not discarded. The system learns from what went wrong (inspired by EvolveR 2025)
 - **Deterministic safety floor** — unlike other experience systems, promotion cannot override hard safety rules. workspace-guard A-layer blocks are never "learned away"
@@ -133,10 +158,32 @@ its protocol params contain aliases and safe expected SHAs, never paths or
 commands. It does not replace the base no-I/O runtime or grant authority. See
 [docs/local-check-probes.md](docs/local-check-probes.md) for its six handlers,
 read-only controls, trusted-Git assumptions and non-atomic filesystem limits.
-Experience promotion, replay, receipt/test owner verification and CLI check
-commands remain future work. See [docs/check-functions.md](docs/check-functions.md)
-for the strict safe input subset, snapshots, ordering and non-preemptive timeout
-limits.
+The additive evidence/learning APIs implement opt-in signed receipt verification,
+dry-run/confirmed synthetic sink promotion and recorded-only replay. They do not
+wire live owners or provide CLI check/promote/replay commands. See
+[docs/check-functions.md](docs/check-functions.md) for the strict predicate subset
+and [docs/learning.md](docs/learning.md) for process-local provenance, freshness,
+character budgets and trusted-host limitations.
+
+Source validation uses the locked offline toolchain:
+
+```bash
+npm ci --offline --ignore-scripts
+npm run typecheck
+npm run build
+npm test
+npm run lint
+npm_config_offline=true npm run pack:dry-run
+npm run gate:source
+npm run gate:consumer
+npm run gate:node20 -- --node=/absolute/path/to/verified-node20
+```
+
+These scripts cover all 11 public packages; root tests include original assertions,
+new synthetic integration and release-script regressions. Actual local Node20 and
+packed-consumer results are recorded in the [release contract](docs/release-contract.md).
+They do not establish hosted GitHub CI, registry availability, live integration,
+publication or operational acceptance.
 
 ```bash
 npm run build
@@ -177,6 +224,10 @@ records.
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)
+- [Owner-normalized shadow adapter](docs/adapters/shadow.md)
+- [Authority-bound evidence](docs/authoritative-evidence.md)
+- [Verified learning and offline retrieval](docs/learning.md)
+- [Repeatable source and packed-consumer gates](docs/release-contract.md)
 
 The Pi adapter is a public helper only: Pi private extensions call it explicitly;
 pi-vista does not install, patch, or hook Pi automatically. It does not own Pi
@@ -187,7 +238,10 @@ structured evidence. It is model-agnostic and read-only: it does not run
 `gh`/API calls, read PR/CI/review content or gate configuration, infer a gate
 result, or change ai-gate admission, merge, or deployment behavior.
 
-Additional adapters are future work; the links above are the adapter guides shipped in Phase 1.
+The shadow adapter is also explicit and observational: allow/pass/confidence or
+synthetic receipt existence never produces Vista `ok`, owner truth, isolation
+proof, training/promotion eligibility or execution permission. No private owner
+hook, model activation or normalization implementation is installed.
 
 ---
 

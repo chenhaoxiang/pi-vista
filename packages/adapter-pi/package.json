@@ -13,6 +13,7 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.test.*",
     "README.md",
     "LICENSE"
   ],
@@ -20,7 +21,7 @@
     "build": "tsc",
     "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build --workspace=@pi-vista/core && npm run build",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test \"dist/**/*.test.js\""
+    "test": "npm run build && node ../../scripts/run-tests.mjs dist .test.js"
   },
   "dependencies": {
     "@pi-vista/core": "0.1.0"

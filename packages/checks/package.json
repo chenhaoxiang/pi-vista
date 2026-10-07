@@ -20,7 +20,7 @@
     "build": "tsc",
     "prepack": "npm run build --workspace=@pi-vista/protocol && npm run build",
     "typecheck": "npm run build && tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
-    "test": "npm run build && tsc -p tsconfig.test.json && node --test \"dist-test/*.test.js\""
+    "test": "npm run build && tsc -p tsconfig.test.json && node ../../scripts/run-tests.mjs dist-test .test.js"
   },
   "dependencies": {
     "@pi-vista/protocol": "0.1.0"

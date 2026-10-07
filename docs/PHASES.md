@@ -1,143 +1,149 @@
-# pi-vista Implementation Phases
-
-## Phase 1: Protocol layer (weeks 1-2)
-
-**Goal**: unify events from Pi, workspace-guard, and ai-gate under a single `run_id`. No behavior changes.
-
-**Deliverables**:
-- `@pi-vista/protocol`: all TypeScript interfaces
-- `emit.ts`: `emitVistaEvent()` utility
-- `redact.ts`: redaction pipeline
-- `run-id.ts`: `run_id` generation and injection
-
-**Acceptance**:
-```bash
-cat ~/.pi/vista/runs/<run_id>/events.jsonl | jq .component | sort | uniq
-# → pi, guard, gate  (all sharing the same run_id)
-```
-
-**Risk**: minimal. Emit failures are fail-open; task execution continues.
-
+---
+doc_type: plan
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-05
+verified: 2026-10-07
+ssot: true
 ---
 
-## Phase 2: Observation tools (weeks 3-5)
+# pi-vista Implementation Phases
 
-**Goal**: make a task's recorded evidence chain inspectable without changing
-execution or safety authority.
+This is a maintained source-scope roadmap. The current continuation locally
+integrates **11 public packages**, not a live learning system or remote source
+acceptance. Historical seven-package merge evidence remains in the
+[merge closeout](handoff/2026-10-06-source-merge-closeout.md); it is not rewritten
+as eleven-package evidence.
 
-**Implemented bounded slice in this checkout**: `@pi-vista/cli`, the offline,
-read-only `vista` bin, and a testable public API:
-```
+## Phase 1: Protocol and observation
+
+**Implemented source**: protocol interfaces, bounded metadata redaction,
+fail-open event/checkpoint stores, safe run identity and explicitly invoked
+Pi/workspace-guard/ai-gate adapters. Public helpers do not install private hooks,
+intercept commands, select models or control owner safety decisions. Core
+best-effort storage cannot establish exhaustive coverage or a successful run.
+
+**Remaining owner work**: actual producer normalization/wiring, truthful source
+attestations and operational integration. No real sessions/owner inputs are test
+fixtures. Safe recorded versions are labels, not compatibility/trust decisions.
+
+## Phase 2: Offline observation tools
+
+**Implemented bounded slice**: `@pi-vista/cli`, the offline/read-only `vista` bin
+and public observation API:
+
+```text
 vista history [run_id]
 vista inspect <run_id> [--step <step_id>]
 vista compare <run_id_a> <run_id_b>
 vista receipts <run_id>
 ```
 
-**Checked acceptance for this slice**:
-- Sorted run inventory and deterministic recorded timelines/count differences
-- Run/step-bound checkpoint inspection without resume or execution
-- Deduplicated opaque receipt refs with explicit owner-claim provenance, not
-  independently verified checks or merge authorization
-- Strict parsing, fixed safe errors, closed privacy projection and bounded output
-- Parser/API and spawned-bin JSON/text tests on disposable synthetic fixtures;
-  before/after directory/file hashes and absent-store checks prove no writes
+Synthetic tests check deterministic views, run/step-bound checkpoint inspection,
+opaque receipt refs, fixed errors, privacy limits and unchanged fixture file hashes.
+Receipt/ok/resumable metadata remain owner claims, not independently verified
+checks or permission. Readers may omit corrupt/missing records. The CLI has no
+check, failure, promote, recall or executable replay commands; the programmatic
+APIs below do not change this. See [cli.md](cli.md).
 
-Core storage is best-effort: empty/omitted records do not prove an exhaustive
-history, audit PASS, or successful run. Unknown safe versions remain untrusted
-recorded labels. See [cli.md](cli.md) for exact limits and trust boundaries.
-This implementation status does not claim registry publication or deployment.
-Phase 3 replay/promotion is not included; the separate first programmatic
-check-registry slice is described below.
+## Phase 3: Explicit experience and evidence APIs
 
----
+### Track A: Check Functions and signed evidence (#65)
 
-## Phase 3: Experience layer (weeks 6-10, three parallel sub-tracks)
+**Implemented**: `@pi-vista/checks` uses detached own-data definitions and explicit
+trusted predicates, ordered STOP/WARN and fail-closed satisfaction. REPAIR is
+refused before callbacks. Pure opt-in sha/env comparisons do not independently
+collect evidence. The separate `@pi-vista/checks-local` addon observes registered
+local FS/Git aliases through trusted private host configuration, read-only fixed
+Git controls and non-atomic component walks. Both remain
+`verification: predicate-only`, `authorization: none`.
 
-### Track A: Check Functions
+**Implemented additive foundation**: `@pi-vista/evidence` verifies host-pinned
+Ed25519 gate/test/guard receipts, hashes, required successful checks/suites,
+complete clean coverage, freshness and all five bindings. Opaque proof identities
+are in-process: copies/flags/reports cannot restore provenance. Local script
+PASS/privacy/audit checks are not an App-trusted owner receipt.
 
-**Implemented first bounded slice**: `@pi-vista/checks`, a programmatic trusted
-callback registry and ordered predicate runner consuming existing
-`VistaCheckFunction` descriptions. All inputs validate before callbacks and use
-detached immutable own-data snapshots. STOP/WARN are supported; REPAIR is
-unsupported and rejected before callbacks. Missing handlers, malformed verdicts,
-exceptions and bounded async timeouts fail closed, even with WARN. Timeout cannot
-preempt synchronous trusted code or undo side effects. No cached passes, hidden
-retries, repairs, runtime persistence or safety-authority integration are added.
+**Pending**: actual owner producers/keys/readers, revocation/durable provenance,
+CLI check commands and repair implementation. Synchronous trusted callbacks are
+not sandboxed or preempted. See [checks](check-functions.md),
+[local probes](local-check-probes.md), and [evidence](authoritative-evidence.md).
 
-The base package's only supplied, **opt-in** implementations are `sha_matches` and `env_matches`,
-pure expected/actual safe-metadata comparisons, not Git/environment collection
-or independent owner verification. Reports always carry `verification:
-predicate-only` and `authorization: none`; passing predicates grant no replay,
-execution, merge, release or promotion permission. See
-[check-functions.md](check-functions.md) for exact API, safety subset and limits.
+### Track B: Confirmed promotion (#12)
 
-**Implemented separate local-addon slice**: `@pi-vista/checks-local` creates a
-fresh explicit trusted-host registry with actual local `path_exists`,
-`path_not_exists`, HEAD `sha_matches`, full-ref `branch_exists`/
-`branch_not_exists` and Git-status `worktree_clean`. Protocol params are symbolic
-aliases/expected safe SHA; root/repo/relative-path/ref and Git executable selection
-remain detached private host config. Namespace, subprocess, abort and unsupported
-filter/submodule failures are hard even under WARN. Fixed read-only Git controls
-and component walks do not make trusted local Git a hostile sandbox or reads an
-atomic/race-proof jail. The base runtime stays no-I/O; all reports remain
-predicate-only and authorization none. See [local-check-probes.md](local-check-probes.md).
-No receipt/test-source authenticity, owner/gate integration, CLI check commands,
-repair, Hindsight or replay is added.
+**Implemented programmatic slice**: `@pi-vista/learning` nominates safe observations,
+verifies candidates with the exact fresh evidence factory, prepares exact bounded
+dry-run documents, and accepts explicit preview-digest confirmation. It re-reads
+unchanged signed receipts before a host-injected native-promise ingest plus exact
+readback. Failure/timeout/uncertain persistence never yields trusted state. There
+is no default network client, real bank configuration or automatic promotion.
 
-**Future work, not implemented commands**:
+**Pending**: real Hindsight transport/durability, cross-process idempotency,
+crash reconciliation, durable lifecycle storage, owner/operator integration and
+CLI `vista promote`. The custom-pages export is data only, not a memory write.
+See [learning.md](learning.md).
 
-```bash
-vista check register worktree_create
-vista check run worktree_create --repo <repo> --task <task>
-```
+### Track C: Failure and recorded replay (#14)
 
-Future trusted-owner coverage (not implemented by the local observations):
-- worktree creation
-- source/receipt/test authenticity beyond observing an actual local HEAD
-- gate receipt binding and actual test results
+**Implemented programmatic slice**: lifecycle withdrawal/supersession, bounded
+observed failure classification/root-cause hypotheses, resolved-fix correction
+previews, and same-run recorded script/step replay/comparison. Every replay view
+is `executable: false`, `authorization: none`; logged actions and repairs are not
+executed. Deterministic hypotheses are not verified causes or actual fix evidence.
 
-Source/test/pack and offline tarball smoke do not establish publication, a clean
-consumer install, Node 20 runtime behavior or operational acceptance. Replay and
-experience reuse remain future work.
+**Pending**: CLI failure workflows, live/durable corrections and executable replay.
+No training or guard/gate modification is inferred from any lifecycle state.
 
-### Track B: Hindsight promotion (future CLI)
+### Track D: Owner-normalized shadow (#15)
 
-```bash
-vista promote <run_id> [--dry-run]
-```
+**Implemented additive observer**: `@pi-vista/adapter-shadow` explicitly projects
+closed normalized Laya/Kev/Intern/StartLux metadata and emits through core.
+Allow/pass/confidence never becomes ok; veto, abstention, missing context and
+false human/training/promotion eligibility remain non-authorizing. Synthetic
+asset receipt refs do not prove real-input isolation or owner truth.
 
-This is a future command, not part of the implemented observation CLI. Dry-run
-is intended to show exactly what will be written before committing.
+**Pending**: owner normalization implementation, actual inputs, live wiring,
+model quality/council verification and isolation acceptance. No model/threshold/
+selection/activation/training action occurred. See [adapters/shadow.md](adapters/shadow.md).
 
-### Track C: Failure analysis
+## Phase 4: Bounded offline retrieval versus live recall (#16)
 
-```bash
-vista failure analyze <run_id>
-vista failure ingest <failure_id>   # writes Correction: to Hindsight
-```
+**Implemented programmatic slice**: learning retrieves only fresh same-library
+verified/trusted handles matching explicit repo/source/policy/environment/task
+bindings. Context uses script/step structure, full provenance and whole-entry
+character budgets (not token budgets). Synthetic fixture selection/coverage/
+context-size evaluation carries `capability_claim: none`. Models are observational
+labels, never routing preferences. No sink or receipt I/O happens during selection.
 
----
+**Pending**: cross-run Hindsight recall/import across process lifetimes, durable
+storage, semantic retrieval, automatic task-start Pi context injection, remote
+revocation discovery and external model capability measurement. Serialized
+status-labelled documents cannot become verified handles. Success on known offline
+fixtures is not production adaptation or capability lift.
 
-## Phase 4: Experience retrieval (after sufficient verified data)
+## Delivery: Repeatable engineering gates (#17)
 
-On task start, Pi sessions receive:
+**Implemented source**: dependency-ordered root gates for all 11 packages,
+deterministic Node20-compatible integration enumeration, original assertions plus
+new synthetic integration and release-script tests, offline locked clean npm ci,
+actual tarballs and fresh isolated consumer install/strict locked TypeScript,
+all public imports/bin checks, bounded package-content checks and pinned
+least-privilege GitHub workflow. Actual local Node20 validation is recorded in
+[release-contract.md](release-contract.md).
 
-```
-Related experience: last successful run of this task type (run: a3f2b1c)
-Steps: ...
-Watch out: step 2 requires worktree path check
-Known failure: if source_sha mismatches, gate fails at step 4
+**Pending**: independent exact full-range engineering review, parent-controlled
+source PR/normal remote merge and reread, hosted Ubuntu CI/required checks,
+fresh-cache/registry availability, publication/deployment and operational
+acceptance. Local passes do not authorize any of these. The root lint command
+is present but there are currently no workspace lint implementations.
 
-Hindsight skills: Skill: worktree creation flow (verified 2026-10-03)
-```
+## Permanently excluded authority changes
 
----
-
-## What is explicitly out of scope (permanently)
-
-- Online model weight updates
-- Automatic modification of guard rules
-- Automatic modification of gate thresholds
-- Any production auto-approval
-- Training data pipelines (Phase 4+ only, with separate authorization)
+- Online model weight updates or automatic model selection
+- Automatic guard-rule or gate-threshold changes
+- Production auto-approval or learned bypass of hard safety gates
+- Training pipelines without separate owner authorization
+- Treating recorded flags, shadow agreement, signed claim correctness or source
+  test success as execution/merge/release permission

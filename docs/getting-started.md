@@ -1,13 +1,28 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-05
+verified: 2026-10-07
+ssot: true
+---
+
 # Getting started with pi-vista
 
-## Merged source checkout
+## Source checkout and evidence boundaries
 
 The seven-package infrastructure and bounded metadata/generation repairs were
 merged into `main` through [PR #7](https://github.com/chenhaoxiang/pi-vista/pull/7).
 Exact-source review and isolated post-merge validation passed, including 232
-tests. Registry publication, Node 20 validation, clean consumer installation,
-consumer TypeScript compilation and real owner/live integration remain
-unverified. Package-consumer syntax below does not establish publication.
+tests in that historical snapshot. The current continuation locally integrates
+11 public packages, including explicit evidence/learning/shadow APIs and root
+source/Node20/actual packed-consumer gates. Local compatibility evidence is
+recorded in [release-contract.md](release-contract.md), not transferred from the
+old snapshot. Independent exact-source review, remote merge, hosted GitHub CI,
+registry publication and real owner/live integration remain pending.
+Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)
 records the old known defect; the [metadata guide](metadata-safety.md) documents
@@ -24,22 +39,35 @@ services as fixtures.
 | `@pi-vista/cli` | Offline/read-only recorded views and `vista` bin |
 | `@pi-vista/checks` | Trusted, opt-in metadata predicates; fail-closed, authorization none |
 | `@pi-vista/checks-local` | Separate explicit trusted-host actual local FS/Git predicates; private config, no authority |
+| `@pi-vista/evidence` | Host-pinned signed gate/test/guard receipts and opaque non-authorizing proofs |
+| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, offline retrieval/context and recorded-only replay |
+| `@pi-vista/adapter-shadow` | Explicit owner-normalized shadow metadata; no positive authority/eligibility |
 
 With the checkout's existing locked developer tools and local workspace links:
 
 ```bash
+npm ci --offline --ignore-scripts
 npm run typecheck
 npm run build
 npm test
+npm run lint
 npm_config_offline=true npm run pack:dry-run
+npm run gate:source
+npm run gate:consumer
+npm run gate:node20 -- --node=/absolute/path/to/verified-node20
 ```
 
-The fixed root build order compiles protocol/core before all three adapters,
-CLI and checks, followed by the checks-local addon. Root typecheck covers all
-eight packages and the integration test source; root tests preserve every
-original package test and add the addon and synthetic cross-package
-suite. No integration test contacts a real owner, model or network service.
-Offline pack/extraction smoke is not an npm clean install or consumer TSC check.
+Root builds compile protocol/core before the adapters/CLI, checks before
+evidence, and evidence before learning. All 11 packages participate in root
+build/typecheck/test/offline pack; tests preserve original assertions and add
+public-import synthetic integration plus release-script regressions. Deterministic
+file enumeration works on actual Node20, without Node22+ quoted-glob expansion.
+No integration test contacts real owner/model/memory services or uses parent
+sessions. The consumer gate makes an actual fresh npm install of exact local
+tarballs and compiles with consumer-installed locked TypeScript, not extraction
+smoke or workspace-linked imports. Installs are offline/cache-backed, not
+fresh-cache or registry-availability evidence. Root lint is a no-op until workspace
+lint scripts exist. See the release contract for evidence paths and host limits.
 
 ## 1. Package-consumer usage syntax
 
@@ -64,7 +92,8 @@ source build/pack evidence alone does not establish that publication.
 ## 2. Set VISTA_RUN_ID in your Pi session
 
 pi-vista uses a `run_id` to tie all events from one task together.
-The Pi adapter sets this automatically. For manual use:
+An explicitly created Pi run context manages its identity; no private Pi hook is
+installed by this package. For manual use:
 
 ```bash
 export VISTA_RUN_ID=$(node -e "console.log(crypto.randomUUID())")
@@ -105,8 +134,9 @@ node packages/cli/dist/bin.js receipts run-example --base-dir ./synthetic-store 
 ```
 
 The installed package's bin name is `vista`. Source availability does not claim
-registry publication, clean consumer installation, or deployment. Use a local
-synthetic store for tests; omitting `--base-dir` reads core's default store.
+registry publication or deployment. Actual local-tarball consumer installation
+is separately checked by the release-contract gate, not by this CLI example.
+Use a local synthetic store for tests; omitting `--base-dir` reads core's default store.
 
 These commands observe recorded data only. Core readers can silently omit
 missing, unreadable, corrupt or invalid records; empty output is not a PASS.
@@ -140,9 +170,8 @@ implemented; REPAIR is refused before callbacks. No owner probes, shell/dynamic
 code, runtime storage, CLI check commands, replay or promotion are included.
 Timeout cannot preempt synchronous trusted callbacks or undo side effects. See
 [the Check Functions guide](check-functions.md) for exact limits and trust
-boundaries. Node 20, a clean npm consumer install and consumer TypeScript
-compilation remain unverified; source/build/pack smoke is not publication or
-operational acceptance.
+boundaries. Combined local Node20/packed-consumer evidence is separately recorded
+in the release contract; it is not publication or operational acceptance.
 
 ### Optional actual local observations
 
@@ -159,15 +188,46 @@ component-walk/symlink and parent-discovery refusals, fixed Git argv/environment
 read-only/filter/submodule controls and validation limits. Actual reads remain
 predicate-only, not receipt/test/gate or production authorization. Trusted local
 Git/config is not a hostile-repository sandbox; reads are non-atomic, not a
-race-proof filesystem jail. Node 20 and clean consumer install/TSC remain
-unverified. The observation CLI still has no check commands.
+race-proof filesystem jail. Local Node20 and consumer checks do not remove these
+trusted-host limits. The observation CLI still has no check commands.
 
-## 6. Planned Phase 3 promotion
+## 6. Explicit evidence, learning and shadow APIs
 
-Promotion to Hindsight is future work. These commands are design notes,
-not implemented by the observation CLI:
+[Authority-bound evidence](authoritative-evidence.md) requires an explicitly
+configured `createEvidenceVerifier` with pinned public keys, required checks/
+suites, trusted synthetic receipt readers and a clock. Legacy audit flags,
+predicate reports and shadow votes are not verified evidence.
 
-```bash
-vista promote <run_id> --dry-run   # planned preview
-vista promote <run_id> --confirm   # planned Hindsight write
+[Learning](learning.md) is programmatic and process-local:
+
+```ts
+import { createLearningLibrary } from "@pi-vista/learning";
+
+// verifier is an exact createEvidenceVerifier() identity configured by the host.
+// No sink means preparation/retrieval only; confirmation fails sink-unavailable.
+const library = createLearningLibrary({ verifier });
+const candidate = library.nominate(library.observe(safeSyntheticObservation));
+const proof = await verifier.verify(expectedBindings, syntheticOwnerSubjects);
+const verified = library.verifyCandidate(candidate, proof);
+const preview = library.preparePromotion(verified, "synthetic-bank-alias");
+// No write, network client or real bank is selected by this example.
+const selection = library.retrieve([verified], explicitRetrievalQuery);
+const context = library.compileContext(selection, { max_characters: 8192 });
+const recorded = library.planReplay(verified, expectedBindings); // executable=false
 ```
+
+Confirmation requires the exact reviewed digest, fresh unchanged signed receipts
+and explicit trusted native-promise ingest/readback callbacks. Integration tests
+use an in-memory synthetic sink only. No real Hindsight writes, cross-session
+recall/import, automatic Pi context injection or executable replay are implemented.
+Context bounds are characters, not tokens; fixture evaluation is not model lift.
+
+[The shadow adapter](adapters/shadow.md) accepts only owner-normalized closed
+metadata. `toVistaEventInput` is pure; `emitShadowObservation` is an explicit
+best-effort core call. Wrap an EventStore as `{ append: event => store.append(event) }`.
+Allow/pass never produces ok; eligibility stays false, veto/abstention/missing
+context remains non-positive. No owner normalization or activation is installed.
+
+Future CLI check/failure/promote/replay commands remain roadmap items, not
+aliases for these APIs. Signed claims, trusted memory status and all local
+engineering passes still grant **authorization: none**.
