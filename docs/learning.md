@@ -341,6 +341,19 @@ See [portable-recall.md](portable-recall.md) for exact schema, key intervals,
 revocation/age policy, callback/confirmation/idempotency limits and genuine separate
 process synthetic validation. No actual service/keys/bank/Pi hooks are installed.
 
+## Optional original-document HTTP store
+
+`createHindsightStore`, imported only from `@pi-vista/learning/hindsight`, is an
+additive explicit sink/recall-port implementation,
+not a default on `createLearningLibrary`. It accepts only the exact safe canonical
+learning/correction/archive request and independently matches original GET data.
+An exclusive synced private local POSIX intent protects cooperating writers across
+restart: existing/uncertain claims can only fresh-read/reconcile, never retain again.
+`reconcile` is remote read-only and cannot restore a proof/handle or raise lifecycle.
+No actual service/bank/credentials/Pi configuration is installed. See the
+[store guide](hindsight-store.md) for pinned 0.10.2 routes, exact envelope,
+configuration, abort/byte/privacy bounds and non-distributed durability assumptions.
+
 ## Hindsight custom pages: configuration data only
 
 `HINDSIGHT_CUSTOM_PAGES` exports a deeply frozen, JSON-serializable compatible
@@ -400,11 +413,12 @@ npm 11.19.1. The combined integration now uses the repeatable
 and actual isolated packed-consumer installation/strict TypeScript. These checks
 are distinct from manifest/script compatibility claims and do not establish
 registry availability, hosted CI, publication, deployment or operational acceptance. Actual gate/test/guard producer wiring, actual
-Hindsight durability/readback, durable lifecycle/idempotency storage and signed
+Hindsight service/durability acceptance, durable lifecycle storage and signed
 lifecycle feeds, production configuration, default Pi integration, external model
 evaluation, executable replay and release/publication remain separate owner work.
-Portable historical ports/restart authentication are additive source capability,
-not actual Hindsight integration or serialized current proof restoration.
+The explicit original HTTP adapter/local attempt journal is additive source
+capability with synthetic validation, not actual-service integration, distributed
+exactly-once persistence or serialized current proof restoration.
 
 Maintained dependencies: [architecture](architecture.md),
 [evidence](authoritative-evidence.md), [checks](check-functions.md), and

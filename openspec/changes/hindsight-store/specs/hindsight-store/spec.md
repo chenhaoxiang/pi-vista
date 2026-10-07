@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Explicit original-document transport
-The adapter SHALL use only explicitly configured endpoint/bank aliases and the pinned Hindsight 0.10.2 retain, original-document and recall contracts. It SHALL preserve the exact closed safe learning/archive request, refuse unknown/raw content, and verify original-text readback instead of accepting acknowledgements, generated facts or status flags as persistence proof.
+The adapter SHALL be exposed only through the explicit `@pi-vista/learning/hindsight` addon subpath, without transitive I/O imports from the unchanged learning root graph. It SHALL use only explicitly configured endpoint/bank aliases and the pinned Hindsight 0.10.2 retain, original-document and recall contracts. It SHALL preserve the exact closed safe learning/archive request, refuse unknown/raw content, and verify original-text readback instead of accepting acknowledgements, generated facts or status flags as persistence proof.
 
 #### Scenario: Exact confirmed round trip
 - **WHEN** a current learning library invokes the configured sink with an exact confirmed safe request

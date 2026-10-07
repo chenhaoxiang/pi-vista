@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./hindsight": {
+      "types": "./dist/hindsight/index.d.ts",
+      "import": "./dist/hindsight/index.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],

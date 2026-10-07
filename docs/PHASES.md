@@ -80,10 +80,15 @@ unchanged signed receipts before a host-injected native-promise ingest plus exac
 readback. Failure/timeout/uncertain persistence never yields trusted state. There
 is no default network client, real bank configuration or automatic promotion.
 
-**Pending**: real Hindsight transport/durability, cross-process idempotency,
-crash reconciliation, durable lifecycle storage, owner/operator integration and
-CLI `vista promote`. The custom-pages export is data only, not a memory write.
-See [learning.md](learning.md).
+**Implemented additive source seam**: [explicit Hindsight store](hindsight-store.md)
+maps pinned 0.10.2 HTTP retain/original GET to the existing sink. A synced exclusive
+private local POSIX intent protects cooperating cross-process attempts; existing
+claims never POST again, and explicit reconciliation is remote read-only. No
+proof/lifecycle is restored by completion metadata.
+
+**Pending**: actual Hindsight service/durability acceptance, distributed coordination,
+durable lifecycle storage, owner/operator integration and CLI `vista promote`.
+The custom-pages export is data only, not a memory write. See [learning.md](learning.md).
 
 ### Track C: Failure and recorded replay (#14)
 
@@ -129,8 +134,12 @@ current verification still requires fresh normal owner proof. A synthetic file-b
 producer/consumer test executes in two genuinely separate fresh Node processes.
 See [portable recall](portable-recall.md).
 
-**Pending**: real Hindsight durable storage/semantic host adapters, durable signed
-lifecycle feeds and idempotency/crash reconciliation, actual owner integration,
+**Implemented additive source seam**: the opt-in store projects bounded scoped
+recall references and reads exact original signed archives, with actual synthetic
+HTTP/separate-process tests. Portable signature/origin/scope checks remain independent.
+
+**Pending**: actual Hindsight durable-service acceptance, distributed persistence,
+durable signed lifecycle feeds, actual owner integration,
 automatic task-start Pi context injection, remote revocation discovery and external
 model capability measurement. Serialized status-labelled documents cannot become
 verified handles. [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12) portable

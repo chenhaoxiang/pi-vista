@@ -13,6 +13,9 @@ verified: 2026-10-07
 ## Upstream source
 Pin vectorize-io/hindsight at ea5ab3034ceb1fed601950ec8996c69363c0b0b6. Its hindsight-docs/static/openapi.json declares HTTP API 0.10.2; local exact source manifests and selected schemas are retained in tmp/hindsight-api/. Public original-document documentation: hindsight-docs/docs/developer/api/documents.mdx at that same pin. Retain is POST /v1/default/banks/{bank_id}/memories, original read is GET /documents/{document_id}, candidate recall is POST /memories/recall. Synchronous operation_id does not provide deduplication; repeated document_id retain replaces content and may repeat extraction/spend.
 
+## Explicit addon namespace
+The approved source-shape correction places the four opt-in modules under `src/hindsight/`, exposed only as `@pi-vista/learning/hindsight`. Root learning exports/import graph and every original assertion blob remain unchanged; a recursive graph regression prevents transitive addon imports. Add an explicit addon import/factory no-I/O/default-discovery regression. Only the additive package subpath export map is authorized; dependencies/lock/gate/CI scripts remain unchanged. Actual installed consumer gates must compile/run all 17 export entries, including the addon.
+
 ## Private host configuration
 Require explicit endpoint, safe bank-alias to actual-bank-ID mapping and an existing private local journal root. HTTPS only except explicitly permitted exact loopback HTTP for local fixtures. No environment/config/credential discovery, generic header passthrough, cookies, redirects, bank creation or network on module import. Optional bearer credential stays in private closure and never enters protocols, archives, journal, errors or reports. Source input is own-data snapshotted with fixed errors; timeouts, aborts and response bytes are bounded.
 

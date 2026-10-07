@@ -12,13 +12,13 @@ verified: 2026-10-07
 
 ## Source and contract
 - [x] Route current main/owner boundaries and pin official upstream API
-- [ ] Implement explicit closed HTTP transport, safe original envelope and bounded candidate recall
-- [ ] Implement durable local intent/completion records and read-only uncertain-write reconciliation
-- [ ] Add own-data, privacy, actual local HTTP, concurrency/crash and separate-process regressions without changing old assertions
-- [ ] Update maintained package/user/architecture/phase guides and AGENTS map
+- [x] Implement explicit closed HTTP transport, safe original envelope and bounded candidate recall through an isolated explicit addon subpath, preserving the root import graph
+- [x] Implement durable local intent/completion records and read-only uncertain-write reconciliation
+- [x] Add own-data, privacy, actual local HTTP, concurrency/crash and separate-process regressions without changing old assertions
+- [x] Update maintained package/user/architecture/phase guides and AGENTS map
 
 ## Engineering acceptance
-- [ ] Run exact-source Node20/26 gates and actual installed consumer proof
+- [x] Run exact-source Node20/26 gates and actual installed consumer proof
 - [ ] Fresh full independent same-model source review and fix/recheck any findings
 - [ ] Exact-head hosted CI, normal PR merge/tree/ancestry/readback and safe canonical-main sync
 - [ ] Shared source-delivery handoff with actual pins and residual operational boundaries

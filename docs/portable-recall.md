@@ -177,7 +177,9 @@ that an issuer's original tests/guard coverage were truthful.
 ### Hindsight ports and lifecycle policy
 
 A typed host adapter maps a real Hindsight API to these explicit native-promise
-callbacks. No real client/config/service is provided:
+callbacks. The additive opt-in [original-document store](hindsight-store.md)
+provides a concrete bounded 0.10.2 HTTP mapping; no default config/service or
+actual-service acceptance is provided:
 
 - `query(HistoricalQuery, signal)` resolves to exactly `{documents}`: at most 64
   opaque `{document_id, bank}` refs. Query fields are bounded metadata bindings
@@ -201,8 +203,8 @@ callbacks. No real client/config/service is provided:
 A signed durable lifecycle bulletin/feed is not implemented. An immutable archive
 only records its source status at archive time. The explicit host must observe
 truthful subsequent withdrawals if needed; omission never implies current active.
-This policy port, query/read adapters and durability still need separate real
-service/owner integration and operational acceptance.
+This policy port and the explicit original-document HTTP adapter/local journal
+still need separate real service/owner integration and operational acceptance.
 
 ### Selection, context and observed-only import
 
