@@ -66,7 +66,13 @@ complete clean coverage, freshness and all five bindings. Opaque proof identitie
 are in-process: copies/flags/reports cannot restore provenance. Local script
 PASS/privacy/audit checks are not an App-trusted owner receipt.
 
-**Pending**: actual owner producers/keys/readers, revocation/durable provenance,
+**Implemented additive consumer seam**: opt-in
+[`@pi-vista/evidence/files`](receipt-files.md) freshly reads bounded canonical v1
+files from explicit private POSIX mappings, without changing the root verifier.
+It cannot upgrade unsigned/legacy material or produce signed owner truth.
+
+**Pending**: actual compatible owner producers/key provenance (**MISSING**),
+actual owner integration/readers, revocation/durable provenance,
 CLI check commands and repair implementation. Synchronous trusted callbacks are
 not sandboxed or preempted. See [checks](check-functions.md),
 [local probes](local-check-probes.md), and [evidence](authoritative-evidence.md).

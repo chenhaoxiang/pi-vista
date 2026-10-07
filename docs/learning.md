@@ -46,6 +46,10 @@ Boolean or status-labelled document is not authority. Host public-key pins,
 required owner checks/suites, trusted clock, receipt readers and freshness are
 configured through the [evidence contract](authoritative-evidence.md), not this
 package. There is no default HTTP, MCP, filesystem, signing or model client.
+An explicit host may supply the separate evidence
+[receipt file consumer](receipt-files.md); unchanged verification and confirmation
+still require fresh complete signed receipts. Actual compatible owner producers
+and public-key provenance remain **MISSING / not accepted**, not supplied by files.
 
 Each library privately records experience, plan and selection identities in
 WeakMaps. Views are deeply frozen own-data projections. Copying, serializing or

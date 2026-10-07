@@ -13,9 +13,9 @@ verified: 2026-10-07
 ## Contract and source
 - [x] Read current verifier and owner contracts without live data/keys
 - [x] Record unsupported legacy/synthetic provenance and no-authority-upgrade boundary
-- [ ] Implement explicit opt-in v1 file EvidenceSource addon and public compatibility guide
-- [ ] Add synthetic actual-file, signature/binding, lifecycle, race/cancellation and installed-process regressions
-- [ ] Preserve original APIs/assertions/dependencies/other packages/gates and update AGENTS map
+- [x] Implement explicit opt-in v1 file EvidenceSource addon and public compatibility guide
+- [x] Add synthetic actual-file, signature/binding, lifecycle, race/cancellation and installed-process regressions
+- [x] Preserve original APIs/assertions/dependencies/other packages/gates and update AGENTS map
 
 ## Source acceptance
 - [ ] Node20/26 source/actual tarball consumer and independent process proof

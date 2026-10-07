@@ -252,6 +252,7 @@ records.
 - [Pi run-context adapter](docs/adapters/pi.md)
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
+- [Explicit receipt file consumer and missing owner producers](docs/receipt-files.md)
 - [Verified learning and offline retrieval](docs/learning.md)
 - [Portable signed historical recall and observed-only import](docs/portable-recall.md)
 - [Explicit Hindsight original store and local attempt protection](docs/hindsight-store.md)
