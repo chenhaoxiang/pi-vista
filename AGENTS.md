@@ -68,6 +68,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/handoff/2026-10-07-receipt-file-source-closeout.md](docs/handoff/2026-10-07-receipt-file-source-closeout.md): PR16 source/readback/CI pins, actual-main834-case/18-export/installed proof and still-MISSING owner producers/keys
 - [docs/receipt-files.md](docs/receipt-files.md): explicit private read-only v1 file consumer; actual owner producers/key provenance MISSING, no authority upgrade
 - [docs/learning.md](docs/learning.md): process-local verified learning, exact confirmed sink/readback, failure/replay and character-bounded retrieval
+- [docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md](docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md): PR18 source/main/CI pins, preserved BLOCK and corrected961-case/19-export/SDK-dispatch evidence; no default/live/full-SDK-health acceptance
 - [docs/pi-observe-preview.md](docs/pi-observe-preview.md): optional explicit Pi notification/preview/controller candidate, local-only selection, SDK declaration limitation and no authority/default activation
 - [docs/handoff/2026-10-07-portable-recall-source-closeout.md](docs/handoff/2026-10-07-portable-recall-source-closeout.md): PR12 pins/CI/current-main restart proofs, historical-vs-current trust and remaining host/live scope
 - [docs/handoff/2026-10-07-portable-recall-entry-fixes.md](docs/handoff/2026-10-07-portable-recall-entry-fixes.md): original portable review BLOCK, new-identity/public-counter corrections and bounded local proof

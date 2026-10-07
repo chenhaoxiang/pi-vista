@@ -263,7 +263,7 @@ best-effort core call. Wrap an EventStore as `{ append: event => store.append(ev
 Allow/pass never produces ok; eligibility stays false, veto/abstention/missing
 context remains non-positive. No owner normalization or activation is installed.
 
-## 7. Optional explicit Pi observation and preview candidate
+## 7. Explicit optional Pi observation and preview
 
 Import `createPiObservation` only from `@pi-vista/learning/pi`, supply closed safe
 host task/classification metadata, explicit native-promise store/recall ports and
@@ -279,7 +279,10 @@ hooks, parallel steps/epochs, privacy and failure quotas. Actual Pi1.0.4 require
 Node22.19+; Node20 validates library/mock-host usage only. Full host declaration
 checking is upstream-blocked, with a separately approved assignment-only check;
 actual Node26 public runner dispatch is not full interactive/model acceptance.
-Independent source review, hosted CI and parent-owned merge remain pending.
+Independent source review plus retained correction disposition, hosted CI and
+normal source PR18 merge/readback are recorded in
+[the closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md);
+no default installation or actual interactive/service acceptance is implied.
 Owner producers/key provenance are still MISSING and authorization is always none.
 
 Future CLI check/failure/promote/replay commands remain roadmap items, not
