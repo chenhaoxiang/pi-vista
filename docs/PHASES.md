@@ -70,6 +70,10 @@ PASS/privacy/audit checks are not an App-trusted owner receipt.
 [`@pi-vista/evidence/files`](receipt-files.md) freshly reads bounded canonical v1
 files from explicit private POSIX mappings, without changing the root verifier.
 It cannot upgrade unsigned/legacy material or produce signed owner truth.
+[PR #16](https://github.com/chenhaoxiang/pi-vista/pull/16) fresh full source review,
+hosted head/main CI and normal source merge/readback are complete;
+[closeout](handoff/2026-10-07-receipt-file-source-closeout.md) records actual834-case/
+18-export evidence and the still-MISSING owner producer/public-key provenance.
 
 **Pending**: actual compatible owner producers/key provenance (**MISSING**),
 actual owner integration/readers, revocation/durable provenance,
@@ -181,6 +185,14 @@ source/consumer CI, normal remote merge/tree equality/ancestry/readback, isolate
 actual-main Node20 **748 cases**,11 tarballs/17 exports and installed actual
 synthetic HTTP/fresh-process proof. [Store closeout](handoff/2026-10-07-hindsight-store-source-closeout.md)
 preserves the original P2 and explicit trust/durability boundary.
+
+**Completed file-consumer source acceptance (PR16)**: fresh full independent
+same-model review after preserved native startup-parameter failure (no original
+review launched), actual Ubuntu Node20/22/26 head/main CI, normal merge/ancestry/
+tree/readback and isolated actual-main Node20 **834 cases**,11 tarballs/18 exports
+and installed independent signed-file producer/reader proof.
+[Consumer closeout](handoff/2026-10-07-receipt-file-source-closeout.md) retains exact
+pins, infrastructure recovery and missing real-owner/operational boundaries.
 
 **Pending**: platform required-check policy configuration, fresh-cache/registry
 availability, publication/deployment and operational acceptance. Local passes do not authorize any of these. The root lint command

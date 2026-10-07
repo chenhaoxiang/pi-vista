@@ -64,6 +64,15 @@ eleven-tarball/**17-export** and installed HTTP/restart proofs passed.
 [Store closeout](docs/handoff/2026-10-07-hindsight-store-source-closeout.md) pins this
 source acceptance; real-service/distributed/lifecycle/owner/Pi/release work remains pending.
 
+**Receipt-file consumer source delivered:** [PR #16](https://github.com/chenhaoxiang/pi-vista/pull/16)
+normally merged the explicit `@pi-vista/evidence/files` addon, not a signature
+producer or authority upgrade. Fresh full same-model review, actual Ubuntu
+Node20/22/26 head/main CI, isolated actual-main Node20 **834 cases**/11 tarballs/
+**18 exports** and installed fresh signed-file proof passed.
+[Consumer closeout](docs/handoff/2026-10-07-receipt-file-source-closeout.md) records
+source acceptance and preserved startup failure; actual owner producers/public-key
+provenance stay **MISSING / unaccepted**, and current operational permission none.
+
 ---
 
 ## What it does
@@ -253,6 +262,7 @@ records.
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Explicit receipt file consumer and missing owner producers](docs/receipt-files.md)
+- [Merged receipt consumer source acceptance](docs/handoff/2026-10-07-receipt-file-source-closeout.md)
 - [Verified learning and offline retrieval](docs/learning.md)
 - [Portable signed historical recall and observed-only import](docs/portable-recall.md)
 - [Explicit Hindsight original store and local attempt protection](docs/hindsight-store.md)

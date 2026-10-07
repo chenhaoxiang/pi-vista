@@ -164,5 +164,10 @@ evidence tsconfig, preventing generated synthetic helpers entering tarballs.
 The generic [release gates](release-contract.md) remain unchanged: 11 public
 packages, 18 export specifiers including this addon, actual retained npm consumers,
 strict consumer-installed locked TypeScript and packed privacy/bin checks. Local
-source/installed proofs are not independent review, hosted CI, registry publication,
-actual owner integration, operational acceptance or current safety permission.
+source/installed proofs are not independent review or hosted CI by themselves.
+[PR #16](https://github.com/chenhaoxiang/pi-vista/pull/16) fresh full same-model source
+review, actual Ubuntu Node20/22/26 head/main CI and normal merge/readback are now
+complete. [Consumer closeout](handoff/2026-10-07-receipt-file-source-closeout.md) binds
+834-case/18-export/installed process evidence and preserved infrastructure recovery.
+Registry publication, actual owner producers/key provenance, real integration,
+operational acceptance and current safety permission remain separately unaccepted.

@@ -36,7 +36,13 @@ retained cancellation recheck, exact-head/main Ubuntu Node20/22/26 CI and isolat
 actual-main Node20 **748-case**/11-tarball/17-export/installed HTTP-restart proofs
 passed. [Store closeout](handoff/2026-10-07-hindsight-store-source-closeout.md) retains
 exact pins and operational gaps; the default root/CLI and live authority remain
-unchanged. Package-consumer syntax below does not establish publication.
+unchanged. [PR #16](https://github.com/chenhaoxiang/pi-vista/pull/16) subsequently
+delivered the explicit receipt-file addon. Fresh full same-model source review,
+actual Ubuntu Node20/22/26 head/main CI and isolated actual-main Node20 **834-case**/
+11-tarball/18-export/installed signed-file process proof passed.
+[Consumer closeout](handoff/2026-10-07-receipt-file-source-closeout.md) keeps actual
+owner producer/public-key provenance **MISSING**, not current permission or live
+integration. Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)
 records the old known defect; the [metadata guide](metadata-safety.md) documents
