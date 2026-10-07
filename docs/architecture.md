@@ -226,9 +226,12 @@ Root gates cover 11 source packages and synthetic public-import integration.
 Repeatable scripts perform offline locked npm ci, actual local tarball installation,
 all public exports/bin checks and strict consumer TypeScript on actual Node20.
 Local content/advisory checks are bounded, not an App-trusted owner receipt,
-universal secret detector or release authority. Hosted GitHub CI and independent
-exact-source acceptance remain separate; no publication/deployment is implied.
-See [release-contract.md](release-contract.md) for exact evidence and limitations.
+universal secret detector or release authority. The PR10 foundation's completed
+source review, hosted Node20/22/26 CI and isolated post-merge validation are recorded
+in the [source closeout](handoff/2026-10-07-verified-learning-source-closeout.md).
+The additive portable feature still needs its own independent review/hosted CI/source
+merge; no publication/deployment is implied. See [release-contract.md](release-contract.md)
+for exact evidence and limitations.
 
 ## Protocol versions
 

@@ -15,10 +15,12 @@ ssot: true
 #12 (promotion), #14 (failure/lifecycle/recorded replay) and #16 (verified-only
 retrieval/context evaluation). It neither configures nor contacts Hindsight by
 default. No existing Pi, CLI, core, guard, gate, checks or evidence runtime is
-changed by the learning component. The current integration wires all 11 packages
-into root scripts/lock and adds new synthetic public-import seam tests; original
-runtime sources/assertions remain unchanged. Local engineering integration is not
-independent source acceptance, remote merge or live activation.
+changed by the learning component. PR10 merged the 11-package foundation and its
+root gates; completed source review/hosted/post-merge evidence is recorded in the
+[source closeout](handoff/2026-10-07-verified-learning-source-closeout.md). The additive
+portable seam changes only learning and its direct contracts; original assertions
+remain unchanged. Its local engineering validation is not new-feature independent
+acceptance, hosted CI, remote merge or live activation.
 
 All lifecycle, promotion-preview, failure, replay, comparison, selection,
 context, evaluation and model-statistics views carry **authorization: none**.

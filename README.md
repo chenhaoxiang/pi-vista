@@ -30,16 +30,24 @@ preserves the old source pins' credential defect as historical evidence; the
 [shared metadata guide](docs/metadata-safety.md) describes the repaired contract
 and its limits. Producer sanitization remains required.
 
-**Current continuation checkout: 11 public source packages.** The additive
-`evidence`, `learning` and `adapter-shadow` APIs and repeatable source/packed-consumer
-scripts are locally integrated, not yet independently accepted or merged to
-remote `main` in that integration snapshot. Live learning/retrieval remains a
-process-local programmatic library. The portable continuation adds explicit signed
-**historical** recall/ports and observed-only import across process lifetimes, not
-serialized current authority or live activation; its independent review/feature
-CI/source merge remain pending. Shadow observation requires explicit owner
-normalization. The observation CLI is unchanged. See [learning](docs/learning.md),
-[portable recall](docs/portable-recall.md), [shadow](docs/adapters/shadow.md),
+**Merged continuation: 11 public source packages.** [PR #10](https://github.com/chenhaoxiang/pi-vista/pull/10)
+normally merged the additive `evidence`, `learning`, `adapter-shadow` APIs and
+repeatable source/packed-consumer gates into remote `main` on 2026-10-07.
+Exact-source review was independent same-model full inspection plus retained
+P1-fix recheck, not heterogeneous/human approval. Actual Node20/22/26 hosted
+source/consumer CI passed before and after source merge; isolated post-merge
+Node20 validation passed **567 test cases** and real eleven-tarball consumer
+checks. See the [continuation closeout](docs/handoff/2026-10-07-verified-learning-source-closeout.md).
+
+**Portable continuation:** live learning/retrieval remains process-local. This
+additive seam supplies explicit signed **historical** recall/ports and observed-only
+import across process lifetimes, not serialized current authority or live activation.
+Its independent review, hosted feature CI and source merge remain pending; the
+completed PR10 source/CI evidence above is not transferred to this new feature.
+Real durable Hindsight storage and owner/live wiring remain pending. Shadow
+observation requires explicit owner normalization. The observation CLI is unchanged.
+See [learning](docs/learning.md), [portable recall](docs/portable-recall.md),
+[shadow](docs/adapters/shadow.md),
 [evidence](docs/authoritative-evidence.md), and the
 [release contract](docs/release-contract.md) for checked scope and remaining limits.
 
