@@ -16,7 +16,9 @@ verified: 2026-10-07
 - [x] Add synthetic parallel/nested/retry/replacement/privacy/fault/preview/proof regressions; preserve original blobs.
 - [x] Run Node20/26 source gates and exact installed-tarball consumers, plus isolated no-provider public SDK loading/dispatch and bounded assignment-only typing.
 - [ ] Full installed SDK dependency declaration health: strict TS5.9.3 NodeNext skipLibCheck:false FAILED on 42 upstream pi-ai JSON import-attribute diagnostics and @google/genai missing optional MCP type. Original failure retained; supervisor approved SDK-only strict + skipLibCheck:true assignment evidence, not weakening source/consumer gates or claiming full SDK compatibility.
-- [ ] Independent fresh-context same-model read-only full-range review and bounded correction recheck if needed.
+- [x] Original independent fresh-context same-model full-range review at02a4765: BLOCK (0 P0 / 1 P1 / 1 P2), preserved without retroactive PASS.
+- [x] Reproduce both findings on actual Node20/26; minimally correct controller-lifetime historical clock and capped lost-identity records; 14 new regressions red-before/green-after on both runtimes.
+- [ ] Full corrected source/installed/SDK evidence and retained same-model correction recheck.
 - [ ] Exact-head hosted CI, ordinary source PR merge and remote/canonical readback.
 - [ ] Maintained maps and source closeout evidence.
 

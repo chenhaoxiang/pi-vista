@@ -29,6 +29,11 @@ export function createPiObservation(config: PiObservationConfig): PiObservationA
   const guard = (e: Epoch): void => { if (!current(e)) refuse(); };
   const drop = (e: Epoch): void => { if (current(e)) e.dropped++; };
   const clock = (): number => { const n = integer(c.now()); if (n < lastTime) refuse(); lastTime = n; return n; };
+  // Shared for the controller lifetime: replacing a preview or epoch cannot erase observed history time.
+  let historyHighWater = 0;
+  const historyClock = (): number => {
+    const n = integer(c.history!.now()); if (n < historyHighWater) refuse(); historyHighWater = n; return n;
+  };
   function clearPreview(e: Epoch): void { e.preview?.close(); delete e.preview; e.adopted = false; }
   function invalidate(): void {
     if (epoch) { clearPreview(epoch); delete epoch.proof; epoch.calls.clear(); epoch.revision++; }
@@ -119,7 +124,7 @@ export function createPiObservation(config: PiObservationConfig): PiObservationA
     const history = c.history;
     let constructing = true;
     const recall = createPortableRecall({ ...history, now: () => {
-      if (constructing) return 0; check(); return integer(history.now());
+      if (constructing) return historyHighWater; check(); return historyClock();
     }, port: {
       query: (query, signal) => host(() => { check(); if (signal.aborted) refuse(); return history.port!.query(query, signal); }),
       read: (ref, signal) => host(() => { check(); if (signal.aborted) refuse(); return history.port!.read(ref, signal); }),
@@ -205,14 +210,21 @@ export function createPiObservation(config: PiObservationConfig): PiObservationA
       try { const e = activeEpoch(); if (!e.active) refuse(); const id = callId(eventField(event, "toolCallId"));
         const existing = e.calls.get(id); if (existing) { existing.state = "ambiguous"; drop(e); return undefined; }
         if (e.calls.size >= c.maxCorrelations) { drop(e); return undefined; }
+        const step = generateStepId(e.run, e.sequence++);
+        // Reserve before metadata inspection; a lost start must not later look like a fresh identity.
+        e.calls.set(id, { step, classification: "unclassified", state: "ambiguous" });
         const name = eventField(event, "toolName"); const classification = typeof name === "string" ? c.tools.get(name) ?? "unclassified" : "unclassified";
-        const step = generateStepId(e.run, e.sequence++); e.calls.set(id, { step, classification, state: "pending" });
+        e.calls.set(id, { step, classification, state: "pending" });
         detach(e, () => observe(e, step, "pi:tool-execution-start", "unknown", classification));
       } catch { if (epoch) drop(epoch); } return undefined;
     });
     pi.on("tool_execution_end", event => {
       try { const e = activeEpoch(); if (!e.active) refuse(); const id = callId(eventField(event, "toolCallId")); const call = e.calls.get(id);
-        if (!call || call.state !== "pending") { drop(e); return undefined; } call.state = "ended";
+        if (!call) {
+          if (e.calls.size < c.maxCorrelations) e.calls.set(id, { step: generateStepId(e.run, e.sequence++), classification: "unclassified", state: "ambiguous" });
+          drop(e); return undefined;
+        }
+        if (call.state !== "pending") { drop(e); return undefined; } call.state = "ended";
         let error: unknown; try { error = eventField(event, "isError"); } catch { error = undefined; }
         const result = error === true ? "failed" : error === false ? "ok" : "unknown";
         detach(e, () => observe(e, call.step, "pi:tool-execution-end", result, call.classification));

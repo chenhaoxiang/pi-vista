@@ -135,8 +135,12 @@ mutable shared Pi adapter step is used. Only own descriptors of `toolCallId`,
 rejection; args/results/parent IDs/unknown body fields are not traversed. Missing,
 unmatched, duplicate/reused/ambiguous IDs and overflow count as `dropped`, never
 successful coverage. All distinct call identities count toward the per-epoch
-quota, including ended calls, so reuse cannot rebind after eviction. Correlations
-are cleared on settlement/invalidation. Execution hooks do **not** observe every
+quota, including ended calls and non-correlatable records for valid IDs first seen
+on unmatched-end or lost-start-metadata paths. A valid ID is reserved before
+inspecting start metadata; missing/accessor metadata cannot later make it fresh.
+These loss records obey the same cap and are never emitted. At capacity, new
+starts remain refused rather than evicting an old identity. Correlations are
+cleared on settlement/invalidation. Execution hooks do **not** observe every
 blocked attempt or establish complete workspace-guard coverage.
 
 Observed `isError: false` maps to Vista `ok`, `true` to `failed`, otherwise
@@ -154,6 +158,14 @@ never truncate guidance. Missing ports/empty results/no fitting whole item are
 MISSING/refusal. Malformed/failed/forged/stale/mismatched/lifecycle-withdrawn reads
 cannot publish partial positive preview. Task-start preview is nonblocking only
 when `preview_on_start: true` and history port is explicitly configured.
+
+History-clock high-water belongs to the **controller lifetime**, not one preview.
+Each recall shares that monotonically observed clock; preview replacement,
+reset/session/settlement/shutdown restart or task drift cannot erase it. A clock
+value below the high-water refuses, so expired history cannot resurrect through
+a fresh recall after a detected rollback. Construction still calls no host clock.
+This is in-process rollback detection, not wall-clock authentication or durable
+cross-process state; a new controller/process still relies on a truthful host.
 
 `controller.adopt(exactPreviewObject, exactPreviewDigest)` accepts only this
 controller's current private preview identity. Copies/foreign/stale views and
@@ -194,8 +206,16 @@ verifier retains its unchanged inherited callback/freshness limits. Host callbac
 native promise assimilation, clocks, reflection costs, synchronous CPU blocking,
 abort listeners and existing store durability are trusted, not sandboxed/preempted.
 
-Synthetic source validation adds 113 cases (learning 427; all-source 947) to the
-original 834 cases without changing original source/test/fixture/gate blobs.
+The original writer snapshot added 113 cases (learning 427; all-source 947) to
+the original 834 cases without changing original source/test/fixture/gate blobs.
+Independent full-range review at `02a4765` returned BLOCK (0 P0, 1 P1, 1 P2):
+per-preview clock reset resurrected expired guidance, and valid IDs seen on loss
+paths could be rebound. Parent reproductions confirm both on Node20/26; the
+original report/negative logs are preserved, not retroactively passed. The bounded
+correction adds 14 regressions (9 clock/epoch, 5 loss/cap/cross-run cases); all 14
+fail on the original runtime and pass on the corrected runtime on both versions.
+Full corrected source/installed validation and retained review disposition are
+recorded separately before source delivery.
 Actual Node26.9.0 and verified Node20.20.2 full source/offline local-tarball consumer
 gates cover 11 packages and 19 exports; installed consumers use locked TS5.9.3,
 `strict: true`, `skipLibCheck: false`, no workspace links/runtime fixtures.
