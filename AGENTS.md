@@ -37,6 +37,8 @@ review as a universal secret detector, owner verification or live/release author
 - [docs/cli.md](docs/cli.md): maintained observation CLI/API, privacy and limits
 - [docs/check-functions.md](docs/check-functions.md): programmatic predicate registry/runner, fail-closed limits and no authorization
 - [docs/local-check-probes.md](docs/local-check-probes.md): explicit trusted-host local FS/Git addon, private config, read-only controls and limitations
+- [docs/authoritative-evidence.md](docs/authoritative-evidence.md): opt-in signed owner receipts, opaque provenance and non-authorizing probes
+- [openspec/changes/verified-learning/proposal.md](openspec/changes/verified-learning/proposal.md): inherited evidence/learning/shadow/retrieval/release continuation
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases
 - [docs/architecture.md](docs/architecture.md): storage and safety boundaries
 - [packages/core/README.md](packages/core/README.md): public core runtime contract
