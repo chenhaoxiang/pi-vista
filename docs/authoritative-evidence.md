@@ -31,6 +31,11 @@ upgrade to current evidence. The host also pins gate_version, gate_config_digest
 nonempty required gate_checks/test_suites, a trusted now clock, max_age_ms
 (1–86,400,000, default 600,000) and timeout_ms (1–10,000, default 1,000).
 The factory snapshots configuration; later caller mutation cannot redirect it.
+[PR #16](https://github.com/chenhaoxiang/pi-vista/pull/16) delivered the file-consumer
+source after its own fresh full same-model review, hosted head/main CI and normal
+remote readback; [closeout](handoff/2026-10-07-receipt-file-source-closeout.md) binds
+834 cases/11 tarballs/18 exports/actual installed process proofs. This does not
+accept an actual owner producer, public-key provenance or current permission.
 
 Each receipt is a closed object: payload, content_digest and base64 signature.
 The payload contains schema=1, kind, issuer, run_id, repo, source_sha,

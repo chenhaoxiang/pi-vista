@@ -18,10 +18,17 @@ verified: 2026-10-07
 - [x] Preserve original APIs/assertions/dependencies/other packages/gates and update AGENTS map
 
 ## Source acceptance
-- [ ] Node20/26 source/actual tarball consumer and independent process proof
-- [ ] Independent full same-model read-only source review and correction evidence
-- [ ] Actual hostedCI, ordinary sourcePR/main ancestry/tree/readback and safe canonical sync
-- [ ] Shared source-delivery closeout
+- [x] Node20/26 exact-source/actual tarball consumer and independent process proof
+- [x] Fresh full same-model read-only source review; preserved original review-startup failure
+- [x] Head/main Ubuntu Node20/22/26 hostedCI, ordinary sourcePR16/ancestry/tree/readback and safe canonical sync
+- [ ] Complete this later documentary closeout reviewed PR and remote inclusion
+
+PR16 source normally merged as910306d, exact reviewed3dc/tree19c0f61. Acceptance
+is834 cases(748+86),11 tarballs/18 exports and installed synthetic file/current-
+proof/copy/expiry process checks. [Source closeout](../../../docs/handoff/2026-10-07-receipt-file-source-closeout.md)
+records actual pins and native review-only recovery; no owner producer/key/truth/
+permission acceptance is inferred. Documentary own later inclusion is checked
+separately, not claimed by the source merge.
 
 ## Separate owner/operational boundaries
 - [ ] Actual compatible signed gate/test/guard producers/public-key provenance/real-input acceptance
