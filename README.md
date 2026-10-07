@@ -75,6 +75,7 @@ not a source of execution, merge, release or promotion authorization.
 | `@pi-vista/adapter-ai-gate` | Read-only mapping of sanitized owner-side gate evidence |
 | `@pi-vista/cli` | Offline, read-only history/inspect/compare/receipts and public observation API |
 | `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
+| `@pi-vista/checks-local` | Explicit trusted-host actual local FS/Git predicates; private aliases/config, read-only and no authority |
 
 ---
 
@@ -126,9 +127,16 @@ foundation. Trusted host code explicitly registers boolean predicates; opt-in
 or environment observations. STOP/WARN are supported, REPAIR is refused before
 callbacks, and missing/exceptional/malformed/timed-out checks fail closed. Reports
 always say `verification: predicate-only` and `authorization: none`.
-Experience promotion, replay, owner probes and CLI check commands remain future
-work. See [docs/check-functions.md](docs/check-functions.md) for the strict safe
-input subset, snapshots, ordering and non-preemptive timeout limits.
+The separate `@pi-vista/checks-local` addon explicitly observes registered local
+paths, actual HEAD/full branch refs and Git status through private host config;
+its protocol params contain aliases and safe expected SHAs, never paths or
+commands. It does not replace the base no-I/O runtime or grant authority. See
+[docs/local-check-probes.md](docs/local-check-probes.md) for its six handlers,
+read-only controls, trusted-Git assumptions and non-atomic filesystem limits.
+Experience promotion, replay, receipt/test owner verification and CLI check
+commands remain future work. See [docs/check-functions.md](docs/check-functions.md)
+for the strict safe input subset, snapshots, ordering and non-preemptive timeout
+limits.
 
 ```bash
 npm run build

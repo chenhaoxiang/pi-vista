@@ -215,6 +215,24 @@ processes to isolate handlers.
 original protocol describes a future trusted repair policy, not permission for
 this slice. No automatic repairs, hidden retries or rechecks occur.
 
+## Separate explicit local addon
+
+`@pi-vista/checks-local` supplies actual registered local filesystem/Git
+observations in a fresh trusted-host registry: path presence/absence, actual HEAD
+SHA comparison, exact local branch presence/absence and Git status cleanliness.
+It does not change this base package's no-I/O runtime, input grammar or reports.
+Its same-named `sha_matches` reads HEAD with `{ repo, expected }`, unlike the pure
+base `{ expected, actual }` binding; no handler is silently overwritten.
+
+Private roots/repos/relative targets/full refs and the Git binary belong to
+detached host configuration, not definitions/context/reports. Params use aliases
+and an expected safe SHA. Fixed read-only subprocess settings, conservative
+filter/submodule refusals and namespace walks do not provide a hostile Git
+sandbox, atomic snapshot, receipt/test/owner authenticity or authorization.
+See [local-check-probes.md](local-check-probes.md) for the exact six schemas,
+config/API, fail-closed privacy controls and remaining limits. The observation
+CLI still has no check commands; REPAIR, replay and promotion remain unsupported.
+
 ## Validation and remaining scope
 
 Synthetic public-API tests cover genuine true/false predicates, STOP/WARN/skips,
@@ -235,8 +253,9 @@ and clean installation remain **unverified**. The manifest requires Node >=20;
 source, test and pack availability do not claim registry publication,
 deployment or operational acceptance.
 
-No filesystem/network/process execution, runtime persistence, Hindsight,
-artifact resolution, CLI check commands, real gate/guard/owner integration,
-replay, experience promotion, publication, or production configuration is added.
+The base `@pi-vista/checks` runtime adds no filesystem/network/process execution,
+runtime persistence, Hindsight, artifact resolution, CLI check commands, real
+gate/guard/owner integration, replay, experience promotion, publication, or
+production configuration. The separate local addon does not change that contract.
 See [PHASES.md](PHASES.md) and [architecture.md](architecture.md) for the remaining
 tracks and safety authority separation.

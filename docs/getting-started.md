@@ -23,6 +23,7 @@ services as fixtures.
 | `@pi-vista/adapter-ai-gate` | Already-sanitized owner evidence, explicit SHA relation and original mismatch outcome |
 | `@pi-vista/cli` | Offline/read-only recorded views and `vista` bin |
 | `@pi-vista/checks` | Trusted, opt-in metadata predicates; fail-closed, authorization none |
+| `@pi-vista/checks-local` | Separate explicit trusted-host actual local FS/Git predicates; private config, no authority |
 
 With the checkout's existing locked developer tools and local workspace links:
 
@@ -34,8 +35,9 @@ npm_config_offline=true npm run pack:dry-run
 ```
 
 The fixed root build order compiles protocol/core before all three adapters,
-CLI and checks. Root typecheck covers all packages and the integration test
-source; root tests preserve every package test and add the synthetic cross-package
+CLI and checks, followed by the checks-local addon. Root typecheck covers all
+eight packages and the integration test source; root tests preserve every
+original package test and add the addon and synthetic cross-package
 suite. No integration test contacts a real owner, model or network service.
 Offline pack/extraction smoke is not an npm clean install or consumer TSC check.
 
@@ -141,6 +143,24 @@ Timeout cannot preempt synchronous trusted callbacks or undo side effects. See
 boundaries. Node 20, a clean npm consumer install and consumer TypeScript
 compilation remain unverified; source/build/pack smoke is not publication or
 operational acceptance.
+
+### Optional actual local observations
+
+`@pi-vista/checks-local` is a separate, explicit host opt-in. Its async
+`createLocalCheckRegistry(config)` snapshots private root/repository/target/branch
+alias maps and returns a fresh registry with `path_exists`, `path_not_exists`,
+actual-HEAD `sha_matches`, `branch_exists`, `branch_not_exists` and
+`worktree_clean`. Config paths/refs and the trusted Git binary stay host-private;
+definition params contain only aliases and a safe expected SHA. No registry is
+silently overwritten and the base checks runtime remains no-I/O.
+
+See [the local probe guide](local-check-probes.md) for the exact API/config,
+component-walk/symlink and parent-discovery refusals, fixed Git argv/environment,
+read-only/filter/submodule controls and validation limits. Actual reads remain
+predicate-only, not receipt/test/gate or production authorization. Trusted local
+Git/config is not a hostile-repository sandbox; reads are non-atomic, not a
+race-proof filesystem jail. Node 20 and clean consumer install/TSC remain
+unverified. The observation CLI still has no check commands.
 
 ## 6. Planned Phase 3 promotion
 

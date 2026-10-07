@@ -16,7 +16,9 @@ Tests must use synthetic data, never real session logs; CLI fixtures belong in
 The merged infrastructure includes `@pi-vista/protocol`, `@pi-vista/core`,
 `@pi-vista/adapter-pi`, `@pi-vista/adapter-workspace-guard`,
 `@pi-vista/adapter-ai-gate`, `@pi-vista/cli`, and `@pi-vista/checks`.
-Build protocol/core first, then the other public packages. Root tests include
+The explicit trusted-host `@pi-vista/checks-local` addon adds bounded actual local
+FS/Git observations without changing the seven packages or safety authority.
+Build protocol/core first, then the other public packages and checks-local. Root tests include
 all existing package tests plus public-import synthetic integration tests.
 Source integration through PR #7 is recorded in the merge closeout; it does not
 imply registry publication, deployment or operational acceptance. The integration
@@ -34,6 +36,7 @@ review as a universal secret detector, owner verification or live/release author
 - [docs/metadata-safety.md](docs/metadata-safety.md): shared known-credential metadata boundaries, historical defect and source review limits
 - [docs/cli.md](docs/cli.md): maintained observation CLI/API, privacy and limits
 - [docs/check-functions.md](docs/check-functions.md): programmatic predicate registry/runner, fail-closed limits and no authorization
+- [docs/local-check-probes.md](docs/local-check-probes.md): explicit trusted-host local FS/Git addon, private config, read-only controls and limitations
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases
 - [docs/architecture.md](docs/architecture.md): storage and safety boundaries
 - [packages/core/README.md](packages/core/README.md): public core runtime contract
