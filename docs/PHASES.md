@@ -133,8 +133,12 @@ See [portable recall](portable-recall.md).
 lifecycle feeds and idempotency/crash reconciliation, actual owner integration,
 automatic task-start Pi context injection, remote revocation discovery and external
 model capability measurement. Serialized status-labelled documents cannot become
-verified handles. Local feature validation is not independent acceptance/hosted
-feature CI/merge, operational adaptation or capability lift.
+verified handles. [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12) portable
+source review (full same-model plus retained entry recheck), actual hosted
+Node20/22/26 source/consumer CI and normal remote merge/readback are complete;
+[closeout](handoff/2026-10-07-portable-recall-source-closeout.md) binds the actual
+659-case/installed fresh-process proof. This is not operational adaptation,
+live-service durability or capability lift.
 
 ## Delivery: Repeatable engineering gates (#17)
 

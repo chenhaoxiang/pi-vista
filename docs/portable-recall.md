@@ -272,13 +272,17 @@ The full review then found one new-run import P1 and one public counter-paramete
 P2. Driver reproductions confirmed both on Node20/26. The corrected entrypoints
 add three refusal/extra-argument regressions; current local source gates pass
 **659 cases**, and new installed-package producer/consumer processes repeat the
-restart proof. The original BLOCK is preserved; exact-head independent recheck
-and hosted feature CI/remote source acceptance remain separate gates. See the
+restart proof. The original BLOCK is preserved. Independent same-model retained
+entry recheck at `7334804` accepted both fixes (0 P0/P1/P2), and [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12)
+then completed actual hosted Node20/22/26 CI and normal source merge/readback.
+See [source closeout](handoff/2026-10-07-portable-recall-source-closeout.md) for
+actual postmerge 659-case/installed-process proof and remaining boundaries. See the
 [entry correction snapshot](handoff/2026-10-07-portable-recall-entry-fixes.md).
 
 These Node20/26 source and exact installed-tarball checks are engineering
-evidence, not hosted feature CI, independent review, publication, source merge,
-real Hindsight durability, production key/owner integration, default Pi activation,
+evidence. Actual independent review/hosted feature CI/source merge are recorded
+separately in the source closeout; neither those nor local checks establish
+publication, real Hindsight durability, production key/owner integration, default Pi activation,
 executable replay or measured model improvement. See [learning](learning.md),
 [evidence](authoritative-evidence.md), [architecture](architecture.md),
 [phase plan](PHASES.md), [release contract](release-contract.md) and
