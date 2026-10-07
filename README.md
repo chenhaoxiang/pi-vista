@@ -48,12 +48,21 @@ retained entry-fix recheck, actual Ubuntu Node20/22/26 source/consumer CI and
 isolated post-merge Node20 **659-case**/installed-process restart proofs passed.
 See its [source closeout](docs/handoff/2026-10-07-portable-recall-source-closeout.md).
 This acceptance is independently pinned, not transferred from PR10.
-Real durable Hindsight storage and owner/live wiring remain pending. Shadow
+Actual Hindsight service/durability acceptance and owner/live wiring remain pending. Shadow
 observation requires explicit owner normalization. The observation CLI is unchanged.
 See [learning](docs/learning.md), [portable recall](docs/portable-recall.md),
 [shadow](docs/adapters/shadow.md),
 [evidence](docs/authoritative-evidence.md), and the
 [release contract](docs/release-contract.md) for checked scope and remaining limits.
+
+**Explicit store source delivered:** [PR #14](https://github.com/chenhaoxiang/pi-vista/pull/14)
+normally merged the opt-in `@pi-vista/learning/hindsight` HTTP0.10.2 original-document
+adapter and cooperative local POSIX attempt/reconciliation seam. The learning root
+is unchanged. Independent same-model full review plus retained cancellation recheck,
+actual Ubuntu Node20/22/26 CI and isolated actual-main Node20 **748 cases**,
+eleven-tarball/**17-export** and installed HTTP/restart proofs passed.
+[Store closeout](docs/handoff/2026-10-07-hindsight-store-source-closeout.md) pins this
+source acceptance; real-service/distributed/lifecycle/owner/Pi/release work remains pending.
 
 ---
 
@@ -126,7 +135,7 @@ not a source of execution, merge, release or promotion authorization.
 1. **Model-agnostic** — no "teacher" or "student". Any call produces and consumes experience.
 2. **Verification-first** — observations may become candidates, but verified/trusted learning requires fresh opaque owner evidence; trusted promotion additionally requires exact confirmation and successful readback.
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
-4. **Hindsight is the intended long-term memory** — this checkout has local observation stores and process-local live handles, plus explicit portable signed-history verification/ports. Real durable memory, semantic adapters, lifecycle reconciliation and policy loading require separate host implementation.
+4. **Hindsight is the intended long-term memory** — source supplies local observations, process-local live handles, portable signed-history verification and an explicit HTTP/local-attempt addon. Actual service/distributed durability, semantic-recall quality, lifecycle policy and live owner integration still require separate acceptance.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
 6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. The bounded known-pattern candidate fix does not recognize arbitrary secret encodings or replace producer sanitization.
 
@@ -245,6 +254,8 @@ records.
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Verified learning and offline retrieval](docs/learning.md)
 - [Portable signed historical recall and observed-only import](docs/portable-recall.md)
+- [Explicit Hindsight original store and local attempt protection](docs/hindsight-store.md)
+- [Merged store source acceptance and remaining operational work](docs/handoff/2026-10-07-hindsight-store-source-closeout.md)
 - [Repeatable source and packed-consumer gates](docs/release-contract.md)
 
 The Pi adapter is a public helper only: Pi private extensions call it explicitly;

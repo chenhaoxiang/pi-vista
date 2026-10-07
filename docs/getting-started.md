@@ -30,7 +30,13 @@ full inspection/fix recheck and actual hosted Node20/22/26 CI. Isolated actual
 main Node20 source/consumer and installed separate-process archive proofs passed
 at **659 cases**; see [portable closeout](handoff/2026-10-07-portable-recall-source-closeout.md).
 These are separate pins from completed PR10 acceptance, not live-service acceptance.
-Package-consumer syntax below does not establish publication.
+[PR #14](https://github.com/chenhaoxiang/pi-vista/pull/14) then normally merged the
+explicit `@pi-vista/learning/hindsight` addon. Its own full same-model review plus
+retained cancellation recheck, exact-head/main Ubuntu Node20/22/26 CI and isolated
+actual-main Node20 **748-case**/11-tarball/17-export/installed HTTP-restart proofs
+passed. [Store closeout](handoff/2026-10-07-hindsight-store-source-closeout.md) retains
+exact pins and operational gaps; the default root/CLI and live authority remain
+unchanged. Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)
 records the old known defect; the [metadata guide](metadata-safety.md) documents
