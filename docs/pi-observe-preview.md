@@ -214,6 +214,10 @@ paths could be rebound. Parent reproductions confirm both on Node20/26; the
 original report/negative logs are preserved, not retroactively passed. The bounded
 correction adds 14 regressions (9 clock/epoch, 5 loss/cap/cross-run cases); all 14
 fail on the original runtime and pass on the corrected runtime on both versions.
+The first corrected full gate then exposed one branch-added hostile-name test's
+obsolete zero-record expectation. Only that counter now expects one lost-ID record;
+its zero-getter/privacy/drop assertions remain, with an added no-execution-event
+assertion. No original main assertion is modified, and that failed gate is retained.
 Full corrected source/installed validation and retained review disposition are
 recorded separately before source delivery.
 Actual Node26.9.0 and verified Node20.20.2 full source/offline local-tarball consumer

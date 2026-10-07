@@ -104,7 +104,10 @@ for (const type of ["proxy", "revoked-proxy", "id-getter", "name-getter", "overs
   if (type === "id-getter") Object.defineProperty(event, "toolCallId", { get() { traps++; throw Error("getter"); } });
   if (type === "name-getter") Object.defineProperty(event, "toolName", { get() { traps++; throw Error("getter"); } });
   if (type === "oversized-id") event.toolCallId = "a".repeat(257);
-  h.fire("tool_execution_start", event); await idle(h.controller); assert.equal(traps, 0); assert.equal(h.controller.status().dropped, 1); assert.equal(h.controller.status().correlations, 0);
+  h.fire("tool_execution_start", event); await idle(h.controller); assert.equal(traps, 0); assert.equal(h.controller.status().dropped, 1);
+  // Only the safely read valid ID survives as a capped, non-correlatable loss record.
+  assert.equal(h.controller.status().correlations, type === "name-getter" ? 1 : 0);
+  assert.equal(h.events.filter(e => e.action === "pi:tool-execution-start" || e.action === "pi:tool-execution-end").length, 0);
 });
 for (const kind of ["getter", "proxy", "revoked-proxy", "symbol", "custom-prototype"] as const) test(`closed task ${kind} rejects without traps or persisted raw metadata`, async () => {
   let traps = 0; let input: any = { ...TASK };
