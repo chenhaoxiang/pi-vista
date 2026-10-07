@@ -153,7 +153,9 @@ const context = recall.compileContext(selected, { max_characters: 8192, max_item
 This factory needs no old library, old owner key or WeakMap. `authenticate(document,
 {repo, bank})` independently validates an exact signed archive with the pinned
 public key. `select(histories, query)` operates offline over views authenticated
-by this exact recall instance. `compileContext` accepts only its private selection
+by this exact recall instance. The public `select` wrapper accepts only these
+two data inputs; extra JavaScript arguments are ignored and cannot seed internal
+transport rejection counters, retain objects or invoke coercion. `compileContext` accepts only its private selection
 identity. Copying/serializing **these views** does not restore capability either;
 re-authenticate the original signed document after a restart.
 
@@ -219,8 +221,10 @@ whole entries that do not fit are omitted. No capability-lift claim is made.
 
 `library.importHistorical(history, context)` requires an authentic still-acceptable
 historical view plus exactly `experience_id`, `run_id`, `repo`, `source_sha`,
-`policy_version`, `env_fingerprint`, `ts`. The four non-run bindings must match;
-source/policy/environment drift cannot become current checks. It creates only
+`policy_version`, `env_fingerprint`, `ts`. Both the experience ID and run ID
+must differ from the historical identities; rejection occurs before reserving
+an observation ID. The four non-run bindings must match; source/policy/environment
+drift cannot become current checks. It creates only
 **observed** safe script/step metadata with `historical_origin` retaining the old
 ID/run/bindings, origin, timestamp and archive digest. Old failure/model measurements
 stay in history, not relabelled as the new run's observations. Stored trust flags
@@ -258,11 +262,19 @@ receipt/key intervals end, observed-only import refuses copied proof, and only
 new consumer-run signed evidence can verify current state. Fixtures are excluded
 from runtime packages, and only test-created directories are cleaned.
 
-Local checked feature snapshot: Node26.9.0 and Node20.20.2 execute **656 cases**
+Initial pre-review feature snapshot: Node26.9.0 and Node20.20.2 executed **656 cases**
 (567 inherited assertions unchanged + 89 additive); learning executes **222**.
 Both actual installed-tarball consumers compile the self-contained portable fixture
 with locked TypeScript **5.9.3** and run producer/consumer in distinct fresh
 processes, asserting resolution to installed packages rather than workspace links.
+
+The full review then found one new-run import P1 and one public counter-parameter
+P2. Driver reproductions confirmed both on Node20/26. The corrected entrypoints
+add three refusal/extra-argument regressions; current local source gates pass
+**659 cases**, and new installed-package producer/consumer processes repeat the
+restart proof. The original BLOCK is preserved; exact-head independent recheck
+and hosted feature CI/remote source acceptance remain separate gates. See the
+[entry correction snapshot](handoff/2026-10-07-portable-recall-entry-fixes.md).
 
 These Node20/26 source and exact installed-tarball checks are engineering
 evidence, not hosted feature CI, independent review, publication, source merge,

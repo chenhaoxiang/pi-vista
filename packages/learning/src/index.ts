@@ -276,9 +276,12 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
       const source = historicalImport(history);
       const c = own(context, ["experience_id", "run_id", "repo", "source_sha", "policy_version", "env_fingerprint", "ts"]);
       const current = binding({ run_id: c.run_id, repo: c.repo, source_sha: c.source_sha, policy_version: c.policy_version, env_fingerprint: c.env_fingerprint });
-      if (!sameRetrievalBinding(source.experience, current)) throw new LearningError("unverified-archive");
+      const experienceId = label(c.experience_id);
+      if (!sameRetrievalBinding(source.experience, current) || current.run_id === source.experience.run_id ||
+        experienceId === source.experience.experience_id) throw new LearningError("unverified-archive");
+      // Reject historical identity reuse before observe can reserve any ID.
       // Old-run failure/model observations stay in history, not relabelled as this new run's measurements.
-      const handle = library.observe({ ...current, experience_id: label(c.experience_id), ts: integer(c.ts), task_type: source.experience.task_type,
+      const handle = library.observe({ ...current, experience_id: experienceId, ts: integer(c.ts), task_type: source.experience.task_type,
         script: source.experience.script, steps: source.experience.steps });
       const record = active(handle); record.historicalOrigin = source.origin; return raise(record, "observed");
     },

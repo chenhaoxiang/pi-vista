@@ -126,7 +126,10 @@ export function createPortableRecall(config: PortableRecallConfig): PortableReca
   }
   const recall: PortableRecall = frozen({
     authenticate,
-    select,
+    // Transport-derived count seeds remain private; extra JS arguments are ignored.
+    select(inputs: readonly HistoricalExperience[], queryInput: HistoricalQuery): HistoricalSelection {
+      return select(inputs, queryInput);
+    },
     async recall(queryInput: HistoricalQuery): Promise<HistoricalSelection> {
       const q = query(queryInput); if (!port) throw new LearningError("recall-unavailable");
       const refs = await bounded(signal => port!.query(q, signal), timeout, value => {
