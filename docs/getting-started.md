@@ -111,6 +111,10 @@ source build/pack evidence alone does not establish that publication.
 
 ## 2. Set VISTA_RUN_ID in your Pi session
 
+This manual identity example applies to the existing core/adapter helper, not the
+optional `learning/pi` seam below, which generates new run IDs without environment
+or native session discovery.
+
 pi-vista uses a `run_id` to tie all events from one task together.
 An explicitly created Pi run context manages its identity; no private Pi hook is
 installed by this package. For manual use:
@@ -258,6 +262,25 @@ metadata. `toVistaEventInput` is pure; `emitShadowObservation` is an explicit
 best-effort core call. Wrap an EventStore as `{ append: event => store.append(event) }`.
 Allow/pass never produces ok; eligibility stays false, veto/abstention/missing
 context remains non-positive. No owner normalization or activation is installed.
+
+## 7. Optional explicit Pi observation and preview candidate
+
+Import `createPiObservation` only from `@pi-vista/learning/pi`, supply closed safe
+host task/classification metadata, explicit native-promise store/recall ports and
+clock, and explicitly load its `extension` through a host-owned public resource
+loader. No package manifest/settings autoload or default store is added. The
+frozen `controller` supports `status`, `preview`, exact local `adopt`, optional
+`verifyCurrent`, `reset` and `shutdown` without sensitive stdout. Four slash
+commands expose the same read-only/local-acknowledgement operations; no prompt,
+editor, model/tool selection or memory write is performed.
+
+Read [the Pi preview guide](pi-observe-preview.md) for config, seven notification
+hooks, parallel steps/epochs, privacy and failure quotas. Actual Pi1.0.4 requires
+Node22.19+; Node20 validates library/mock-host usage only. Full host declaration
+checking is upstream-blocked, with a separately approved assignment-only check;
+actual Node26 public runner dispatch is not full interactive/model acceptance.
+Independent source review, hosted CI and parent-owned merge remain pending.
+Owner producers/key provenance are still MISSING and authorization is always none.
 
 Future CLI check/failure/promote/replay commands remain roadmap items, not
 aliases for these APIs. Signed claims, trusted memory status and all local

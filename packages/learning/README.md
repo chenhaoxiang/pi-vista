@@ -76,6 +76,19 @@ Portable recall methods: `authenticate`, `select`, `recall`, and `compileContext
 The opt-in `./hindsight` subpath alone exports `createHindsightStore` and its config /
 reconciliation/store types; the root import graph has no addon I/O dependencies.
 
+The separate optional `@pi-vista/learning/pi` subpath exports
+`createPiObservation` and frozen controller/config/status/preview types. A trusted
+host explicitly loads seven public notification hooks and supplies safe task/tool
+metadata, clocks and optional store/history/evidence ports. Original signed
+historical Script/Step preview can be acknowledged locally by exact private
+identity/digest, without prompt/editor injection, execution or memory write.
+No default stores, environment/session discovery, SDK dependency, settings or
+activation is added; root runtime remains unchanged. See
+[the Pi observation/preview guide](../../docs/pi-observe-preview.md) for quotas,
+failure handling, current-vs-historical proof, provisional source status and the
+installed SDK declaration limitation. Pi1.0.4 needs Node22.19+; Node20 support is
+for this library/mock-host seam, not the host SDK.
+
 Full input schemas, confirmation/transport semantics, lifecycle and privacy
 limits: [docs/learning.md](../../docs/learning.md) in the source repository.
 This package does not authorize execution, repair, merge, release, model routing

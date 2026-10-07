@@ -12,9 +12,10 @@ verified: 2026-10-07
 
 - [x] User approves explicit observation and preview source scope.
 - [x] Read owner contracts, current remote baseline and public Pi docs/declarations.
-- [ ] Implement the optional factory/controller without changing root/CLI authority.
-- [ ] Add synthetic parallel/nested/retry/replacement/privacy/fault/preview/proof regressions; preserve original blobs.
-- [ ] Run Node20/26 source gates and exact installed-tarball consumers, plus an isolated no-provider real SDK dispatch/type test.
+- [x] Implement the optional factory/controller without changing root/CLI authority.
+- [x] Add synthetic parallel/nested/retry/replacement/privacy/fault/preview/proof regressions; preserve original blobs.
+- [x] Run Node20/26 source gates and exact installed-tarball consumers, plus isolated no-provider public SDK loading/dispatch and bounded assignment-only typing.
+- [ ] Full installed SDK dependency declaration health: strict TS5.9.3 NodeNext skipLibCheck:false FAILED on 42 upstream pi-ai JSON import-attribute diagnostics and @google/genai missing optional MCP type. Original failure retained; supervisor approved SDK-only strict + skipLibCheck:true assignment evidence, not weakening source/consumer gates or claiming full SDK compatibility.
 - [ ] Independent fresh-context same-model read-only full-range review and bounded correction recheck if needed.
 - [ ] Exact-head hosted CI, ordinary source PR merge and remote/canonical readback.
 - [ ] Maintained maps and source closeout evidence.

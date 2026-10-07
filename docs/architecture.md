@@ -204,6 +204,25 @@ See [evidence](authoritative-evidence.md), [learning](learning.md), and
 
 ---
 
+## Optional explicit Pi observation/preview candidate
+
+The separate [`@pi-vista/learning/pi`](pi-observe-preview.md) import adds one
+host-configured run-epoch seam; learning root/adapter/CLI behavior is unchanged.
+Seven public notification handlers return undefined synchronously, detach capped
+best-effort work, keep parallel/nested original steps distinct and treat low-level
+agent_end as nonfinal until agent_settled. Omitted stores never create defaults.
+Only safe host metadata crosses explicit core event/checkpoint ports.
+
+Authentic original portable history supplies whole bounded Script/Step preview;
+private current-epoch identity plus exact digest and fresh history reads permit
+only a local guidance acknowledgement. No prompt/editor/context injection, bank
+write or executable replay occurs. Optional exact evidence verification is
+separate from observed/history/MISSING state and grants no authority. Session,
+task/epoch changes and expiry invalidate guidance/proof. Public SDK runner
+validation is synthetic, not real task/owner acceptance; full installed SDK
+strict dependency declaration checking remains upstream-blocked. Independent
+source review/CI/merge and actual owner producers/key provenance remain pending.
+
 ## Component responsibilities
 
 | Component | Owns | Does NOT own |

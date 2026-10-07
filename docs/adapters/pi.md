@@ -102,3 +102,15 @@ watchdog, permission, model-routing, or safety decisions.
 `store`, `eventStore`, and `checkpointStore` are storage wiring options.
 Configure filesystem locations on the core stores themselves; they are not
 adapter event payload fields and raw storage paths are never emitted.
+
+## Separate optional notification/preview seam
+
+The additive [`@pi-vista/learning/pi`](../pi-observe-preview.md) candidate provides
+explicit public-Pi-compatible notification loading and a frozen programmatic
+observation/historical-preview controller. It does not modify this adapter or
+reuse its mutable current step for parallel tool correlation. No default store,
+environment/session discovery, settings activation, prompt injection or current
+authority is inherited. Local-only exact preview selection and optional fresh
+owner evidence verification remain separate. Independent source acceptance is
+pending; actual SDK runner proof is bounded synthetic dispatch, with an upstream
+full-declaration typechecking limitation described in the guide.

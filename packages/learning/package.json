@@ -13,6 +13,10 @@
     "./hindsight": {
       "types": "./dist/hindsight/index.d.ts",
       "import": "./dist/hindsight/index.js"
+    },
+    "./pi": {
+      "types": "./dist/pi/index.d.ts",
+      "import": "./dist/pi/index.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
