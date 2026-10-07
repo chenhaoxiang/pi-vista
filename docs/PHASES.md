@@ -133,10 +133,15 @@ all public imports/bin checks, bounded package-content checks and pinned
 least-privilege GitHub workflow. Actual local Node20 validation is recorded in
 [release-contract.md](release-contract.md).
 
-**Pending**: independent exact full-range engineering review, parent-controlled
-source PR/normal remote merge and reread, hosted Ubuntu CI/required checks,
-fresh-cache/registry availability, publication/deployment and operational
-acceptance. Local passes do not authorize any of these. The root lint command
+**Completed source acceptance (2026-10-07)**: [PR #10](https://github.com/chenhaoxiang/pi-vista/pull/10)
+normal merge/readback, independent same-model full inspection plus retained
+P1-fix recheck, actual Ubuntu Node20/22/26 source/consumer CI before and after
+source merge, and isolated post-merge Node20 **567** test cases/eleven-tarball
+consumer validation. [Closeout](handoff/2026-10-07-verified-learning-source-closeout.md)
+records the exact pins, initial BLOCK and later recheck provenance.
+
+**Pending**: platform required-check policy configuration, fresh-cache/registry
+availability, publication/deployment and operational acceptance. Local passes do not authorize any of these. The root lint command
 is present but there are currently no workspace lint implementations.
 
 ## Permanently excluded authority changes

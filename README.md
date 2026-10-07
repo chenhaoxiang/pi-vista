@@ -30,12 +30,17 @@ preserves the old source pins' credential defect as historical evidence; the
 [shared metadata guide](docs/metadata-safety.md) describes the repaired contract
 and its limits. Producer sanitization remains required.
 
-**Current continuation checkout: 11 public source packages.** The additive
-`evidence`, `learning` and `adapter-shadow` APIs and repeatable source/packed-consumer
-scripts are locally integrated, not yet independently accepted or merged to
-remote `main`. Learning/retrieval is a process-local programmatic library;
-shadow observation requires explicit owner normalization. The observation CLI
-is unchanged. See [learning](docs/learning.md), [shadow](docs/adapters/shadow.md),
+**Merged continuation: 11 public source packages.** [PR #10](https://github.com/chenhaoxiang/pi-vista/pull/10)
+normally merged the additive `evidence`, `learning`, `adapter-shadow` APIs and
+repeatable source/packed-consumer gates into remote `main` on 2026-10-07.
+Exact-source review was independent same-model full inspection plus retained
+P1-fix recheck, not heterogeneous/human approval. Actual Node20/22/26 hosted
+source/consumer CI passed before and after source merge; isolated post-merge
+Node20 validation passed **567 test cases** and real eleven-tarball consumer
+checks. See the [continuation closeout](docs/handoff/2026-10-07-verified-learning-source-closeout.md).
+Learning/retrieval is still a process-local programmatic library; durable
+Hindsight recall and owner/live wiring remain pending. Shadow observation
+requires explicit owner normalization. The observation CLI is unchanged. See [learning](docs/learning.md), [shadow](docs/adapters/shadow.md),
 [evidence](docs/authoritative-evidence.md), and the
 [release contract](docs/release-contract.md) for checked scope and remaining limits.
 

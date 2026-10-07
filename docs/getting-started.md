@@ -16,12 +16,15 @@ ssot: true
 The seven-package infrastructure and bounded metadata/generation repairs were
 merged into `main` through [PR #7](https://github.com/chenhaoxiang/pi-vista/pull/7).
 Exact-source review and isolated post-merge validation passed, including 232
-tests in that historical snapshot. The current continuation locally integrates
-11 public packages, including explicit evidence/learning/shadow APIs and root
-source/Node20/actual packed-consumer gates. Local compatibility evidence is
-recorded in [release-contract.md](release-contract.md), not transferred from the
-old snapshot. Independent exact-source review, remote merge, hosted GitHub CI,
-registry publication and real owner/live integration remain pending.
+tests in that historical snapshot. [PR #10](https://github.com/chenhaoxiang/pi-vista/pull/10)
+subsequently merged all 11 public packages and explicit evidence/learning/shadow
+APIs, source/Node20/actual packed-consumer gates. Independent same-model full
+review plus retained P1-fix recheck, actual hosted Node20/22/26 CI and isolated
+post-merge Node20 source/consumer checks passed. The current source closeout is
+[here](handoff/2026-10-07-verified-learning-source-closeout.md); local compatibility
+evidence is recorded in [release-contract.md](release-contract.md), not transferred
+from the old snapshot. Registry publication, real owner/live integration and
+durable cross-process Hindsight recall remain pending.
 Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)

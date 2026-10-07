@@ -33,9 +33,11 @@ verified: 2026-10-07
 - [x] Add pinned least-privilege CI definition, actual local tarball install/strict consumer TypeScript, actual minimum Node20 and bounded non-release gates
 - [x] Merge the three preserved local handoffs normally, preserve their ancestry, wire all 11 packages into root scripts/lock and deterministic integration enumeration
 - [x] Run combined offline source, full tests/script tests, pack and actual Node20/packed-consumer gates; retain exact evidence
-- [ ] Run the hosted GitHub CI matrix and establish any platform required-check acceptance
-- [ ] Complete independent exact full-range source engineering review (same-model local checks are not this gate)
-- [ ] Merge source normally to remote main, reread remote main and close the parent-controlled documentation loop
+- [x] Run actual hosted Node20/22/26 GitHub source/consumer CI before and after PR10 source merge
+- [ ] Establish any separately configured platform required-check policy; no protection settings changed
+- [x] Complete independent same-model full-range inspection plus retained correction recheck; preserve original BLOCK/delivery failures and final exact-head OK
+- [x] Merge source PR10 normally, verify reviewed/merged tree equality/ancestry, reread remote main and safely synchronize canonical main
+- [ ] Merge this source-closeout documentation through its own normal reviewed PR
 
 All implemented checks are source/package evidence, not publication, deployment,
 owner activation, live memory writes, model calls, training, execution or release
