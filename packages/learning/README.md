@@ -54,13 +54,27 @@ bank, signer, credentials or Pi injection is installed. See
 [docs/portable-recall.md](../../docs/portable-recall.md) for exact schemas/policies,
 separate-process synthetic proof and trusted-host/durability limits.
 
-Public exports: `createLearningLibrary`, `createPortableRecall`, `classifyFailure`,
+The explicit `createHindsightStore({ endpoint, banks, journal_directory, ... })`
+factory, imported only from `@pi-vista/learning/hindsight`, returns frozen `sink`,
+`port` and remote-read-only `reconcile` APIs. It uses pinned Hindsight 0.10.2 synchronous retain plus independently matched
+original-document GET, not generated facts/pages. An exclusive synced intent in
+an existing private local POSIX root precedes retain; existing/uncertain/partial
+claims never allow a second POST. Endpoint/token/paths stay private, with no
+import/factory I/O, defaults, hidden retry, lease/reset/deletion or activation.
+Portable recall still independently authenticates signatures; matched persistence
+cannot restore current proof. See [the store guide](../../docs/hindsight-store.md)
+for closed configuration, HTTP/abort/byte bounds, journal and trusted-host limits.
+Actual service/durability/owner acceptance remains pending.
+
+Root public exports: `createLearningLibrary`, `createPortableRecall`, `classifyFailure`,
 `HINDSIGHT_CUSTOM_PAGES`, `LearningError`, the bounds, and API types. Library methods:
 `observe`, `nominate`, `verifyCandidate`, `reject`, `deprecate`, `supersede`,
 `preparePromotion`, `prepareCorrection`, `commitPromotion`, `planReplay`,
 `compareRecorded`, `retrieve`, `compileContext`, `evaluateRetrieval`,
 `modelStatistics`, `prepareArchive`, `commitArchive`, and `importHistorical`.
 Portable recall methods: `authenticate`, `select`, `recall`, and `compileContext`.
+The opt-in `./hindsight` subpath alone exports `createHindsightStore` and its config /
+reconciliation/store types; the root import graph has no addon I/O dependencies.
 
 Full input schemas, confirmation/transport semantics, lifecycle and privacy
 limits: [docs/learning.md](../../docs/learning.md) in the source repository.

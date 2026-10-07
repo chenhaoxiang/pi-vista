@@ -24,7 +24,7 @@ post-merge Node20 source/consumer checks passed. The current source closeout is
 [here](handoff/2026-10-07-verified-learning-source-closeout.md); local compatibility
 evidence is recorded in [release-contract.md](release-contract.md), not transferred
 from the old snapshot. Registry publication, real owner/live integration and
-actual durable Hindsight transport remain pending. [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12)
+actual Hindsight service/durability acceptance remain pending. [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12)
 merged the additive portable signed historical source after its own same-model
 full inspection/fix recheck and actual hosted Node20/22/26 CI. Isolated actual
 main Node20 source/consumer and installed separate-process archive proofs passed
@@ -229,9 +229,13 @@ and explicit trusted native-promise ingest/readback callbacks. Live learning tes
 use synthetic sinks only. The additive [portable recall](portable-recall.md) APIs
 support explicit signed historical archives/query-read ports and observed-only
 import across separate process lifetimes, with a test-owned file-backed mock.
-They never restore current trust from old proof/status. No real Hindsight writes,
-automatic Pi context injection or executable replay are implemented. Context
-bounds are characters, not tokens; fixture evaluation is not model lift.
+They never restore current trust from old proof/status. The additive opt-in
+[Hindsight store](hindsight-store.md) supplies concrete bounded 0.10.2 HTTP
+sink/query/read callbacks and a synced local cross-process attempt journal;
+reconciliation is remote read-only and existing claims never send another retain.
+Tests use actual synthetic loopback HTTP only, not a real service or credential.
+No default client/Pi injection/executable replay or operational acceptance is
+implied. Context bounds are characters, not tokens; fixture evaluation is not model lift.
 
 [The shadow adapter](adapters/shadow.md) accepts only owner-normalized closed
 metadata. `toVistaEventInput` is pure; `emitShadowObservation` is an explicit

@@ -49,7 +49,7 @@ export function producer(input: unknown): ArchiveProducer {
   if (p.trust !== "pinned-history") invalid();
   return frozen({ pin: p, now, sign: callback<ArchiveProducerConfig["sign"]>(v.sign) });
 }
-function experience(input: unknown): SafeExperienceSnapshot {
+export function experience(input: unknown): SafeExperienceSnapshot {
   const required = ["experience_id", "run_id", "repo", "source_sha", "policy_version", "env_fingerprint", "task_type", "ts", "script", "steps"];
   const v = own(input, [...required, "model_id", "failure_analysis"], required);
   let failure: FailureObservation | undefined;
@@ -70,7 +70,7 @@ function experience(input: unknown): SafeExperienceSnapshot {
   return observation({ ...bindingOf(v as unknown as SafeExperienceSnapshot), experience_id: v.experience_id, task_type: v.task_type, ts: v.ts, script: v.script, steps: v.steps,
     ...(v.model_id === undefined ? {} : { model_id: v.model_id }), ...(failure === undefined ? {} : { failure_analysis: failure }) } as Parameters<typeof observation>[0]);
 }
-function receipts(input: unknown): readonly ReceiptSummary[] {
+export function receipts(input: unknown): readonly ReceiptSummary[] {
   const kinds = ["gate", "test", "guard"] as const;
   return frozen(list(input, 3, 3).map((item, index) => {
     const v = own(item, ["kind", "issuer", "receipt_ref", "content_digest", "expires_at"]);

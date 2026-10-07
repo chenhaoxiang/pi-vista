@@ -69,6 +69,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/handoff/2026-10-07-portable-recall-source-closeout.md](docs/handoff/2026-10-07-portable-recall-source-closeout.md): PR12 pins/CI/current-main restart proofs, historical-vs-current trust and remaining host/live scope
 - [docs/handoff/2026-10-07-portable-recall-entry-fixes.md](docs/handoff/2026-10-07-portable-recall-entry-fixes.md): original portable review BLOCK, new-identity/public-counter corrections and bounded local proof
 - [docs/portable-recall.md](docs/portable-recall.md): explicit signed historical archives/Hindsight ports, restart authentication and observed-only import without current authority
+- [docs/handoff/2026-10-07-hindsight-store-cancellation-fix.md](docs/handoff/2026-10-07-hindsight-store-cancellation-fix.md): preserved original P2, installed abort/deadline reproductions and additive pre-create cancellation correction
+- [docs/hindsight-store.md](docs/hindsight-store.md): opt-in exact original HTTP store, cooperative local attempt journal and read-only reconciliation; no live proof restoration
 - [docs/adapters/shadow.md](docs/adapters/shadow.md): explicit owner-normalized non-authorizing shadow observer
 - [docs/release-contract.md](docs/release-contract.md): repeatable source/Node20/actual packed-consumer evidence and non-release boundaries
 - [openspec/changes/verified-learning/proposal.md](openspec/changes/verified-learning/proposal.md): inherited evidence/learning/shadow/retrieval/release continuation
