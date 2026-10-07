@@ -43,8 +43,11 @@ review as a universal secret detector, owner verification or live/release author
 
 Signed evidence requires explicit host-pinned public keys/readers and freshness;
 local gate scripts, predicate reports, copied flags and shadow observations cannot
-mint opaque proof. Learning handles/selections are process-local, not serialized
-Hindsight recall; confirmed promotion uses only an explicitly injected sink.
+mint opaque proof. Live learning handles/selections remain process-local; opt-in
+portable archive signatures authenticate history only, never serialized current
+proof. Historical views say current-verification-not-checked, authorization none
+and executable false; observed-only import still needs new current evidence.
+Confirmed promotion/archive upload use only an explicitly injected sink.
 Recorded replay is executable=false/authorization=none. Shadow requires explicit
 owner normalization, preserves non-positive outcomes and cannot activate models,
 prove isolation or change eligibility. No CLI check/promote/replay command is added.
@@ -63,6 +66,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/handoff/2026-10-07-verified-learning-p1-fixes.md](docs/handoff/2026-10-07-verified-learning-p1-fixes.md): preserved full-review BLOCK, own-only/native-case corrections and bounded local evidence
 - [docs/authoritative-evidence.md](docs/authoritative-evidence.md): opt-in signed owner receipts, opaque provenance and non-authorizing probes
 - [docs/learning.md](docs/learning.md): process-local verified learning, exact confirmed sink/readback, failure/replay and character-bounded retrieval
+- [docs/handoff/2026-10-07-portable-recall-entry-fixes.md](docs/handoff/2026-10-07-portable-recall-entry-fixes.md): original portable review BLOCK, new-identity/public-counter corrections and bounded local proof
+- [docs/portable-recall.md](docs/portable-recall.md): explicit signed historical archives/Hindsight ports, restart authentication and observed-only import without current authority
 - [docs/adapters/shadow.md](docs/adapters/shadow.md): explicit owner-normalized non-authorizing shadow observer
 - [docs/release-contract.md](docs/release-contract.md): repeatable source/Node20/actual packed-consumer evidence and non-release boundaries
 - [openspec/changes/verified-learning/proposal.md](openspec/changes/verified-learning/proposal.md): inherited evidence/learning/shadow/retrieval/release continuation

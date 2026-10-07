@@ -13,7 +13,12 @@ import {
   sameBinding, sameRetrievalBinding,
 } from "./data.js";
 import { contextOptions, correction as snapshotCorrection, observation, query as snapshotQuery, type SnapshotObservation, type SnapshotQuery } from "./input.js";
+import type { ArchivePlan, ArchivePayload, ArchiveUpload, HistoricalExperience, HistoricalImportContext, HistoricalOriginReference } from "./portable-contract.js";
+import { producer as snapshotProducer, originOf, payload as archivePayload, requireProducerTime, signDocument, type ArchiveProducer } from "./portable-data.js";
+import { historicalImport } from "./portable.js";
 export * from "./contract.js";
+export * from "./portable-contract.js";
+export { createPortableRecall } from "./portable.js";
 export { classifyFailure } from "./failure.js";
 
 /** Configuration snippet only: no configuration file, plugin or bank is edited. */
@@ -22,7 +27,8 @@ export const HINDSIGHT_CUSTOM_PAGES = frozen({ customPages: frozen({
   "Failure patterns": frozen({ source_query: "What has failed repeatedly? What was the root cause and the verified fix?", tags: frozen(["knowledge:failure"]) }),
 }) });
 
-interface ExperienceRecord { readonly input: SnapshotObservation; current: ExperienceHandle; proof?: VerifiedEvidence; promotionStarted: boolean; }
+interface ExperienceRecord { readonly input: SnapshotObservation; current: ExperienceHandle; proof?: VerifiedEvidence; promotionStarted: boolean; historicalOrigin?: HistoricalOriginReference; }
+interface ArchivePlanRecord { readonly record: ExperienceRecord; readonly handle: ExperienceHandle; readonly proof: VerifiedEvidence; readonly payload: ArchivePayload; readonly request: IngestRequest; used: boolean; }
 interface PlanRecord { readonly record: ExperienceRecord; readonly handle: ExperienceHandle; readonly proof: VerifiedEvidence; readonly request: IngestRequest; used: boolean; }
 interface SelectionRecord { readonly query: SnapshotQuery; readonly handles: readonly ExperienceHandle[]; }
 const CONTEXT_HEADER = "authorization=none\nmode=script-step-context\nbudget=characters-not-tokens\n";
@@ -50,11 +56,12 @@ function validateReadback(input: unknown, receipt: SinkReceipt, request: IngestR
 
 /** Explicit host factory; only the exact evidence factory's verifier identity is accepted. */
 export function createLearningLibrary(config: LearningConfig): LearningLibrary {
-  let verifier: LearningConfig["verifier"]; let sink: LearningSink | undefined; let timeout: number;
+  let verifier: LearningConfig["verifier"]; let sink: LearningSink | undefined; let timeout: number; let archive: ArchiveProducer | undefined;
   try {
-    const c = own(config, ["verifier", "sink", "timeout_ms"], ["verifier"]);
+    const c = own(config, ["verifier", "sink", "timeout_ms", "archive"], ["verifier"]);
     if (!isEvidenceVerifier(c.verifier)) invalid(); verifier = c.verifier;
     timeout = integer(c.timeout_ms ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS, 1);
+    if (c.archive !== undefined) archive = snapshotProducer(c.archive);
     if (c.sink !== undefined) {
       const s = own(c.sink, ["ingest", "readback"]);
       if (typeof s.ingest !== "function" || types.isProxy(s.ingest) || typeof s.readback !== "function" || types.isProxy(s.readback)) invalid();
@@ -63,6 +70,7 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
   } catch { throw new LearningError("invalid-config"); }
   const handles = new WeakMap<object, ExperienceRecord>(); const ids = new Set<string>();
   const plans = new WeakMap<object, PlanRecord>(); const selections = new WeakMap<object, SelectionRecord>();
+  const archivePlans = new WeakMap<object, ArchivePlanRecord>(); const archived = new WeakSet<ExperienceRecord>();
   // Process-local, one-shot identities. The host must supply durable/cross-process idempotency.
   const attempts = new Set<string>();
   function lookup(value: unknown): ExperienceRecord | undefined {
@@ -75,7 +83,8 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
   function raise(record: ExperienceRecord, status: LearningStatus, documentId?: string, supersededBy?: string): ExperienceHandle {
     const handle: ExperienceHandle = frozen({ ...record.input, authorization: "none", status,
       ...(record.proof === undefined ? {} : { verification: frozen({ verification: "authority-bound", authorization: "none", receipts: safeReceipts(record.proof) }) }),
-      ...(documentId === undefined ? {} : { hindsight_doc_id: documentId }), ...(supersededBy === undefined ? {} : { superseded_by: supersededBy }) });
+      ...(documentId === undefined ? {} : { hindsight_doc_id: documentId }), ...(supersededBy === undefined ? {} : { superseded_by: supersededBy }),
+      ...(record.historicalOrigin === undefined ? {} : { historical_origin: record.historicalOrigin }) });
     record.current = handle; handles.set(handle, record); return handle;
   }
   function verified(value: unknown): ExperienceRecord {
@@ -104,6 +113,11 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
   function stillValid(plan: PlanRecord, proof: VerifiedEvidence): void {
     if (plan.record.current !== plan.handle || plan.handle.status !== "verified") throw new LearningError("promotion-invalidated");
     if (!verifier.isCurrent(proof, bindingOf(plan.record.input))) throw new LearningError("unverified-evidence");
+  }
+  function stillArchiveValid(record: ExperienceRecord, handle: ExperienceHandle, proof: VerifiedEvidence, payload: ArchivePayload): void {
+    if (record.current !== handle || !["verified", "trusted"].includes(handle.status)) throw new LearningError("archive-invalidated");
+    if (!verifier.isCurrent(proof, bindingOf(record.input))) throw new LearningError("unverified-evidence");
+    requireProducerTime(payload, archive!);
   }
   function replay(handle: ExperienceHandle, expectedInput: EvidenceBinding): ReplayPlan {
     const record = active(handle); const expected = binding(expectedInput);
@@ -163,7 +177,7 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
       if (ids.has(snapshot.experience_id)) throw new LearningError("duplicate-experience");
       if (ids.size >= MAX_EXPERIENCES) invalid();
       // Every input is validated before reserving an identity.
-      const record = { input: snapshot, promotionStarted: false } as ExperienceRecord;
+      const record = Object.assign(Object.create(null), { input: snapshot, promotionStarted: false }) as ExperienceRecord;
       const handle = raise(record, "observed"); ids.add(snapshot.experience_id); return handle;
     },
     nominate(handle: ExperienceHandle): ExperienceHandle {
@@ -213,6 +227,63 @@ export function createLearningLibrary(config: LearningConfig): LearningLibrary {
       await bounded(signal => sink!.readback(receipt, signal), timeout, value => validateReadback(value, receipt, privatePlan.request));
       stillValid(privatePlan, proof);
       privatePlan.record.proof = proof; return raise(privatePlan.record, "trusted", receipt.document_id);
+    },
+    async prepareArchive(handle: ExperienceHandle, bankInput: string): Promise<ArchivePlan> {
+      const record = verified(handle); const bank = label(bankInput);
+      if (!archive) throw new LearningError("archive-unavailable");
+      if (archive.pin.repo !== record.input.repo || archive.pin.bank !== bank) throw new LearningError("unverified-archive");
+      const original = record.proof!;
+      let proof: VerifiedEvidence;
+      try { proof = await verifier.revalidate(original); } catch { throw new LearningError("unverified-evidence"); }
+      if (record.current !== handle) throw new LearningError("archive-invalidated");
+      if (!verifier.isCurrent(proof, bindingOf(record.input))) throw new LearningError("unverified-evidence");
+      let payload: ArchivePayload;
+      try {
+        const time = archive.now(); if (time < proof.verified_at) invalid();
+        payload = archivePayload({ schema: 1, purpose: "portable-experience-history", authorization: "none", executable: false,
+          origin: originOf(archive.pin), archived_at: time, source_status_at_archive: handle.status,
+          experience: record.input, evidence: safeReceipts(proof) });
+      } catch { throw new LearningError("unverified-archive"); }
+      stillArchiveValid(record, handle, proof, payload);
+      const document = await signDocument(payload, archive, timeout);
+      stillArchiveValid(record, handle, proof, payload);
+      const previewDigest = hash(canonical({ bank, document }));
+      const request: IngestRequest = frozen({ bank, ...document, idempotency_key: `archive-${previewDigest}` });
+      const plan: ArchivePlan = frozen({ authorization: "none", executable: false, mode: "dry-run", experience_id: handle.experience_id,
+        bank, origin: payload.origin, archive_digest: hash(canonical(payload)), document, preview_digest: previewDigest, idempotency_key: request.idempotency_key });
+      archivePlans.set(plan, { record, handle, proof, payload, request, used: false }); return plan;
+    },
+    async commitArchive(plan: ArchivePlan, confirmation: PromotionConfirmation): Promise<ArchiveUpload> {
+      const privatePlan = plan !== null && typeof plan === "object" ? archivePlans.get(plan) : undefined;
+      if (!privatePlan) throw new LearningError("invalid-plan");
+      let confirmed: string;
+      try { confirmed = digest(own(confirmation, ["preview_digest"]).preview_digest); } catch { throw new LearningError("invalid-confirmation"); }
+      if (confirmed !== plan.preview_digest) throw new LearningError("invalid-confirmation");
+      if (privatePlan.used || archived.has(privatePlan.record) || attempts.has(plan.idempotency_key)) throw new LearningError("archive-used");
+      if (!sink) throw new LearningError("sink-unavailable");
+      stillArchiveValid(privatePlan.record, privatePlan.handle, privatePlan.proof, privatePlan.payload);
+      privatePlan.used = true; archived.add(privatePlan.record); attempts.add(plan.idempotency_key);
+      let proof: VerifiedEvidence;
+      try { proof = await verifier.revalidate(privatePlan.proof); } catch { throw new LearningError("unverified-evidence"); }
+      stillArchiveValid(privatePlan.record, privatePlan.handle, proof, privatePlan.payload);
+      const receipt = await bounded(signal => sink!.ingest(privatePlan.request, signal), timeout, value => validateReceipt(value, privatePlan.request));
+      stillArchiveValid(privatePlan.record, privatePlan.handle, proof, privatePlan.payload);
+      await bounded(signal => sink!.readback(receipt, signal), timeout, value => validateReadback(value, receipt, privatePlan.request));
+      stillArchiveValid(privatePlan.record, privatePlan.handle, proof, privatePlan.payload);
+      return frozen({ ...receipt, authorization: "none", executable: false, persistence: "host-readback-matched", archive_digest: plan.archive_digest });
+    },
+    importHistorical(history: HistoricalExperience, context: HistoricalImportContext): ExperienceHandle {
+      const source = historicalImport(history);
+      const c = own(context, ["experience_id", "run_id", "repo", "source_sha", "policy_version", "env_fingerprint", "ts"]);
+      const current = binding({ run_id: c.run_id, repo: c.repo, source_sha: c.source_sha, policy_version: c.policy_version, env_fingerprint: c.env_fingerprint });
+      const experienceId = label(c.experience_id);
+      if (!sameRetrievalBinding(source.experience, current) || current.run_id === source.experience.run_id ||
+        experienceId === source.experience.experience_id) throw new LearningError("unverified-archive");
+      // Reject historical identity reuse before observe can reserve any ID.
+      // Old-run failure/model observations stay in history, not relabelled as this new run's measurements.
+      const handle = library.observe({ ...current, experience_id: experienceId, ts: integer(c.ts), task_type: source.experience.task_type,
+        script: source.experience.script, steps: source.experience.steps });
+      const record = active(handle); record.historicalOrigin = source.origin; return raise(record, "observed");
     },
     planReplay: replay,
     compareRecorded(left: ExperienceHandle, right: ExperienceHandle, expected: EvidenceBinding): RecordedComparison {

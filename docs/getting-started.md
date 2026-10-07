@@ -24,7 +24,9 @@ post-merge Node20 source/consumer checks passed. The current source closeout is
 [here](handoff/2026-10-07-verified-learning-source-closeout.md); local compatibility
 evidence is recorded in [release-contract.md](release-contract.md), not transferred
 from the old snapshot. Registry publication, real owner/live integration and
-durable cross-process Hindsight recall remain pending.
+actual durable Hindsight transport remain pending. The additive portable signed
+historical seam below is local source capability; its own independent review,
+hosted feature CI and source merge remain separate from completed PR10 acceptance.
 Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)
@@ -43,7 +45,7 @@ services as fixtures.
 | `@pi-vista/checks` | Trusted, opt-in metadata predicates; fail-closed, authorization none |
 | `@pi-vista/checks-local` | Separate explicit trusted-host actual local FS/Git predicates; private config, no authority |
 | `@pi-vista/evidence` | Host-pinned signed gate/test/guard receipts and opaque non-authorizing proofs |
-| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, offline retrieval/context and recorded-only replay |
+| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, offline and portable signed historical context, observed-only import and recorded-only replay |
 | `@pi-vista/adapter-shadow` | Explicit owner-normalized shadow metadata; no positive authority/eligibility |
 
 With the checkout's existing locked developer tools and local workspace links:
@@ -220,10 +222,13 @@ const recorded = library.planReplay(verified, expectedBindings); // executable=f
 ```
 
 Confirmation requires the exact reviewed digest, fresh unchanged signed receipts
-and explicit trusted native-promise ingest/readback callbacks. Integration tests
-use an in-memory synthetic sink only. No real Hindsight writes, cross-session
-recall/import, automatic Pi context injection or executable replay are implemented.
-Context bounds are characters, not tokens; fixture evaluation is not model lift.
+and explicit trusted native-promise ingest/readback callbacks. Live learning tests
+use synthetic sinks only. The additive [portable recall](portable-recall.md) APIs
+support explicit signed historical archives/query-read ports and observed-only
+import across separate process lifetimes, with a test-owned file-backed mock.
+They never restore current trust from old proof/status. No real Hindsight writes,
+automatic Pi context injection or executable replay are implemented. Context
+bounds are characters, not tokens; fixture evaluation is not model lift.
 
 [The shadow adapter](adapters/shadow.md) accepts only owner-normalized closed
 metadata. `toVistaEventInput` is pure; `emitShadowObservation` is an explicit

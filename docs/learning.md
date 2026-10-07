@@ -15,10 +15,12 @@ ssot: true
 #12 (promotion), #14 (failure/lifecycle/recorded replay) and #16 (verified-only
 retrieval/context evaluation). It neither configures nor contacts Hindsight by
 default. No existing Pi, CLI, core, guard, gate, checks or evidence runtime is
-changed by the learning component. The current integration wires all 11 packages
-into root scripts/lock and adds new synthetic public-import seam tests; original
-runtime sources/assertions remain unchanged. Local engineering integration is not
-independent source acceptance, remote merge or live activation.
+changed by the learning component. PR10 merged the 11-package foundation and its
+root gates; completed source review/hosted/post-merge evidence is recorded in the
+[source closeout](handoff/2026-10-07-verified-learning-source-closeout.md). The additive
+portable seam changes only learning and its direct contracts; original assertions
+remain unchanged. Its local engineering validation is not new-feature independent
+acceptance, hosted CI, remote merge or live activation.
 
 All lifecycle, promotion-preview, failure, replay, comparison, selection,
 context, evaluation and model-statistics views carry **authorization: none**.
@@ -50,8 +52,11 @@ WeakMaps. Views are deeply frozen own-data projections. Copying, serializing or
 reconstructing them does not restore their provenance. Different libraries do
 not accept each other's handles/plans/selections even if they share a verifier.
 In particular, retrieving arbitrary Hindsight documents with a `status` field is
-unsupported. This is an in-process library, not a durable experience database or
-cross-session capability import API.
+unsupported. Live capabilities remain in-process, not a durable experience database.
+The additive [portable recall seam](portable-recall.md) separately verifies signed
+safe historical archives after restart through explicitly pinned archive-origin
+keys and host ports. History always says `current_verification: not-checked` and
+can import only a new observed record; it never restores serialized live authority.
 
 ## Observation and safe two-level metadata
 
@@ -314,6 +319,28 @@ The output says `evaluation: offline-fixtures`, `capability_claim: none` and
 authorization none. Caller expected IDs cannot cause an unverified handle to
 select. Known synthetic fixture success is **not real model capability evidence**.
 
+## Portable historical recall: separate from live trust
+
+Optional `LearningConfig.archive` configures an explicit archive-origin public pin,
+trusted clock and native-promise signer. `prepareArchive` accepts only this exact
+library's current fresh verified/trusted state and re-reads owner evidence before
+signing safe historical metadata. `commitArchive` requires the exact preview digest,
+revalidates owner evidence again and reuses the existing sink/exact readback boundary.
+It returns a non-authorizing host-readback observation, **not** a trusted transition.
+
+`createPortableRecall` needs only explicit historical public pins/age policy/clock;
+query/read/lifecycle ports are optional trusted host code. It verifies original
+canonical signed documents, not knowledge-page prose or flags. `authenticate`,
+`select`, `recall` and `compileContext` produce non-executing authenticated history.
+`importHistorical` creates observed-only same-binding metadata under explicit new
+ID/run/current context, preserving a safe old-origin reference. Fresh current
+verification still uses the unchanged evidence factory and normal lifecycle.
+Missing lifecycle coverage says not-checked, never current active.
+
+See [portable-recall.md](portable-recall.md) for exact schema, key intervals,
+revocation/age policy, callback/confirmation/idempotency limits and genuine separate
+process synthetic validation. No actual service/keys/bank/Pi hooks are installed.
+
 ## Hindsight custom pages: configuration data only
 
 `HINDSIGHT_CUSTOM_PAGES` exports a deeply frozen, JSON-serializable compatible
@@ -373,9 +400,11 @@ npm 11.19.1. The combined integration now uses the repeatable
 and actual isolated packed-consumer installation/strict TypeScript. These checks
 are distinct from manifest/script compatibility claims and do not establish
 registry availability, hosted CI, publication, deployment or operational acceptance. Actual gate/test/guard producer wiring, actual
-Hindsight durability/readback, durable lifecycle/idempotency storage, production
-configuration, default Pi integration, external model evaluation, executable
-replay and release/publication remain separate owner work.
+Hindsight durability/readback, durable lifecycle/idempotency storage and signed
+lifecycle feeds, production configuration, default Pi integration, external model
+evaluation, executable replay and release/publication remain separate owner work.
+Portable historical ports/restart authentication are additive source capability,
+not actual Hindsight integration or serialized current proof restoration.
 
 Maintained dependencies: [architecture](architecture.md),
 [evidence](authoritative-evidence.md), [checks](check-functions.md), and

@@ -1,3 +1,13 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-07
+verified: 2026-10-07
+---
+
 # @pi-vista/learning
 
 Opt-in, model-agnostic experience lifecycle, explicitly confirmed promotion, and
@@ -32,12 +42,25 @@ read back persisted content. Acknowledgements alone never create trusted state.
 One confirmed attempt consumes the experience's promotion opportunity in that
 library, even after a failure; there is no automatic retry or durable coordinator.
 
-Public exports: `createLearningLibrary`, `classifyFailure`,
+Portable history is additive: optional `archive` supplies a scoped archive-origin
+public pin, trusted clock and signer callback. `prepareArchive` re-reads current
+owner evidence before signing safe derived metadata, and `commitArchive` confirms
+the exact preview and existing sink/readback without raising current trust.
+`createPortableRecall` independently verifies original signed documents through
+explicit public pins/age policy and optional Hindsight query/read/lifecycle ports.
+Historical context is non-executing/current-verification-not-checked;
+`importHistorical` creates only an observed new-run record. No default client,
+bank, signer, credentials or Pi injection is installed. See
+[docs/portable-recall.md](../../docs/portable-recall.md) for exact schemas/policies,
+separate-process synthetic proof and trusted-host/durability limits.
+
+Public exports: `createLearningLibrary`, `createPortableRecall`, `classifyFailure`,
 `HINDSIGHT_CUSTOM_PAGES`, `LearningError`, the bounds, and API types. Library methods:
 `observe`, `nominate`, `verifyCandidate`, `reject`, `deprecate`, `supersede`,
 `preparePromotion`, `prepareCorrection`, `commitPromotion`, `planReplay`,
-`compareRecorded`, `retrieve`, `compileContext`, `evaluateRetrieval`, and
-`modelStatistics`.
+`compareRecorded`, `retrieve`, `compileContext`, `evaluateRetrieval`,
+`modelStatistics`, `prepareArchive`, `commitArchive`, and `importHistorical`.
+Portable recall methods: `authenticate`, `select`, `recall`, and `compileContext`.
 
 Full input schemas, confirmation/transport semantics, lifecycle and privacy
 limits: [docs/learning.md](../../docs/learning.md) in the source repository.

@@ -27,7 +27,7 @@ function steps(input: unknown): readonly SafeStep[] {
   });
   return frozen(out);
 }
-export type SnapshotObservation = Omit<ExperienceHandle, "status" | "authorization" | "verification" | "hindsight_doc_id" | "superseded_by">;
+export type SnapshotObservation = Omit<ExperienceHandle, "status" | "authorization" | "verification" | "hindsight_doc_id" | "superseded_by" | "historical_origin">;
 export function observation(input: ExperienceObservation): SnapshotObservation {
   const required = ["experience_id", ...BINDING_KEYS, "task_type", "ts", "script", "steps"];
   const v = own(input, [...required, "model_id", "failure_analysis"], required);

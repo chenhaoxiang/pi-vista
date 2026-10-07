@@ -1,5 +1,6 @@
 import type { EvidenceBinding, EvidenceVerifier, ReceiptSummary, VerifiedEvidence } from "@pi-vista/evidence";
 import type { ExperienceStatus, VistaScript, VistaStep } from "@pi-vista/protocol";
+import type { ArchivePlan, ArchiveProducerConfig, ArchiveUpload, HistoricalExperience, HistoricalImportContext, HistoricalOriginReference } from "./portable-contract.js";
 
 export const MAX_LABEL_LENGTH = 128;
 export const MAX_METADATA_CHARACTERS = 256;
@@ -18,7 +19,9 @@ export type LearningErrorCode =
   | "invalid-input" | "invalid-config" | "invalid-handle" | "duplicate-experience"
   | "invalid-transition" | "unverified-evidence" | "invalid-plan" | "invalid-confirmation"
   | "promotion-used" | "promotion-invalidated" | "sink-unavailable" | "sink-failed"
-  | "sink-timeout" | "sink-mismatch" | "stale-selection";
+  | "sink-timeout" | "sink-mismatch" | "stale-selection"
+  | "archive-unavailable" | "archive-used" | "archive-invalidated" | "unverified-archive"
+  | "archive-withdrawn" | "recall-unavailable" | "stale-history";
 export class LearningError extends Error {
   constructor(readonly code: LearningErrorCode) {
     super(code); this.name = "LearningError"; this.stack = `${this.name}: ${code}`;
@@ -65,6 +68,8 @@ export interface ExperienceHandle extends Omit<ExperienceObservation, "failure_a
   readonly verification?: Readonly<{ verification: "authority-bound"; authorization: "none"; receipts: readonly ReceiptSummary[] }>;
   readonly hindsight_doc_id?: string;
   readonly superseded_by?: string;
+  /** Preserved historical guidance only; never an input to current verification. */
+  readonly historical_origin?: HistoricalOriginReference;
 }
 export interface SafeDocument {
   readonly title: string; readonly content: string;
@@ -93,7 +98,7 @@ export interface LearningSink {
   readonly ingest: (request: IngestRequest, signal: AbortSignal) => Promise<unknown>;
   readonly readback: (receipt: SinkReceipt, signal: AbortSignal) => Promise<unknown>;
 }
-export interface LearningConfig { readonly verifier: EvidenceVerifier; readonly sink?: LearningSink; readonly timeout_ms?: number; }
+export interface LearningConfig { readonly verifier: EvidenceVerifier; readonly sink?: LearningSink; readonly timeout_ms?: number; readonly archive?: ArchiveProducerConfig; }
 export interface Correction {
   readonly failure_id: string; readonly prior_claim: string; readonly correction_code: string;
 }
@@ -154,6 +159,12 @@ export interface LearningLibrary {
   preparePromotion(verified: ExperienceHandle, bank: string): PromotionPlan;
   prepareCorrection(verified: ExperienceHandle, bank: string, correction: Correction): PromotionPlan;
   commitPromotion(plan: PromotionPlan, confirmation: PromotionConfirmation): Promise<ExperienceHandle>;
+  /** Re-read current evidence and sign safe historical claims; no memory write. */
+  prepareArchive(handle: ExperienceHandle, bank: string): Promise<ArchivePlan>;
+  /** Exact confirmation plus current evidence refresh and existing sink/readback, without raising live trust. */
+  commitArchive(plan: ArchivePlan, confirmation: PromotionConfirmation): Promise<ArchiveUpload>;
+  /** New observed-only record with explicit current bindings; no live proof is imported. */
+  importHistorical(history: HistoricalExperience, context: HistoricalImportContext): ExperienceHandle;
   planReplay(handle: ExperienceHandle, expected: EvidenceBinding): ReplayPlan;
   compareRecorded(left: ExperienceHandle, right: ExperienceHandle, expected: EvidenceBinding): RecordedComparison;
   retrieve(handles: readonly unknown[], query: RetrievalQuery): RetrievalResult;
