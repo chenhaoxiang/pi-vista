@@ -4,6 +4,8 @@ project: workspace
 owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
+created: 2026-10-07
+verified: 2026-10-07
 ssot: true
 ---
 
@@ -13,7 +15,10 @@ ssot: true
 #12 (promotion), #14 (failure/lifecycle/recorded replay) and #16 (verified-only
 retrieval/context evaluation). It neither configures nor contacts Hindsight by
 default. No existing Pi, CLI, core, guard, gate, checks or evidence runtime is
-changed. Root workspace-script/lock integration is a separate owner task.
+changed by the learning component. The current integration wires all 11 packages
+into root scripts/lock and adds new synthetic public-import seam tests; original
+runtime sources/assertions remain unchanged. Local engineering integration is not
+independent source acceptance, remote merge or live activation.
 
 All lifecycle, promotion-preview, failure, replay, comparison, selection,
 context, evaluation and model-statistics views carry **authorization: none**.
@@ -350,7 +355,7 @@ known-fixture context metrics. Existing package sources/assertions are untouched
 Build/typecheck/test commands:
 
 ```sh
-npm install --no-package-lock --offline --ignore-scripts
+npm ci --offline --ignore-scripts
 npm run build --workspace=@pi-vista/protocol
 npm run build --workspace=@pi-vista/core
 npm run build --workspace=@pi-vista/checks
@@ -362,10 +367,12 @@ npm pack --dry-run --workspace=@pi-vista/learning
 git diff --check
 ```
 
-Recorded lane validation uses local Node 26.9.0 / npm 11.19.1. Script syntax and
-Node >=20 manifest are not proof of Node 20 runtime validation. Build/pack/source
-tests do not establish a clean consumer install, registry publication, deployment
-or operational acceptance. Actual gate/test/guard producer wiring, actual
+The focused component lane originally validated 133 tests on Node 26.9.0 /
+npm 11.19.1. The combined integration now uses the repeatable
+[release contract](release-contract.md) for all 11 packages, actual local Node20
+and actual isolated packed-consumer installation/strict TypeScript. These checks
+are distinct from manifest/script compatibility claims and do not establish
+registry availability, hosted CI, publication, deployment or operational acceptance. Actual gate/test/guard producer wiring, actual
 Hindsight durability/readback, durable lifecycle/idempotency storage, production
 configuration, default Pi integration, external model evaluation, executable
 replay and release/publication remain separate owner work.

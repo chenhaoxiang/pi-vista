@@ -1,3 +1,14 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-07
+verified: 2026-10-07
+ssot: true
+---
+
 # Owner-normalized shadow observation adapter
 
 `@pi-vista/adapter-shadow` is an additive, explicitly invoked observer for
@@ -225,7 +236,12 @@ correlation mismatch, row/asset metadata, privilege rejection, descriptor and
 Proxy hostility, mutation, privacy, fixed errors and fail-open emission.
 Fixtures are created only in this package's ignored `tmp/`; cleanup targets
 only test-created directories. See the package README for focused commands.
-Root scripts/lockfile and all existing runtimes/assertions remain unchanged.
+The focused component originally left root scripts/lock untouched. The current
+integration wires all 11 packages into root gates and adds a public shadow->core
+JSONL->unchanged observation CLI roundtrip using only newly created synthetic
+fixtures. Original runtimes/assertions remain unchanged; actual local Node20 and
+packed-consumer evidence is recorded in the
+[release contract](../release-contract.md), not an owner acceptance receipt.
 
 There is no direct owner normalization implementation, actual model/receipt
 inspection, live wiring, council/owner truth verification, real-input isolation

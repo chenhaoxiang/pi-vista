@@ -200,9 +200,10 @@ consumer passed all **14 public export specifiers** and the **`vista`** bin;
 actual nine-tarball inventories contain **211 allowed files** in total, with no
 compiled tests, original sources, keys/dotenv or embedded source-map bodies.
 
-Paths below are relative to this checkout's `tmp/release-contract/`; ignored
-local logs are retained for the focused handoff, not represented as registry or
-hosted-CI receipts.
+Paths in this historical nine-package section are relative to the focused
+release component checkout's `tmp/release-contract/`, not the subsequently
+integrated checkout. Ignored local logs are retained for that focused handoff,
+not represented as registry or hosted-CI receipts.
 
 | Actual runtime / npm | Source evidence | Consumer evidence |
 | --- | --- | --- |
@@ -273,11 +274,12 @@ commands. No GitHub settings, required checks, credentials or protection rules
 are modified here. A future CI pass is still not authorization to publish,
 merge, release, replay, promote, trust an owner or change an admission policy.
 
-## Integration-owned root script recommendations
+## Root integration wiring
 
-This lane intentionally does **not** edit root `package.json`/lock or other
-writers' packages. The integration owner should add the following entries and
-preserve all original suites when wiring them into root tests:
+The focused release lane intentionally did not edit root `package.json`/lock.
+The current integration now supplies these entries, preserves all original
+suites, adds learning/shadow to dependency-ordered root build/typecheck/test/pack,
+and runs release-script regressions as part of root `npm test`:
 
 ```json
 {
@@ -291,9 +293,70 @@ preserve all original suites when wiring them into root tests:
 
 `npm run gate:node20 -- --download` selects the Darwin-arm64 download, or pass
 `--node=/absolute/path`. Network dependency mode likewise uses an explicit
-`-- --network`. The existing root integration quoted glob still fails on
-Node20 at this handoff; **do not claim the unchanged root `npm test` wrapper
-passed Node20**. The standalone source gate runs the very same 15 integration
-assertions through the enumerator, so complete source tests did pass on actual
-Node20 without editing or skipping the integration suite. Re-run root and generic
-gates after the integration-owned portability wiring and new package changes.
+`-- --network`. At the historical focused release handoff, the old root
+integration quoted glob failed on Node20; that snapshot did not establish
+root-wrapper success. The
+current root script uses the enumerator above, not literal quoted-glob expansion.
+No existing assertion was removed or relaxed.
+
+## Combined eleven-package local validation (2026-10-07)
+
+The same-protocol integration recovery preserved and normally merged the exact
+completed learning/shadow/release commits, rather than restarting component
+writers. Root integration adds no external runtime dependency and regenerates
+`package-lock.json` with `npm install --package-lock-only --offline --ignore-scripts`.
+The generic source gate runs `npm ci` from the lock before rebuilding all 11.
+Original eight runtime/test files remain unchanged; the approved manifest-only
+portability/exclusion changes above are preserved.
+
+Actual integrated source results:
+
+| Suite | Assertions passed |
+| --- | ---: |
+| Original package suites plus evidence | 317 |
+| Learning | 133 |
+| Shadow | 60 |
+| Original public integration | 15 |
+| New verified-learning public integration | 9 |
+| Release-script regressions | 17 |
+| **Combined total** | **551** |
+
+Protocol remains explicit zero, not additional coverage. All counted suites have
+zero failures, cancelled, skipped or todo. The nine new public-import assertions
+link generated signed receipts to candidate verification, exact read-only
+preview, confirmed **in-memory synthetic** ingest/readback, verified/trusted
+retrieval/context and non-executing replay. Negative seams cover unsigned/shadow
+claims, copied provenance/plans, expiry, signed source/receipt-hash drift and
+uncertain readback. A hermetic child gets no parent environment/session inputs,
+installs denying network hooks before public imports, and confirms that no
+injected sink means `sink-unavailable`, not default network. A real synthetic
+shadow->core JSONL->unchanged observation CLI roundtrip proves non-positive
+outcomes, opaque unverified receipt refs and unchanged recorded bytes.
+
+Integrated pre-commit engineering evidence is under **this integration
+checkout's** `tmp/release-contract/`:
+
+- `source-mCZZ5J/report.json`: actual Node26.9.0, all 11 source gates and 551 tests.
+- `node20-2DdOwl/report.json`: controller Node26.9.0, child runtime **v20.20.2**,
+  provided retained official-checksummed executable SHA-256
+  `38de4fc456c0c439bac48c727d378f749abb4e31f4116703bb1ee9a746fccbb6`.
+- `source-bLDlJv/report.json`: actual Node20.20.2/npm10.8.2, all 11 builds/
+  typechecks/test entries, 24 integration assertions, 17 script regressions and
+  11 public pack dry-runs after offline npm ci.
+- `consumer-sv398P/report.json`: actual Node20, fresh npm install of all 11 exact
+  local tarballs, **16 public export specifiers**, installed `vista` bin, strict
+  consumer-installed TS5.9.3/Node types20.19.43, and **249 allowed package files**.
+  Versions/integrities/installed inventories are checked; tests/fixtures/key
+  material/source bodies are not packaged. This is not workspace-linked smoke.
+
+The final committed full-range source pin/diff and post-commit rechecks are
+retained in local `tmp/review/` and the integration recovery handoff. The
+pre-commit results above are accurately scoped, not fabricated hosted receipts.
+Repeated exact-commit evidence is required before parent acceptance. All local
+engineering/self-checks here are **same-model**, not independent review.
+
+These local Darwin-arm64/offline-cache passes do not establish hosted Ubuntu CI,
+fresh-cache registry availability, source PR/remote merge, publication, real owner
+producers/keys, Hindsight durability/cross-process recall, automatic Pi injection,
+executable replay, actual model capability, training or operational acceptance.
+No activation, real memory write, model call or safety-authority change occurred.
