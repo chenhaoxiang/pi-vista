@@ -1,3 +1,13 @@
+---
+doc_type: guide
+project: workspace
+owner_repository: chenhaoxiang/pi-vista
+status: active
+truth_mode: maintained
+created: 2026-10-06
+verified: 2026-10-07
+---
+
 # Pi run-context adapter
 
 `@pi-vista/adapter-pi` is the public, low-coupling bridge for Pi extensions
@@ -105,12 +115,16 @@ adapter event payload fields and raw storage paths are never emitted.
 
 ## Separate optional notification/preview seam
 
-The additive [`@pi-vista/learning/pi`](../pi-observe-preview.md) candidate provides
+The additive [`@pi-vista/learning/pi`](../pi-observe-preview.md) source provides
 explicit public-Pi-compatible notification loading and a frozen programmatic
 observation/historical-preview controller. It does not modify this adapter or
 reuse its mutable current step for parallel tool correlation. No default store,
 environment/session discovery, settings activation, prompt injection or current
 authority is inherited. Local-only exact preview selection and optional fresh
-owner evidence verification remain separate. Independent source acceptance is
-pending; actual SDK runner proof is bounded synthetic dispatch, with an upstream
-full-declaration typechecking limitation described in the guide.
+owner evidence verification remain separate. Original independent full source
+review plus retained correction disposition, exact head/main CI and normal PR18
+source merge/readback are complete; see the
+[source closeout](../handoff/2026-10-07-pi-observe-preview-source-closeout.md).
+Actual SDK runner proof remains bounded synthetic dispatch; full SDK declaration
+health, default activation and real owner/service/interactive acceptance remain
+unresolved/separate, as described in the guide.
