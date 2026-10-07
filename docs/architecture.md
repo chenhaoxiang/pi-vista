@@ -57,8 +57,10 @@ No model calls, owner activation or executable replay are installed.
 Only the event/checkpoint stores above are implemented persistence. The
 `policy/`, `meta.json` and `index/experience.jsonl` layout is a roadmap, not an
 installed policy loader or durable learning store. Learning identities, lifecycle,
-selection and idempotency are bounded and process-local. Serialized views cannot
-restore their provenance; durable storage/reconciliation remains host work.
+selection and idempotency are bounded and process-local. Serialized live views
+cannot restore their provenance. The opt-in portable learning seam can authenticate
+signed safe **history** in a new process using explicit public pins and query/read
+ports, without restoring current proof. Durable storage/reconciliation remains host work.
 
 Checkpoint storage is fail-open for storage I/O and redacts before writing through a same-directory temporary file plus atomic rename. Invalid checkpoint protocol input is rejected; `CheckpointStore.load(runId, stepId)` returns the checkpoint only when its contents match both requested IDs, bind to the requested run, and pass runtime validation, otherwise `null`. `listCheckpoints(runId)` returns only parsed, redacted, run-bound checkpoint step IDs in stable lexicographic order (not numeric or timestamp order). A same-step concurrent save has no locking or compare-and-swap: the last atomic rename to the step's destination wins (last-writer-wins). A failed save cleans up its temporary file when possible; a process crash can leave a temporary file for later manual cleanup.
 
@@ -122,6 +124,16 @@ receipt revalidation and an injected host sink's ingest **and exact readback**.
 Failures/uncertain writes never mint trusted state; callbacks must truthfully
 observe persistence. No actual Hindsight durability is validated here.
 
+The additive [portable recall seam](portable-recall.md) exports safe historical
+archives only from current authentic fresh library state, after re-reading owner
+evidence and an explicitly injected archive-origin signature. Exact confirmed
+upload reuses the sink/readback boundary but does not raise live trust. A new
+process can authenticate original documents under scoped historical public pins,
+age/revocation policy and optional fresh explicit host lifecycle policy; generated
+knowledge pages/flags cannot qualify. Query/read ports install no client or bank.
+Historical context is executable=false/current-verification-not-checked; import
+creates observed-only new-run records requiring fresh current proof later.
+
 The exported `HINDSIGHT_CUSTOM_PAGES` is configuration data only; these pages
 are **not automatically added** to any real bank:
 
@@ -166,7 +178,9 @@ repo/source/policy/environment/task query bindings. It performs no receipt or
 Hindsight reads; subsequent revocation/owner changes are not discovered offline.
 `compileContext` carries receipt-digest provenance and whole-entry **character**
 budgets, not token limits. Fixture evaluation is selection coverage, not capability
-lift. No automatic Pi context injection or cross-session recall is implemented.
+lift. No automatic Pi context injection is implemented. Explicit portable signed
+historical recall can cross process lifetimes; it is separate from live retrieval
+and never restores a serialized handle or current owner check.
 
 `planReplay`/`compareRecorded` are same-run symbolic metadata views with
 `executable: false`. They invoke no tools or repairs. The additive shadow adapter
@@ -182,7 +196,7 @@ See [evidence](authoritative-evidence.md), [learning](learning.md), and
 
 | Component | Owns | Does NOT own |
 |---|---|---|
-| pi-vista | explicit observation stores, process-local lifecycle, signed-proof checking, confirmed injected sink, offline context | safety decisions, gate admission, model routing, live producer wiring, durable Hindsight recall |
+| pi-vista | explicit observation stores, process-local lifecycle, signed-proof checking, confirmed injected sink, bounded offline/historical context and explicit portable verification/ports | safety decisions, gate admission, model routing, live producer wiring, real Hindsight transport/durability or current trust restoration |
 | workspace-guard | shell parsing, path resolution, A-layer blocking | experience storage, model input |
 | ai-gate | CI, review, SHA binding, merge admission | experience indexing, model input |
 | Laya | semantic shadow judgment, council | raw event storage, experience promotion |

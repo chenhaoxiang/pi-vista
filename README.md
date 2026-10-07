@@ -33,9 +33,13 @@ and its limits. Producer sanitization remains required.
 **Current continuation checkout: 11 public source packages.** The additive
 `evidence`, `learning` and `adapter-shadow` APIs and repeatable source/packed-consumer
 scripts are locally integrated, not yet independently accepted or merged to
-remote `main`. Learning/retrieval is a process-local programmatic library;
-shadow observation requires explicit owner normalization. The observation CLI
-is unchanged. See [learning](docs/learning.md), [shadow](docs/adapters/shadow.md),
+remote `main` in that integration snapshot. Live learning/retrieval remains a
+process-local programmatic library. The portable continuation adds explicit signed
+**historical** recall/ports and observed-only import across process lifetimes, not
+serialized current authority or live activation; its independent review/feature
+CI/source merge remain pending. Shadow observation requires explicit owner
+normalization. The observation CLI is unchanged. See [learning](docs/learning.md),
+[portable recall](docs/portable-recall.md), [shadow](docs/adapters/shadow.md),
 [evidence](docs/authoritative-evidence.md), and the
 [release contract](docs/release-contract.md) for checked scope and remaining limits.
 
@@ -49,7 +53,8 @@ is unchanged. See [learning](docs/learning.md), [shadow](docs/adapters/shadow.md
 - **Inspect** recorded histories, checkpoints, count differences, and opaque receipt refs with the offline, read-only Phase 2 CLI
 - **Prepare** validation with opt-in predicate registries and separately verify host-pinned signed gate/test/guard receipts
 - **Preview and confirm** exact safe learning documents through an explicitly injected ingest/readback sink; no default Hindsight transport
-- **Reuse offline** fresh verified/trusted handles as bounded script/step context and non-executing replay views; no cross-session Hindsight recall, live context injection or demonstrated model capability lift
+- **Reuse offline** fresh verified/trusted handles as bounded script/step context and non-executing replay views
+- **Authenticate historical recall** from exact signed safe archives through explicit public-key pins and Hindsight query/read ports after restart; observed-only import never restores current trust, and there is no real service integration, live context injection or demonstrated model capability lift
 
 ---
 
@@ -99,7 +104,7 @@ not a source of execution, merge, release or promotion authorization.
 | `@pi-vista/checks` | Trusted programmatic registry and bounded predicate-only runner; no owner probes, repair or authorization |
 | `@pi-vista/checks-local` | Explicit trusted-host actual local FS/Git predicates; private aliases/config, read-only and no authority |
 | `@pi-vista/evidence` | Opt-in pinned Ed25519 gate/test/guard receipts and opaque, non-authorizing proofs |
-| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, failure views, verified-only context and non-executing replay |
+| `@pi-vista/learning` | Process-local lifecycle, exact confirmed sink/readback, verified-only and portable signed historical context, observed-only import and non-executing replay |
 | `@pi-vista/adapter-shadow` | Explicit owner-normalized Laya/Kev/Intern/StartLux observations; never verification or permission |
 
 ---
@@ -109,7 +114,7 @@ not a source of execution, merge, release or promotion authorization.
 1. **Model-agnostic** — no "teacher" or "student". Any call produces and consumes experience.
 2. **Verification-first** — observations may become candidates, but verified/trusted learning requires fresh opaque owner evidence; trusted promotion additionally requires exact confirmation and successful readback.
 3. **Safety boundaries are inviolable** — workspace-guard A-layer, gate final admission, and production hard gates are never controlled by pi-vista.
-4. **Hindsight is the intended long-term memory** — this checkout has local observation stores and process-local learning handles. Durable memory, policy loading and cross-session recall require separate host implementation.
+4. **Hindsight is the intended long-term memory** — this checkout has local observation stores and process-local live handles, plus explicit portable signed-history verification/ports. Real durable memory, semantic adapters, lifecycle reconciliation and policy loading require separate host implementation.
 5. **Progressive adoption** — Phase 1 only observes. Experience promotion is an explicit action, never automatic.
 6. **Redaction at source** — producers must keep raw commands, paths, and credentials out of Hindsight, the experience store, and model inputs. The bounded known-pattern candidate fix does not recognize arbitrary secret encodings or replace producer sanitization.
 
@@ -227,6 +232,7 @@ records.
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Verified learning and offline retrieval](docs/learning.md)
+- [Portable signed historical recall and observed-only import](docs/portable-recall.md)
 - [Repeatable source and packed-consumer gates](docs/release-contract.md)
 
 The Pi adapter is a public helper only: Pi private extensions call it explicitly;

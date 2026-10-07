@@ -117,11 +117,24 @@ character budgets (not token budgets). Synthetic fixture selection/coverage/
 context-size evaluation carries `capability_claim: none`. Models are observational
 labels, never routing preferences. No sink or receipt I/O happens during selection.
 
-**Pending**: cross-run Hindsight recall/import across process lifetimes, durable
-storage, semantic retrieval, automatic task-start Pi context injection, remote
-revocation discovery and external model capability measurement. Serialized
-status-labelled documents cannot become verified handles. Success on known offline
-fixtures is not production adaptation or capability lift.
+**Implemented additive portable source seam**: eligible current handles can export
+canonical signed safe history through a separate explicit archive-origin role.
+Confirmed upload reuses sink/readback without raising live trust. Explicit scoped
+public pins, historical key intervals/age/revocation policy and optional fresh host
+lifecycle policy authenticate history in a separate process; bounded query/read
+ports select original signed documents, not generated pages/status flags. Context
+says historical-authenticated/current-verification-not-checked, authorization none
+and executable false. Import creates only observed new-run same-binding records;
+current verification still requires fresh normal owner proof. A synthetic file-backed
+producer/consumer test executes in two genuinely separate fresh Node processes.
+See [portable recall](portable-recall.md).
+
+**Pending**: real Hindsight durable storage/semantic host adapters, durable signed
+lifecycle feeds and idempotency/crash reconciliation, actual owner integration,
+automatic task-start Pi context injection, remote revocation discovery and external
+model capability measurement. Serialized status-labelled documents cannot become
+verified handles. Local feature validation is not independent acceptance/hosted
+feature CI/merge, operational adaptation or capability lift.
 
 ## Delivery: Repeatable engineering gates (#17)
 
