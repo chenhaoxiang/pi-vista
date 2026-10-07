@@ -1,0 +1,45 @@
+# @pi-vista/learning
+
+Opt-in, model-agnostic experience lifecycle, explicitly confirmed promotion, and
+non-executing offline replay/retrieval/context/evaluation. This ESM package uses
+`@pi-vista/evidence`'s exact factory-branded verifier; flags and serialized reports
+cannot mint verification or trust.
+
+```ts
+import { createLearningLibrary, HINDSIGHT_CUSTOM_PAGES } from "@pi-vista/learning";
+
+// The host supplies a createEvidenceVerifier() result and, optionally, both
+// native-promise sink callbacks. No transport, owner wiring or hooks are installed.
+const library = createLearningLibrary({ verifier, sink });
+const candidate = library.nominate(library.observe(safeObservation));
+const proof = await verifier.verify(expectedBindings, ownerSubjects);
+const verified = library.verifyCandidate(candidate, proof);
+const plan = library.preparePromotion(verified, "repo-bank-alias"); // no I/O
+// After the host/operator reviews this exact bank + title + content + tags:
+const trusted = await library.commitPromotion(plan, {
+  preview_digest: explicitlyConfirmedDigest,
+});
+const selection = library.retrieve([trusted], safeRetrievalQuery); // offline
+const context = library.compileContext(selection, { max_characters: 8192 });
+// context.authorization === "none"; character bounds are NOT token bounds.
+// HINDSIGHT_CUSTOM_PAGES is configuration data only, not an installer.
+```
+
+The names above are explicit host inputs, not defaults. Use symbolic metadata,
+not commands, paths, model prose, credentials or artifact content. Sink callbacks
+are trusted code and must map a safe bank alias, honor idempotency and truthfully
+read back persisted content. Acknowledgements alone never create trusted state.
+One confirmed attempt consumes the experience's promotion opportunity in that
+library, even after a failure; there is no automatic retry or durable coordinator.
+
+Public exports: `createLearningLibrary`, `classifyFailure`,
+`HINDSIGHT_CUSTOM_PAGES`, `LearningError`, the bounds, and API types. Library methods:
+`observe`, `nominate`, `verifyCandidate`, `reject`, `deprecate`, `supersede`,
+`preparePromotion`, `prepareCorrection`, `commitPromotion`, `planReplay`,
+`compareRecorded`, `retrieve`, `compileContext`, `evaluateRetrieval`, and
+`modelStatistics`.
+
+Full input schemas, confirmation/transport semantics, lifecycle and privacy
+limits: [docs/learning.md](../../docs/learning.md) in the source repository.
+This package does not authorize execution, repair, merge, release, model routing
+or production changes and does not override workspace-guard or ai-gate.
