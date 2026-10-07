@@ -229,8 +229,11 @@ Local content/advisory checks are bounded, not an App-trusted owner receipt,
 universal secret detector or release authority. The PR10 foundation's completed
 source review, hosted Node20/22/26 CI and isolated post-merge validation are recorded
 in the [source closeout](handoff/2026-10-07-verified-learning-source-closeout.md).
-The additive portable feature still needs its own independent review/hosted CI/source
-merge; no publication/deployment is implied. See [release-contract.md](release-contract.md)
+[PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12) normally merged the
+portable source after its own same-model full inspection/retained entry recheck
+and actual hosted Node20/22/26 CI. Its [source closeout](handoff/2026-10-07-portable-recall-source-closeout.md)
+records reviewed/merged pins and isolated actual-main 659-case/installed-process
+proofs; no publication, deployment or live/durable operational acceptance is implied. See [release-contract.md](release-contract.md)
 for exact evidence and limitations.
 
 ## Protocol versions

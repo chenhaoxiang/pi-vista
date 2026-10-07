@@ -24,9 +24,12 @@ post-merge Node20 source/consumer checks passed. The current source closeout is
 [here](handoff/2026-10-07-verified-learning-source-closeout.md); local compatibility
 evidence is recorded in [release-contract.md](release-contract.md), not transferred
 from the old snapshot. Registry publication, real owner/live integration and
-actual durable Hindsight transport remain pending. The additive portable signed
-historical seam below is local source capability; its own independent review,
-hosted feature CI and source merge remain separate from completed PR10 acceptance.
+actual durable Hindsight transport remain pending. [PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12)
+merged the additive portable signed historical source after its own same-model
+full inspection/fix recheck and actual hosted Node20/22/26 CI. Isolated actual
+main Node20 source/consumer and installed separate-process archive proofs passed
+at **659 cases**; see [portable closeout](handoff/2026-10-07-portable-recall-source-closeout.md).
+These are separate pins from completed PR10 acceptance, not live-service acceptance.
 Package-consumer syntax below does not establish publication.
 See the [merge closeout](handoff/2026-10-06-source-merge-closeout.md) for commits
 and boundaries. The [integration snapshot](infrastructure-integration.md)

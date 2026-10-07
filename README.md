@@ -42,8 +42,12 @@ checks. See the [continuation closeout](docs/handoff/2026-10-07-verified-learnin
 **Portable continuation:** live learning/retrieval remains process-local. This
 additive seam supplies explicit signed **historical** recall/ports and observed-only
 import across process lifetimes, not serialized current authority or live activation.
-Its independent review, hosted feature CI and source merge remain pending; the
-completed PR10 source/CI evidence above is not transferred to this new feature.
+[PR #12](https://github.com/chenhaoxiang/pi-vista/pull/12) normally merged this
+portable source on 2026-10-07. Independent same-model full inspection plus
+retained entry-fix recheck, actual Ubuntu Node20/22/26 source/consumer CI and
+isolated post-merge Node20 **659-case**/installed-process restart proofs passed.
+See its [source closeout](docs/handoff/2026-10-07-portable-recall-source-closeout.md).
+This acceptance is independently pinned, not transferred from PR10.
 Real durable Hindsight storage and owner/live wiring remain pending. Shadow
 observation requires explicit owner normalization. The observation CLI is unchanged.
 See [learning](docs/learning.md), [portable recall](docs/portable-recall.md),
