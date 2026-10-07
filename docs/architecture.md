@@ -204,7 +204,7 @@ See [evidence](authoritative-evidence.md), [learning](learning.md), and
 
 ---
 
-## Optional explicit Pi observation/preview candidate
+## Explicit optional Pi observation/preview source
 
 The separate [`@pi-vista/learning/pi`](pi-observe-preview.md) import adds one
 host-configured run-epoch seam; learning root/adapter/CLI behavior is unchanged.
@@ -220,8 +220,13 @@ write or executable replay occurs. Optional exact evidence verification is
 separate from observed/history/MISSING state and grants no authority. Session,
 task/epoch changes and expiry invalidate guidance/proof. Public SDK runner
 validation is synthetic, not real task/owner acceptance; full installed SDK
-strict dependency declaration checking remains upstream-blocked. Independent
-source review/CI/merge and actual owner producers/key provenance remain pending.
+strict dependency declaration checking remains upstream-blocked. Bounded source
+review/correction/hosted CI/normal PR18 merge/readback are delivered; see
+[the source closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md).
+Controller-lifetime history-clock high-water survives preview/epoch replacement;
+valid IDs first seen on loss paths reserve capped non-correlatable records.
+Actual owner producers/key provenance, default activation and real task/service
+acceptance remain pending/MISSING, not unlocked by this source delivery.
 
 ## Component responsibilities
 

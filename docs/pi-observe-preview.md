@@ -16,9 +16,11 @@ exports `createPiObservation(config)`, frozen programmatic controller/types and
 fixed value-free `PiObservationError` codes (`invalid-config`, `refused`). The
 learning root and `@pi-vista/adapter-pi` runtime are unchanged. No SDK dependency,
 peer auto-install, `pi` manifest, `.pi` resource, settings or default activation
-is added. This source candidate is **provisional pending independent source
-review, hosted CI and parent-owned PR/merge**; local checks are not acceptance
-of real owners, keys, banks, models or an interactive task.
+is added. This bounded source slice is delivered through normal [PR #18](https://github.com/chenhaoxiang/pi-vista/pull/18)
+merge, independent source review/correction and exact head/main CI; the
+[source closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md) records
+actual-main evidence. Source delivery is not acceptance of real owners, keys,
+banks, default activation, full SDK declarations or an interactive/model task.
 
 Every status/preview/selection says **authorization: none, executable: false**.
 Historical authentication is not current verification, and neither is execution,
@@ -218,8 +220,11 @@ The first corrected full gate then exposed one branch-added hostile-name test's
 obsolete zero-record expectation. Only that counter now expects one lost-ID record;
 its zero-getter/privacy/drop assertions remain, with an added no-execution-event
 assertion. No original main assertion is modified, and that failed gate is retained.
-Full corrected source/installed validation and retained review disposition are
-recorded separately before source delivery.
+Final corrected/source-main validation passes **961 cases** (learning441), with
+exact installed19-export/11-tarball consumers and retained targeted same-model
+recheck0P0/P1/P2. The [source closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md)
+records those actual results and the preserved original BLOCK; it is not a second
+fresh full-range review.
 Actual Node26.9.0 and verified Node20.20.2 full source/offline local-tarball consumer
 gates cover 11 packages and 19 exports; installed consumers use locked TS5.9.3,
 `strict: true`, `skipLibCheck: false`, no workspace links/runtime fixtures.
@@ -242,9 +247,11 @@ This is preserved, not re-labelled PASS. Separately approved SDK-only
 assignments without checking dependency declarations. Neither that result nor
 actual runner dispatch proves full SDK declaration health/complete type compatibility
 or real interactive task/model acceptance. The library/consumer strict gates are
-unchanged. Local review artifacts live under `tmp/pi-proof/`; independent review,
-hosted CI, source merge, owner producers/key custody, actual bank/service durability,
-default installation, model evaluation, publication/deployment remain parent/owner
-work. See [learning](learning.md), [portable recall](portable-recall.md),
+unchanged. Original/corrected local review artifacts are retained under `tmp/pi-proof/`;
+[source closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md) binds the
+completed source review/correction, hosted CI, normal merge and postmerge readback.
+Full SDK declaration health, owner producers/key custody, actual bank/service
+durability, default installation, interactive/model evaluation and
+publication/deployment remain separate owner work. See [learning](learning.md), [portable recall](portable-recall.md),
 [evidence](authoritative-evidence.md), [receipt files](receipt-files.md),
 [Pi adapter](adapters/pi.md) and [OpenSpec](../openspec/changes/pi-observe-preview/proposal.md).

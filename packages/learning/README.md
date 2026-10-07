@@ -85,8 +85,9 @@ identity/digest, without prompt/editor injection, execution or memory write.
 No default stores, environment/session discovery, SDK dependency, settings or
 activation is added; root runtime remains unchanged. See
 [the Pi observation/preview guide](../../docs/pi-observe-preview.md) for quotas,
-failure handling, current-vs-historical proof, provisional source status and the
-installed SDK declaration limitation. Pi1.0.4 needs Node22.19+; Node20 support is
+failure handling, current-vs-historical proof, controller-lifetime clock/lost-ID
+limits and the installed SDK declaration limitation. Source PR18 acceptance is
+recorded in [the closeout](../../docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md). Pi1.0.4 needs Node22.19+; Node20 support is
 for this library/mock-host seam, not the host SDK.
 
 Full input schemas, confirmation/transport semantics, lifecycle and privacy
