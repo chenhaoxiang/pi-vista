@@ -162,6 +162,28 @@ Node20/22/26 source/consumer CI and normal remote merge/readback are complete;
 659-case/installed fresh-process proof. This is not operational adaptation,
 live-service durability or capability lift.
 
+## Optional Pi observation and preview candidate
+
+**Implemented additive source candidate, pending independent source acceptance**:
+[`@pi-vista/learning/pi`](pi-observe-preview.md) explicitly loads seven public
+notification-only observations with bounded run/correlation epochs, original
+parallel tool-step binding and fail-open metadata stores. Optional original signed
+portable history yields character-bounded Script/Step preview. Exact explicit
+adoption is local acknowledgement only; optional fresh exact evidence verifier
+proof is separate and never permission. No default settings/resources, context/
+editor injection, model/tool changes, memory write or owner activation is added.
+
+Actual library/source/installed consumers pass on Node20/26 (11 packages, 19
+exports, 947 cases). Public Pi1.0.4 Node26 resource loading/runner dispatch is a
+no-provider synthetic proof, not an interactive task. Full SDK declaration
+checking failed on upstream JSON/MCP types; only assignment checking with skipped
+dependency diagnostics is separately approved. Original gate/assertion blobs
+are unchanged. **Pending**: independent review/hosted CI/parent PR/merge, full host
+declaration health, actual owner producer/key provenance (MISSING), default
+installation, service/interactive/model evaluation, publication and operational
+acceptance. Existing automatic context injection and live/durable roadmap stays
+pending, not satisfied by local guidance selection.
+
 ## Delivery: Repeatable engineering gates (#17)
 
 **Implemented source**: dependency-ordered root gates for all 11 packages,

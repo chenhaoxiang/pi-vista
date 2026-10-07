@@ -73,6 +73,15 @@ Node20/22/26 head/main CI, isolated actual-main Node20 **834 cases**/11 tarballs
 source acceptance and preserved startup failure; actual owner producers/public-key
 provenance stay **MISSING / unaccepted**, and current operational permission none.
 
+**Optional Pi source candidate:** `@pi-vista/learning/pi` adds explicit public
+notification observation and authenticated historical Script/Step preview with
+local-only acknowledgement and separately opt-in fresh evidence verification.
+It changes no root/adapter/CLI authority or settings and injects nothing into a
+model/editor. Actual Node20/26 library/installed-consumer checks and Node26 public
+SDK runner dispatch are bounded synthetic evidence, not interactive/live acceptance.
+Full installed SDK declaration checking has an upstream failure; independent source
+review/hosted CI/PR/merge remain pending. See [the guide](docs/pi-observe-preview.md).
+
 ---
 
 ## What it does
@@ -259,6 +268,7 @@ records.
 - [workspace-guard public observation adapter](docs/adapters/workspace-guard.md)
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)
+- [Optional explicit Pi observation and historical preview candidate](docs/pi-observe-preview.md)
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Explicit receipt file consumer and missing owner producers](docs/receipt-files.md)
