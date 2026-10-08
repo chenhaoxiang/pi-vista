@@ -207,9 +207,21 @@ library observe/nominate is unchanged and cannot create verified/trusted state.
 Fresh complete same-model review0P0/P1/P2, exacthead/mainCI, actual1059-case/
 20-export/strictconsumer evidence and normal merge/readback are recorded in the
 [Stage2 closeout](handoff/2026-10-08-trace-candidates-source-closeout.md).
-Stage3 actual owner/key/producers and all later stages remain pending. No daily session
-activation, live bank, production receipt, quality improvement or distribution
-is inferred. SDK full declaration health stays a separate unresolved item.
+Stage2 documentary PR23 is also included in maina595b59 with fresh six-document
+review and exact head/mainCI37801144194/37801638062; source delivery and documentary
+inclusion are separately verified.
+
+On2026-10-08 the user explicitly amended Stage3 to [single-owner local host mode](local-host-evidence.md),
+not establishing a new signer/key system. The separate evidence/host source candidate
+collects explicit scoped actual results and uses non-portable process-local proof;
+original signed API/Learning/archive admission is unchanged. Mac screen-unlocked/UID
+is not result truth, and no native personal-authentication broker is implemented.
+Actual scoped acceptance/source delivery remains in progress; original signed owner
+producer/key acceptance stays MISSING. Later actual isolated bank/guidance and explicit
+local learning workflow require new current verification after restart, not history
+status restoration. No daily session activation, live bank, production receipt,
+quality improvement or distribution is inferred. SDK full declaration health stays
+a separate unresolved item.
 
 ## Delivery: Repeatable engineering gates (#17)
 

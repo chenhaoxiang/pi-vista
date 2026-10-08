@@ -54,6 +54,9 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/local-host-evidence.md](docs/local-host-evidence.md): user-approved single-owner local-host candidate; distinct process-only proof/scoped actual acceptance, no signing fallback, Mac broker or original Learning admission
+- [openspec/changes/pi-operational-rollout/stage3-local-host-design.md](openspec/changes/pi-operational-rollout/stage3-local-host-design.md): Stage3 scope amendment and Stage4–6 history/current-verification boundaries
+
 - [docs/handoff/2026-10-08-trace-candidates-source-closeout.md](docs/handoff/2026-10-08-trace-candidates-source-closeout.md): PR22 safe draft source/main/review/1059-case/20-export pins, original base36 refusal and Stage3 MISSING owner boundary
 - [docs/trace-candidates.md](docs/trace-candidates.md): pure Stage2 safe trace observation drafts, shape-only provenance, explicit observe/nominate and no current-proof/memory write
 
