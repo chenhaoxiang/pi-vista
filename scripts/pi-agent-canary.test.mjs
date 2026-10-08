@@ -134,7 +134,7 @@ test("pi-agent-canary readonly credentials reject writes/OAuth/commands/missing 
   assert.throws(() => credentials.assertAuth({ auth: { apiKey: "silent-fallback" } }), refused("credential-refused"));
   for (const operation of [() => credentials.store.modify(model.provider, async () => { modifiers++; }), () => credentials.store.delete(model.provider)]) await assert.rejects(operation(), refused("credential-write-forbidden"));
   assert.equal(modifiers, 0); assert.equal(credentials.counters.blockedWrites, 2); assert.throws(() => credentials.assertAbsent(JSON.stringify(auth)), refused());
-  for (const credential of [undefined, { type: "oauth", access: "synthetic" }, { type: "api_key", key: "!synthetic-command" }, { type: "api_key", key: "$SYNTHETIC" }, { type: "api_key", key: "" }]) {
+  for (const credential of [undefined, { type: "api_key", key: RAW[4], env: { SYNTHETIC: "overlay" } }, { type: "oauth", access: "synthetic" }, { type: "api_key", key: "!synthetic-command" }, { type: "api_key", key: "$SYNTHETIC" }, { type: "api_key", key: "" }]) {
     const bad = readonlyCredentials(model.provider, async () => JSON.stringify({ [model.provider]: credential })); await assert.rejects(bad.store.read(model.provider), refused("credential-refused"));
   }
   auth[model.provider].key = "changed-synthetic-key"; await assert.rejects(credentials.store.read(model.provider), refused("credential-refused"));

@@ -47,23 +47,31 @@ attestation; script and public runtime digests identify bytes actually run.
 
 Static mode requires the selected existing API-key credential and refuses
 command-based config. Optional `--readonly-broker-pin=<sha256-of-command-after-!>`
-uses the operator-approved existing SDK broker path only when it is exactly a
-single `cat /canonical/private/file` lookup under the designated profile, with
+uses the operator-approved existing key-file source only when its pinned config
+is exactly a single `cat /canonical/private/file` lookup under the designated profile, with
 restricted path characters, current-user/private regular file and private parent.
 The SHA is an explicit runtime pin, not a default capability. No shell controls,
 expansion, arbitrary command, OAuth refresh or credential write/delete is allowed.
 Never put actual broker command/file/key values into this document or a PR.
 
-Only a closed snapshot of the selected provider/model is registered in the
-public ModelRuntime. Its `modelsPath:null` prevents a second ambient config read;
-unselected providers are not passed to it. Arbitrary sampling/per-thinking sampling,
+Only a closed snapshot of the selected provider/model is written to a private
+trial-owned `selected-models.json`, with no API-key or broker-command field.
+The public ModelRuntime loads that file at construction with initial refresh
+disabled; dynamic `registerProvider()` is not used because SDK1.0.4 automatically
+launches broad provider availability checks there. Built-in model metadata may
+exist in the SDK, but this canary does not request its availability or credentials. Arbitrary sampling/per-thinking sampling,
 headers, compat/model overrides, routing fields and environment interpolation
 reject before runtime creation. Endpoint must be HTTPS or local HTTP, without
 userinfo/query/fragment; private endpoint values never enter the report.
 
 Only the chosen provider is requested from the readonly CredentialStore; list
 returns no credential metadata, modify/delete reject, and resolved keys stay in
-memory for privacy checks. ModelRuntime's catalog/network refresh is disabled.
+memory for privacy checks. In pinned mode the validated ordinary private file is
+read directly into that memory store; no shell broker is executed or persisted.
+Credential environment overlays are refused. Catalog/network refresh is disabled;
+foreign CredentialStore read attempts are counted and must remain zero. Synthetic
+public-SDK tests intercept filesystem access and fetch to verify no broad auth
+availability scan occurs; they do not create an OS sandbox.
 The SDK still runs as the current OS user: this is controlled-resource isolation,
 **not** a hostile-host sandbox or a guarantee about untrusted provider code.
 
@@ -97,7 +105,9 @@ The actual public provider `onPayload` hook validates the FINAL payload before
 HTTP transport: exact model, `store:false`, streaming, fixed function tools/no
 hosted tools or background/resume controls, mapped reasoning effort and unchanged
 latest fixture prompt. A declared model label or response pin is not proof of the
-actual request. Reports count successfully validated payloads separately from
+actual request. For `reasoning:false` models, `off` must have no reasoning field;
+reasoning models still require their exact mapped effort. Reports count
+successfully validated payloads separately from
 request attempts and set effective thinking from each actual session observation;
 if none was constructed it is `not-captured`.
 
@@ -134,10 +144,13 @@ No attempt is made to restore, lock or overwrite the operator profile.
 The exact original `dd70226` full source review is BLOCK (1 P1/2 P2): arbitrary
 sampling could override request safety, a credential-shaped API label was
 projected, and effective thinking was copied rather than observed. Original
-report/hash and offline zero-transport reproductions remain preserved. The
-bounded correction rejects unsafe selected config, guards the final payload,
-closes API labels and observes the actual thinking level; exact corrected-source
-review/gates/operational acceptance remain separate pending evidence.
+report/hash and offline zero-transport reproductions remain preserved. The first
+correction at `fef037e` addresses those findings but its targeted review is also
+BLOCK: dynamic registration triggered broad ambient availability scans, and a
+non-reasoning/off payload was incorrectly rejected. The next bounded correction
+uses closed private initial configuration, no dynamic registration, and proper
+off payload semantics. Corrected-source review/gates/operational acceptance remain
+separate pending evidence.
 
 Earlier failed child streams, rejected command mode, pre-fix offline failures,
 upstream response errors and SDK cancellation representations remain retained

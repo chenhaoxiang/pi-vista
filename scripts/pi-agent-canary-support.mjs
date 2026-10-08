@@ -122,25 +122,24 @@ export async function verifyReadonlyBroker(config, provider, expectedDigest, pro
     const current = await lstat(target);
     return [current.dev, current.ino, current.size, current.mode, current.uid, current.mtimeMs, current.ctimeMs];
   };
-  return { before: await capture(), capture }; // Private closure only; target/key content never enters the report.
+  return { before: await capture(), capture, readCredential: async () => privateRead(target) }; // Private closure only; no shell/SDK-wide registration.
 }
-export function readonlyCredentials(provider, readAuth, allowSdkBroker = false) {
-  let selectedKey; const secrets = new Set(); const counters = { reads: 0, blockedWrites: 0 };
+export function readonlyCredentials(provider, readAuth, allowSdkBroker = false, pinnedRead) {
+  let selectedKey; const secrets = new Set(); const counters = { reads: 0, foreignReadAttempts: 0, blockedWrites: 0 };
   const forbidden = async () => { counters.blockedWrites++; throw new CanaryError("credential-write-forbidden"); };
   const store = {
     async read(id, { signal } = {}) {
-      if (id !== provider) return undefined;
+      if (id !== provider) { counters.foreignReadAttempts++; return undefined; }
       requireCanary(!signal?.aborted, "credential-refused"); counters.reads++;
       let body; try { body = JSON.parse(await readAuth()); } catch { throw new CanaryError("credential-refused"); }
-      const credential = Object.hasOwn(body ?? {}, provider) ? body[provider] : undefined;
+      let credential = Object.hasOwn(body ?? {}, provider) ? body[provider] : undefined;
+      if (allowSdkBroker && pinnedRead) {
+        const key = (await pinnedRead()).trim(); credential = { type: "api_key", key };
+      }
       if (credential === undefined && allowSdkBroker) return undefined;
       requireCanary(credential?.type === "api_key" && typeof credential.key === "string" && credential.key.trim().length > 0 && !/^[!$]/.test(credential.key.trimStart()), "credential-refused");
-      requireCanary(Object.keys(credential).every(key => ["type", "key", "env"].includes(key)), "credential-refused");
+      requireCanary(Object.keys(credential).every(key => ["type", "key"].includes(key)), "credential-refused");
       requireCanary(selectedKey === undefined || selectedKey === credential.key, "credential-refused"); selectedKey = credential.key; secrets.add(selectedKey);
-      if (credential.env !== undefined) {
-        requireCanary(credential.env !== null && typeof credential.env === "object" && !Array.isArray(credential.env), "credential-refused");
-        for (const item of Object.values(credential.env)) { requireCanary(typeof item === "string" && !/^[!$]/.test(item.trimStart()), "credential-refused"); secrets.add(item); }
-      }
       return credential;
     },
     async list() { return []; }, modify: forbidden, delete: forbidden,

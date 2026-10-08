@@ -244,17 +244,22 @@ export async function canaryMain(args) {
     const selected = selectedCanaryProvider(modelConfig, options);
     if (options["readonly-broker-pin"] !== undefined) broker = await budget.wait(verifyReadonlyBroker(modelConfig, options.provider, options["readonly-broker-pin"], options["profile-dir"]));
     else forbidConfigCommands(selected);
+    credentials = readonlyCredentials(options.provider, () => privateRead(path.join(options["profile-dir"], "auth.json")), broker !== undefined, broker?.readCredential);
     await budget.wait(credentials.store.read(options.provider));
+    directory = await budget.wait(createTrial(options["output-root"]));
+    // Loading a private closed config at creation avoids registerProvider's implicit ALL-provider availability refresh.
+    const safeConfig = { providers: { [options.provider]: { baseUrl: selected.baseUrl, api: selected.api, models: selected.models } } };
+    const safeConfigPath = path.join(directory, "selected-models.json");
+    await writeFile(safeConfigPath, JSON.stringify(safeConfig), { flag: "wx", mode: 0o600 });
     sdk = await budget.wait(import(pathToFileURL(pin.entry).href));
     const catalogs = memoryCatalog();
-    const modelRuntime = await budget.wait(sdk.ModelRuntime.create({ credentials: credentials.store, modelsPath: null, modelsStore: catalogs.store, allowModelNetwork: false, refreshOnCreate: false }));
-    modelRuntime.registerProvider(options.provider, selected);
+    const modelRuntime = await budget.wait(sdk.ModelRuntime.create({ credentials: credentials.store, modelsPath: safeConfigPath, modelsStore: catalogs.store, allowModelNetwork: false, refreshOnCreate: false }));
     const model = modelRuntime.getModel(options.provider, options.model);
     validateEffectiveCanaryModel(model, options);
     requireCanary(modelRuntime.getError() === undefined, "invalid-config");
     const auth = await budget.wait(modelRuntime.getAuth(model)); credentials.assertAuth(auth);
     const privateStrings = [directory, options.sdk, options["profile-dir"], model.baseUrl, ...Object.values(auth.auth.headers ?? {}), ...Object.values(model.headers ?? {})].filter(value => typeof value === "string" && value.length > 0);
-    directory = await budget.wait(createTrial(options["output-root"])); privateStrings.push(directory);
+    privateStrings.push(directory);
     report = { schema: 1, status: "running", actualRun: "started", authorization: "none", executable: false, provider: options.provider, model: options.model, api: model.api,
       requestedThinking: options.thinking, effectiveThinking: "not-captured", sdk: { version: pin.version, manifestSha256: pin.manifestSha256, publicEntrySha256: pin.entrySha256, fullDeclarationHealth: "unresolved-not-tested" }, node: process.version,
       sourceSha: options["source-sha"], sourceBinding: "operator-supplied", sourceHashes: await budget.wait(sourceHashes()),
@@ -262,7 +267,7 @@ export async function canaryMain(args) {
     report.scenarios = []; await runRuntimeTrials(sdk, modelRuntime, model, options, directory, budget, report.scenarios, runtimeEvidence);
     report.effectiveThinking = runtimeEvidence.effectiveThinking; report.validatedPayloads = runtimeEvidence.payloadChecks;
     requireCanary(runtimeEvidence.payloadChecks > 0 && runtimeEvidence.payloadChecks <= budget.attempts);
-    requireCanary(quarantine.counters.unhandledRejections === 0 && credentials.counters.blockedWrites === 0);
+    requireCanary(quarantine.counters.unhandledRejections === 0 && credentials.counters.blockedWrites === 0 && credentials.counters.foreignReadAttempts === 0);
     const profile = profileComparison(before, await budget.wait(profileSnapshot(options["profile-dir"])));
     requireCanary(profile.protectedFilesUnchanged);
     if (broker) { report.brokerTargetMetadataUnchanged = JSON.stringify(broker.before) === JSON.stringify(await broker.capture()); requireCanary(report.brokerTargetMetadataUnchanged); }

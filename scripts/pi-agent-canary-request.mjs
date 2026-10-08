@@ -58,7 +58,8 @@ export function guardCanaryPayload(payload, model, context, thinking) {
   closed(payload, payloadKeys);
   requireCanary(payload.model === model.id && payload.store === false && payload.stream === true && Array.isArray(payload.input), "model-drift");
   const expectedEffort = model.thinkingLevelMap?.[thinking] ?? (thinking === "off" ? "none" : thinking);
-  requireCanary(payload.reasoning?.effort === expectedEffort, "model-drift");
+  if (model.reasoning === false) requireCanary(thinking === "off" && payload.reasoning === undefined, "model-drift");
+  else requireCanary(payload.reasoning?.effort === expectedEffort, "model-drift");
   requireCanary(Array.isArray(payload.tools) && payload.tools.length === TOOLS.length && payload.tools.every(tool => tool.type === "function" && TOOLS.includes(tool.name)) && new Set(payload.tools.map(tool => tool.name)).size === TOOLS.length, "fixture-refused");
   const expectedText = plainText(context.messages.filter(message => message.role === "user").at(-1)?.content);
   const actualText = plainText(payload.input.filter(message => message.role === "user").at(-1)?.content);

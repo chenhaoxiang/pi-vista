@@ -44,6 +44,13 @@ test("actual provider guard validates the current user task, declared four funct
   const mapped = { ...model(), thinkingLevelMap: { max: "xhigh" } }; p.reasoning.effort = "xhigh"; guardCanaryPayload(p, mapped, context, "max");
   p.tools.push({ type: "function", name: TOOLS[0] }); assert.throws(() => guardCanaryPayload(p, mapped, context, "max"), refused);
 });
+test("canary admits absent reasoning only for a non-reasoning model requested off", () => {
+  const p = payload(); delete p.reasoning; const nonReasoning = { ...model(), reasoning: false };
+  guardCanaryPayload(p, nonReasoning, context, "off");
+  assert.throws(() => guardCanaryPayload(p, nonReasoning, context, "max"), refused);
+  p.reasoning = { effort: "none" }; assert.throws(() => guardCanaryPayload(p, nonReasoning, context, "off"), refused);
+});
+
 test("canary validates the FINAL public onPayload result before forwarding it, consuming no overridden payload", async () => {
   let returned; const original = payload();
   const session = { agent: { streamFunction: async (m, c, opts) => { returned = await opts.onPayload(original, m); return "stream"; } } };
