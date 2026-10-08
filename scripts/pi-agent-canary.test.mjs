@@ -6,6 +6,7 @@ import { after, test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { BODY, NAMESPACE, RAW, ROOT, TOOLS, CanaryError, abortable, assertAbsent, constrainStream, createBudget, createFaultPort, createFixtureTools, createTrial, deferred, failureCode, ownedFailureSite, providerFailureCategory, fixtureRead, forbidConfigCommands, verifyReadonlyBroker, hash, memoryCatalog, parseCanaryOptions, privateEvidenceFiles, privateRead, profileSnapshot, profileComparison, readonlyCredentials, sdkPin, validateFixtureArguments } from "./pi-agent-canary-support.mjs";
+import { trialWriteBoundary } from "./pi-agent-canary-writes.mjs";
 import { canaryMain, observerIdle, quarantineDiagnostics, runRuntimeTrials } from "./pi-agent-canary.mjs";
 
 // node:test runs this file in its own child; only test-created data below tmp is used.
@@ -169,11 +170,25 @@ test("pi-agent-canary private profile reads reject permissions/symlinks and meta
 test("pi-agent-canary profile observation distinguishes volatile root metadata from protected-file mutation", () => {
   const before = { ".": [1, 2, 3, 0o700, 501, 10, 10], "auth.json": [1, 4, 5, 0o600, 501, 10, 10] };
   const after = { ...before, ".": [1, 2, 8, 0o700, 501, 11, 11] };
-  assert.deepEqual(profileComparison(before, after), { metadataUnchanged: false, protectedFilesUnchanged: true, changedEntries: ["."], directoryDriftAttribution: "unknown-concurrent-host" });
+  assert.deepEqual(profileComparison(before, after), { metadataUnchanged: false, protectedFilesUnchanged: true, configurationFilesUnchanged: true, sharedCatalogMetadataUnchanged: true, changedEntries: ["."], directoryDriftAttribution: "unknown-concurrent-host" });
   assert.equal(profileComparison(before, { ...after, "auth.json": [1, 4, 6, 0o600, 501, 11, 11] }).protectedFilesUnchanged, false);
   assert.equal(profileComparison(before, { ...after, ".": [1, 9, 8, 0o700, 501, 11, 11] }).protectedFilesUnchanged, false);
   assert.equal(ownedFailureSite(new Error("private foreign /private/raw")), undefined);
 });
+
+test("pi-agent-canary write boundary refuses ordinary writes outside its owned trial and restores idempotently", async () => fixture(async directory => {
+  const owned = path.join(directory, "owned"); await mkdir(owned, { mode: 0o700 });
+  const boundary = trialWriteBoundary(owned); const { default: fs } = await import("node:fs"); const { default: promises } = await import("node:fs/promises");
+  try {
+    await promises.writeFile(path.join(owned, "safe.json"), "{}"); assert.equal(await readFile(path.join(owned, "safe.json"), "utf8"), "{}");
+    for (const operation of [() => promises.writeFile(path.join(directory, "unsafe.json"), "private"), () => fs.writeFileSync(path.join(directory, "unsafe.json"), "private"), () => fs.openSync(path.join(directory, "unsafe.json"), "w"), () => fs.createWriteStream(path.join(directory, "unsafe.json")), () => promises.rename(path.join(owned, "safe.json"), path.join(directory, "unsafe.json"))]) {
+      try { await operation(); assert.fail("write must be denied"); } catch (e) { assert.equal(failureCode(e), "unsafe-path"); }
+    }
+    assert.equal(boundary.counts.blockedOperations, 5); assert.ok(boundary.counts.permittedOperations > 0);
+    assert.equal(await lstat(path.join(directory, "unsafe.json")).catch(() => null), null);
+  } finally { boundary.restore(); boundary.restore(); }
+  await writeFile(path.join(directory, "post-restore.json"), "{}");
+}));
 
 test("pi-agent-canary fixture reads reject traversal/outside/symlink/replacement and honor cancellation", async () => fixture(async directory => {
   await trial(directory); const workspace = path.join(directory, "workspace");

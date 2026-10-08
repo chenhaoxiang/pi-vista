@@ -6,6 +6,7 @@ import { CheckpointStore, EventStore, redactAll } from "@pi-vista/core";
 import { createPiObservation } from "@pi-vista/learning/pi";
 import { RAW, ROOT, TOOLS, CanaryError, assertAbsent, constrainStream, createBudget, createFaultPort, createFixtureTools, createTrial, failureCode, ownedFailureSite, providerFailureCategory, forbidConfigCommands, verifyReadonlyBroker, hash, memoryCatalog, parseCanaryOptions, privateEvidenceFiles, privateRead, profileSnapshot, profileComparison, readonlyCredentials, requireCanary, sdkPin } from "./pi-agent-canary-support.mjs";
 
+import { trialWriteBoundary } from "./pi-agent-canary-writes.mjs";
 import { selectedCanaryProvider, validateEffectiveCanaryModel, guardCanaryPayload, observeThinking } from "./pi-agent-canary-request.mjs";
 
 const OBSERVER_TIMEOUT = 80;
@@ -223,7 +224,7 @@ export function quarantineDiagnostics() {
 }
 async function sourceHashes() {
   const scripts = {};
-  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs", "pi-agent-canary-request.mjs"])  scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
+  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs", "pi-agent-canary-request.mjs", "pi-agent-canary-writes.mjs"])  scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
   const modules = {};
   for (const name of ["@pi-vista/core", "@pi-vista/learning/pi"]) modules[name] = hash(await readFile(fileURLToPath(import.meta.resolve(name))));
   return { scripts, publicEntrySha256: modules, compiledTransitiveHealth: "not-claimed" };
@@ -232,7 +233,7 @@ export async function canaryMain(args) {
   let options;
   try { options = parseCanaryOptions(args); } catch (error) { return { schema: 1, status: "refused", actualRun: "not-run", failure: failureCode(error), authorization: "none", executable: false }; }
   const terminalWrite = process.stdout.write.bind(process.stdout), quarantine = quarantineDiagnostics();
-  const budget = createBudget(options); let directory, credentials, before, broker, sdk, report;
+  const budget = createBudget(options); let directory, credentials, before, broker, sdk, report, writeBoundary;
   const runtimeEvidence = { effectiveThinking: "not-captured", payloadChecks: 0 };
   const hardDeadline = setTimeout(() => {
     terminalWrite(JSON.stringify({ schema: 1, status: "failed", actualRun: "deadline-unsettled", failure: "deadline", requestAttempts: budget.attempts, authorization: "none", executable: false, rawDataLogged: false }) + "\n"); process.exit(1);
@@ -249,6 +250,7 @@ export async function canaryMain(args) {
     credentials = readonlyCredentials(options.provider, () => privateRead(path.join(options["profile-dir"], "auth.json")), broker !== undefined, broker?.readCredential);
     await budget.wait(credentials.store.read(options.provider));
     directory = await budget.wait(createTrial(options["output-root"]));
+    writeBoundary = trialWriteBoundary(directory);
     // Loading a private closed config at creation avoids registerProvider's implicit ALL-provider availability refresh.
     const safeConfig = { providers: { [options.provider]: { baseUrl: selected.baseUrl, api: selected.api, models: selected.models } } };
     const safeConfigPath = path.join(directory, "selected-models.json");
@@ -271,7 +273,8 @@ export async function canaryMain(args) {
     requireCanary(runtimeEvidence.payloadChecks > 0 && runtimeEvidence.payloadChecks <= budget.attempts);
     requireCanary(quarantine.counters.unhandledRejections === 0 && credentials.counters.blockedWrites === 0 && credentials.counters.foreignReadAttempts === 0);
     const profile = profileComparison(before, await budget.wait(profileSnapshot(options["profile-dir"])));
-    requireCanary(profile.protectedFilesUnchanged);
+    requireCanary(profile.configurationFilesUnchanged && writeBoundary.counts.blockedOperations === 0);
+    report.standardFileWriteBoundary = { ...writeBoundary.counts, scope: "trusted-SDK-standard-Node-APIs-not-OS-sandbox" };
     if (broker) { report.brokerTargetMetadataUnchanged = JSON.stringify(broker.before) === JSON.stringify(await broker.capture()); requireCanary(report.brokerTargetMetadataUnchanged); }
     report.profileMetadataUnchanged = profile.metadataUnchanged; report.profileObservation = profile; report.credentialAccess = { ...credentials.counters }; report.catalogAccess = { ...catalogs.counters };
     report.requestAttempts = budget.attempts; report.diagnostics = { ...quarantine.counters }; report.status = "passed"; report.actualRun = "completed";
@@ -287,6 +290,7 @@ export async function canaryMain(args) {
       report.profileMetadataUnchanged = profile.metadataUnchanged; report.profileObservation = profile;
     } catch { report.profileMetadataUnchanged = false; } }
     if (broker) { try { report.brokerTargetMetadataUnchanged = JSON.stringify(broker.before) === JSON.stringify(await broker.capture()); } catch { report.brokerTargetMetadataUnchanged = false; } }
+    if (writeBoundary) report.standardFileWriteBoundary = { ...writeBoundary.counts, scope: "trusted-SDK-standard-Node-APIs-not-OS-sandbox" };
     if (credentials) report.credentialAccess = { ...credentials.counters };
   }
   try {
@@ -295,7 +299,7 @@ export async function canaryMain(args) {
     if (directory) await writeFile(path.join(directory, "report.json"), serialized, { flag: "wx", mode: 0o600 });
     return report;
   } catch { return { schema: 1, status: "failed", actualRun: "not-accepted", failure: "assertion-failed", authorization: "none", executable: false, rawDataLogged: false }; }
-  finally { clearTimeout(hardDeadline); quarantine.restore(); }
+  finally { clearTimeout(hardDeadline); writeBoundary?.restore(); quarantine.restore(); }
 }
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   process.umask(0o077);

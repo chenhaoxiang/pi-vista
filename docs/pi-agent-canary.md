@@ -137,12 +137,17 @@ session usage. SDK cost zero is **not independent billing or zero real spend**;
 configured pricing may be absent. Temporary files are kept as evidence, not
 removed or mixed with application/project memory.
 
-Profile metadata comparison reports auth/models/settings/models-store changes
-separately from directory-only drift. Protected file mutation or directory
-identity/owner/mode change fails. Directory size/times may change through other
-active sessions; report that drift as unknown concurrent-host attribution, not
-an absolute no-write proof. The broker target has a separate metadata comparison.
-No attempt is made to restore, lock or overwrite the operator profile.
+Profile metadata comparison preserves the full original `protectedFilesUnchanged`
+result for auth/models/settings/shared-model-cache, and separately reports immutable
+configuration (auth/models/settings) and shared catalog metadata. Configuration or
+directory identity/owner/mode mutation fails. Directory size/times and the shared
+model cache may drift during other live sessions; their actor attribution remains
+unknown, never silently relabelled unchanged. This trial additionally wraps the
+standard Node file mutation APIs it uses, refusing/counting writes outside the
+private trial after SDK initialization begins. Any blocked operation fails; the
+scope is trusted SDK standard APIs, **not an OS or hostile-native sandbox**. Raw
+paths/data are excluded from the write counters. The broker target has a separate
+metadata comparison. No attempt restores, locks or overwrites the operator profile.
 
 The exact original `dd70226` full source review is BLOCK (1 P1/2 P2): arbitrary
 sampling could override request safety, a credential-shaped API label was

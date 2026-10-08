@@ -101,6 +101,8 @@ export function profileComparison(before, after) {
   // Directory size/times may change because unrelated live sessions add files; do not attribute that to this trial.
   const rootIdentityUnchanged = [0, 1, 3, 4].every(index => before["."][index] === after["."][index]);
   return { metadataUnchanged: changed.length === 0, protectedFilesUnchanged: changed.every(name => name === ".") && rootIdentityUnchanged,
+    configurationFilesUnchanged: changed.every(name => [".", "models-store.json"].includes(name)) && rootIdentityUnchanged,
+    sharedCatalogMetadataUnchanged: !changed.includes("models-store.json"),
     changedEntries: changed, directoryDriftAttribution: changed.includes(".") ? "unknown-concurrent-host" : "not-observed" };
 }
 export function forbidConfigCommands(value) {
