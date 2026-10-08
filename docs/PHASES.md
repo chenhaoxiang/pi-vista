@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-07
+verified: 2026-10-08
 ssot: true
 ---
 
@@ -212,12 +212,19 @@ review and exact head/mainCI37801144194/37801638062; source delivery and documen
 inclusion are separately verified.
 
 On2026-10-08 the user explicitly amended Stage3 to [single-owner local host mode](local-host-evidence.md),
-not establishing a new signer/key system. The separate evidence/host source candidate
-collects explicit scoped actual results and uses non-portable process-local proof;
-original signed API/Learning/archive admission is unchanged. Mac screen-unlocked/UID
-is not result truth, and no native personal-authentication broker is implemented.
-Actual scoped acceptance/source delivery remains in progress; original signed owner
-producer/key acceptance stays MISSING. Later actual isolated bank/guidance and explicit
+not establishing a new signer/key system. The separate evidence/host source is delivered
+through normal PR24/main001a4fc, exact head/mainCI37848869274/37849179258, actual Node20/26
+1127 native cases/11tarballs21exports and strict installedTS5.9.3. Original full14path
+BLOCK0/1/1 and four red→green regressions precede the targeted five-path correction
+OKnotes0/0/0; this is not a fresh full15path review. Exact984 and clean postmerge001a4fc
+actual fixed-plan acceptance separately repeats177 evidence cases and six declared
+command admit/settle events, not OS/Meta/nested/Gitmetadata coverage. See the
+[Stage3 closeout](handoff/2026-10-08-local-host-evidence-source-closeout.md).
+Local proof is non-portable and non-authorizing; original signed API/Learning/archive
+admission is unchanged. Mac screen-unlocked/UID is not result truth, and no native
+personal-authentication broker is implemented. This later documentary inclusion remains
+pending at preparation; original signed owner producer/key acceptance stays MISSING.
+Later actual isolated bank/guidance and explicit
 local learning workflow require new current verification after restart, not history
 status restoration. No daily session activation, live bank, production receipt,
 quality improvement or distribution is inferred. SDK full declaration health stays
