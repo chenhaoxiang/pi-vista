@@ -1,3 +1,4 @@
+import { generateStepId } from "@pi-vista/core";
 import type { EvidenceBinding } from "@pi-vista/evidence";
 import { MAX_STEPS, type ExperienceObservation, type FailureObservation, type SafeScript, type SafeStep } from "../contract.js";
 import { BINDING_KEYS, binding, bindingOf, canonical, choice, frozen, hash, integer, invalid, label, list, metadata, own, sameBinding } from "../data.js";
@@ -35,7 +36,9 @@ function event(input: unknown, expected: EvidenceBinding): Event {
   if (!sameBinding(bound, expected)) invalid();
   const action = choice(v.action, actions); const step = label(v.step_id);
   const sequence = step.slice(expected.run_id.length + 2);
-  if (!step.startsWith(`${expected.run_id}_s`) || !/^(?:0|[1-9][0-9]*)$/.test(sequence) || !Number.isSafeInteger(Number(sequence))) invalid();
+  const ordinal = Number.parseInt(sequence, 36);
+  if (!step.startsWith(`${expected.run_id}_s`) || !/^(?:0|[1-9a-z][0-9a-z]*)$/.test(sequence) ||
+    !Number.isSafeInteger(ordinal) || generateStepId(expected.run_id, ordinal) !== step) invalid();
   const tool = action.startsWith("pi:tool-");
   if (tool ? typeof v.target_class !== "string" : v.target_class !== undefined) invalid();
   const result = choice(v.result, ["ok", "failed", "blocked", "unknown"]);

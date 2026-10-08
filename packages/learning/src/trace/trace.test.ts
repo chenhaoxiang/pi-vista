@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { draftTraceExperience, type TraceDraftInput } from "@pi-vista/learning/trace";
+import { generateStepId } from "@pi-vista/core";
 import { createLearningLibrary } from "@pi-vista/learning";
 import { ownerFixture } from "../learning.fixtures.js";
 
 const expected = { run_id: "fixture-run", repo: "fixture-repo", source_sha: "a".repeat(40), policy_version: "policy-v1", env_fingerprint: "env-v1" };
 function event(step: number, ts: number, action: string, result = "unknown", tool?: string): Record<string, unknown> {
-  return { ...expected, step_id: `${expected.run_id}_s${step}`, ts, component: "pi", action, result, vista_version: "0.1.0", session_id: "fixture-session", ...(tool === undefined ? {} : { target_class: tool }) };
+  return { ...expected, step_id: generateStepId(expected.run_id, step), ts, component: "pi", action, result, vista_version: "0.1.0", session_id: "fixture-session", ...(tool === undefined ? {} : { target_class: tool }) };
 }
 function input(): TraceDraftInput {
   return { experience_id: "experience-1", expected, dropped_count: 0,
@@ -86,6 +87,13 @@ test("output is detached/deep-frozen and later caller mutation cannot redirect i
   assert.equal(d.observation.script.description, "bounded metadata workflow"); assert.equal(d.pairs[0]!.tool_class, "metadata-reader");
   for (const value of [d, d.observation, d.observation.script, d.observation.steps, d.observation.steps[0], d.pairs, d.pairs[0]]) assert.equal(Object.isFrozen(value), true);
 });
+test("public base36 step identities beyond nine round-trip without renaming or decimal-only refusal", () => {
+  const v = mutable(); v.events[1].step_id = generateStepId(expected.run_id, 35); v.events[4].step_id = generateStepId(expected.run_id, 35);
+  v.events[5].step_id = generateStepId(expected.run_id, 36); v.events[6].step_id = generateStepId(expected.run_id, 37);
+  const d = draftTraceExperience(v); assert.equal(d.pairs[0]!.step_id, "fixture-run_sz"); assert.equal(d.observation.steps[0]!.step_id, "fixture-run_sz");
+  v.events[1].step_id = "fixture-run_s000z"; assert.throws(() => draftTraceExperience(v), /invalid-input/);
+});
+
 test("zero/over-bound traces and metadata templates cannot truncate into a valid partial experience", () => {
   assert.throws(() => draftTraceExperience({ ...input(), events: [] }), /invalid-input/);
   assert.throws(() => draftTraceExperience({ ...input(), events: Array(65).fill(input().events[0]) }), /invalid-input/);
