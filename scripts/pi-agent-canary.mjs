@@ -6,6 +6,7 @@ import { CheckpointStore, EventStore, redactAll } from "@pi-vista/core";
 import { createPiObservation } from "@pi-vista/learning/pi";
 import { RAW, ROOT, TOOLS, CanaryError, assertAbsent, constrainStream, createBudget, createFaultPort, createFixtureTools, createTrial, failureCode, ownedFailureSite, providerFailureCategory, forbidConfigCommands, verifyReadonlyBroker, hash, memoryCatalog, parseCanaryOptions, privateEvidenceFiles, privateRead, profileSnapshot, profileComparison, readonlyCredentials, requireCanary, sdkPin } from "./pi-agent-canary-support.mjs";
 
+import { explicitCanaryResources } from "./pi-agent-canary-resources.mjs";
 import { trialWriteBoundary } from "./pi-agent-canary-writes.mjs";
 import { selectedCanaryProvider, validateEffectiveCanaryModel, guardCanaryPayload, observeThinking } from "./pi-agent-canary-request.mjs";
 
@@ -40,12 +41,10 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
   const runtime = await budget.wait(sdk.createAgentSessionRuntime(async target => {
     const settingsManager = sdk.SettingsManager.inMemory({ packages: [], extensions: [], skills: [], prompts: [], themes: [], defaultTools: [],
       compaction: { enabled: false }, retry: { enabled: false, maxRetries: 0, provider: { maxRetries: 0, timeoutMs: Math.min(150000, options["deadline-ms"]), maxRetryDelayMs: 0 } },
-      cacheWarming: "off", enableInstallTelemetry: false, enableAnalytics: false, enableSkillCommands: false, defaultProjectTrust: "never" });
-    const resourceLoader = new sdk.DefaultResourceLoader({ cwd: target.cwd, agentDir: target.agentDir, settingsManager,
-      noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
-      systemPrompt: "Only perform the fixed synthetic canary tasks. Use exactly the requested fixture tool once, never any other tool. After its result return exactly the requested marker. No other actions or prose.",
-      extensionFactories: [async pi => {
-        // DefaultResourceLoader invokes this anew on actual session.reload(). Never reuse a registered addon.
+      cacheWarming: "off", enableInstallTelemetry: false, enableAnalytics: false, enableSkillCommands: false, defaultProjectTrust: "never" }, { projectTrusted: false });
+    requireCanary(settingsManager.isProjectTrusted() === false);
+    const resourceLoader = explicitCanaryResources(sdk, async pi => {
+        // The host-owned ResourceLoader invokes this anew on actual session.reload(); no package/ancestor resolver.
         const generation = { number: generations.length + 1, events: [], checkpoints: [], lifecycle: [], counts: Object.fromEntries(hooks.map(name => [name, 0])) };
         const baseDir = path.join(directory, "observations", `${kind}-${options["source-sha"].slice(0, 12)}-g${generation.number}`);
         await mkdir(baseDir, { mode: 0o700 });
@@ -64,8 +63,7 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
             else generation.lifecycle.push({ event: name, reason: event.reason });
           }
         });
-      }],
-    });
+      }, "Only perform the fixed synthetic canary tasks. Use exactly the requested fixture tool once, never any other tool. After its result return exactly the requested marker. No other actions or prose.");
     await budget.wait(resourceLoader.reload());
     requireCanary(resourceLoader.getExtensions().errors.length === 0 && (resourceLoader.getExtensions().warnings?.length ?? 0) === 0);
     for (const resource of [resourceLoader.getSkills().skills, resourceLoader.getPrompts().prompts, resourceLoader.getThemes().themes, resourceLoader.getAgentsFiles().agentsFiles]) requireCanary(resource.length === 0);
@@ -224,7 +222,7 @@ export function quarantineDiagnostics() {
 }
 async function sourceHashes() {
   const scripts = {};
-  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs", "pi-agent-canary-request.mjs", "pi-agent-canary-writes.mjs"])  scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
+  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs", "pi-agent-canary-request.mjs", "pi-agent-canary-writes.mjs", "pi-agent-canary-resources.mjs"])  scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
   const modules = {};
   for (const name of ["@pi-vista/core", "@pi-vista/learning/pi"]) modules[name] = hash(await readFile(fileURLToPath(import.meta.resolve(name))));
   return { scripts, publicEntrySha256: modules, compiledTransitiveHealth: "not-claimed" };

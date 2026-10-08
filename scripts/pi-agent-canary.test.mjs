@@ -6,6 +6,7 @@ import { after, test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { BODY, NAMESPACE, RAW, ROOT, TOOLS, CanaryError, abortable, assertAbsent, constrainStream, createBudget, createFaultPort, createFixtureTools, createTrial, deferred, failureCode, ownedFailureSite, providerFailureCategory, fixtureRead, forbidConfigCommands, verifyReadonlyBroker, hash, memoryCatalog, parseCanaryOptions, privateEvidenceFiles, privateRead, profileSnapshot, profileComparison, readonlyCredentials, sdkPin, validateFixtureArguments } from "./pi-agent-canary-support.mjs";
+import { explicitCanaryResources } from "./pi-agent-canary-resources.mjs";
 import { trialWriteBoundary } from "./pi-agent-canary-writes.mjs";
 import { canaryMain, observerIdle, quarantineDiagnostics, runRuntimeTrials } from "./pi-agent-canary.mjs";
 
@@ -48,7 +49,7 @@ function mockSdk(change = {}) {
       this.agent = { streamFunction: () => ({}), abort: () => this.controller?.abort() }; made.push(this);
     }
     async event(event) {
-      await this.config.resourceLoader.notify(event);
+      for (const extension of this.config.resourceLoader.getExtensions().extensions) for (const handler of extension.handlers.get(event.type) ?? []) await handler(event, {});
       for (const listener of this.listeners) listener(event);
     }
     subscribe(listener) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
@@ -98,7 +99,8 @@ function mockSdk(change = {}) {
     getSessionStats() { return { tokens: { input: this.responses, output: this.responses, cacheRead: 0, cacheWrite: 0, total: this.responses * 2 }, cost: 0 }; }
   }
   return { made, settings, managers, sdk: {
-    SettingsManager: { inMemory: config => { settings.push(config); return config; } },
+    SettingsManager: { inMemory: (config, trust) => { settings.push(config); return { ...config, isProjectTrusted: () => trust?.projectTrusted ?? true }; } },
+    createExtensionRuntime: () => ({}),
     SessionManager: { inMemory: cwd => { const manager = { cwd, persistence: "in-memory" }; managers.push(manager); return manager; } },
     DefaultResourceLoader: Loader,
     createAgentSession: async config => { assert.deepEqual(config.tools, TOOLS); assert.equal(config.noTools, "builtin"); return { session: new Session(config) }; },
@@ -264,6 +266,18 @@ test("pi-agent-canary explicit trial creation never follows a symlink output roo
   assert.equal((await lstat(created)).mode & 0o077, 0); assert.equal(await privateRead(path.join(created, "workspace/alpha.txt")), BODY.alpha);
   await symlink(root, path.join(directory, "linked")); await assert.rejects(createTrial(path.join(directory, "linked")), refused("unsafe-path"));
 }));
+
+test("pi-agent-canary host ResourceLoader contains only explicit supported declarations and constructs anew without discovery", async () => {
+  let factories = 0, runtimes = 0;
+  const loader = explicitCanaryResources({ createExtensionRuntime: () => ({ generation: ++runtimes }) }, api => {
+    factories++; api.on("session_start", () => undefined); api.registerCommand("vista-status", { description: "safe", handler: async () => {} });
+  }, "fixed synthetic prompt");
+  await loader.reload(); const old = loader.getExtensions(); await loader.reload(); const current = loader.getExtensions();
+  assert.notEqual(old, current); assert.equal(factories, 2); assert.equal(runtimes, 2); assert.equal(current.extensions[0].tools.size, 0);
+  assert.deepEqual(loader.getSkills().skills, []); assert.deepEqual(loader.getAgentsFiles().agentsFiles, []); assert.equal(loader.getSystemPrompt(), "fixed synthetic prompt");
+  assert.throws(() => loader.extendResources({ skillPaths: [{ path: "/private/no-read" }] }), refused());
+  await assert.rejects(explicitCanaryResources({ createExtensionRuntime: () => ({}) }, api => api.on("tool_call", () => undefined), "fixed").reload(), refused());
+});
 
 test("pi-agent-canary synthetic runtime orchestration checks all lifecycle phases and exact private core readback", async () => fixture(async directory => {
   await trial(directory); const host = mockSdk(), config = options(), budget = createBudget(config);

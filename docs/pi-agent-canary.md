@@ -52,6 +52,16 @@ is exactly a single `cat /canonical/private/file` lookup under the designated pr
 restricted path characters, current-user/private regular file and private parent.
 The SHA is an explicit runtime pin, not a default capability. No shell controls,
 expansion, arbitrary command, OAuth refresh or credential write/delete is allowed.
+
+The current `SettingsManager.inMemory` explicitly sets `projectTrusted:false`;
+the preference `defaultProjectTrust:never` alone is not that runtime flag. A
+host-owned implementation of the public ResourceLoader/Extension data contracts
+loads only the already trusted in-process canary factory and SDK-provided runtime.
+It performs no package/module/HOME/ancestor/resource discovery. DefaultResourceLoader
+is deliberately not used: its package resolver scans ambient `.agents` paths even
+when final noSkills/noExtensions arrays are empty. Actual session.reload invokes
+the host loader again and constructs a fresh addon; notifications/commands are
+still dispatched by real public AgentSession, not manually emitted test events.
 Never put actual broker command/file/key values into this document or a PR.
 
 Only a closed snapshot of the selected provider/model is written to a private
@@ -157,8 +167,11 @@ correction at `fef037e` addresses those findings but its targeted review is also
 BLOCK: dynamic registration triggered broad ambient availability scans, and a
 non-reasoning/off payload was incorrectly rejected. The next bounded correction
 uses closed private initial configuration, no dynamic registration, and proper
-off payload semantics. Corrected-source review/gates/operational acceptance remain
-separate pending evidence.
+off payload semantics. The fresh complete `7c532a6` review then found a separate
+P1: default loader filtering did not prevent prior ambient discovery. Its original
+full BLOCK remains preserved; the next correction uses explicit runtime trust
+and a discovery-free public host loader. Corrected-source review/gates/operational
+acceptance remain separate pending evidence.
 
 Earlier failed child streams, rejected command mode, pre-fix offline failures,
 upstream response errors and SDK cancellation representations remain retained
