@@ -13,6 +13,10 @@
     "./files": {
       "types": "./dist/files.d.ts",
       "import": "./dist/files.js"
+    },
+    "./host": {
+      "types": "./dist/host.d.ts",
+      "import": "./dist/host.js"
     }
   },
   "files": [
