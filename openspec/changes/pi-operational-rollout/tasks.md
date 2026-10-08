@@ -14,7 +14,9 @@ verified: 2026-10-07
 - [x] Verify current source main, public SDK contract and readonly model configuration without dumping credentials.
 - [x] Stage1 source harness and synthetic offline tests: opt-in actual SDK, fixed fixture tools, private/in-memory lifecycle and readonly static/SHA-pinned broker mode.
 - [x] Parent precommit actual-model trial:14 requests, startup/parallel/abort/subsequent/reload/shutdown and repeat observer-fault cases; protected files unchanged, volatile profile directory drift remains unknown attribution.
-- [ ] Stage1 exact committed-source local gates/live evidence, independent review, hosted CI and normal PR/main delivery.
+- [x] Original exact dd70226 Node20/26 source/consumer gates (982 cases) and full independent same-model review: BLOCK (1 P1 / 2 P2), preserved; live acceptance separately blocked by two provider-unavailable trials.
+- [x] Offline parent confirmation of request-envelope override and API-label leak before transport; current correction closes selected config, final onPayload, API and observed-thinking semantics.
+- [ ] Stage1 corrected exact-source gates, retained correction review, full actual-model acceptance, hosted CI and normal PR/main delivery.
 - [ ] Stage2: safe trace-to-observed/candidate Script/Step/failure construction, no current-trust lift.
 - [ ] Stage3: actual owner test/gate/guard producer/key provenance and truthful complete receipt acceptance.
 - [ ] Stage4: actual isolated Hindsight service/bank read/write/readback/restart/failure acceptance.

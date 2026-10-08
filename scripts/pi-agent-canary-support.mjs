@@ -174,13 +174,20 @@ export function createBudget(options, now = () => performance.now()) {
     },
   };
 }
-export function constrainStream(session, budget) {
+export function constrainStream(session, budget, requestGuard) {
   const stream = session.agent.streamFunction;
   requireCanary(typeof stream === "function");
   // Public Agent.streamFunction: bound the request BEFORE the SDK/provider stream is invoked.
   // Awaited extension errors are fail-open and cannot enforce a round budget.
   let lastSignal;
-  session.agent.streamFunction = (model, context, options) => { budget.take(model, options?.reasoning ?? "off"); lastSignal = options?.signal; return stream(model, context, options); };
+  session.agent.streamFunction = (model, context, options) => {
+    const thinking = options?.reasoning ?? "off"; budget.take(model, thinking); lastSignal = options?.signal;
+    if (!requestGuard) return stream(model, context, options);
+    return stream(model, context, { ...options, onPayload: async (payload, effectiveModel) => {
+      const changed = await options?.onPayload?.(payload, effectiveModel);
+      const final = changed ?? payload; requestGuard(final, effectiveModel, context, thinking); return final;
+    } });
+  };
   return { requestSignalAborted: () => lastSignal?.aborted === true };
 }
 export async function createTrial(outputRoot) {

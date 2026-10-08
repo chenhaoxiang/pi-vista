@@ -22,6 +22,8 @@ It does not install/activate resources in a daily Pi session, change tools/model
 safety rules, access a real Hindsight bank, create owner evidence, promote a
 candidate or publish packages. Every observation says authorization none. The
 exact approved model is pinned, with no channel/model/thinking fallback.
+This canary admits only the exercised `openai-responses` API; other adapters
+require separate contracts rather than a generic config-controlled report label.
 
 ## Explicit invocation and limits
 
@@ -51,6 +53,13 @@ restricted path characters, current-user/private regular file and private parent
 The SHA is an explicit runtime pin, not a default capability. No shell controls,
 expansion, arbitrary command, OAuth refresh or credential write/delete is allowed.
 Never put actual broker command/file/key values into this document or a PR.
+
+Only a closed snapshot of the selected provider/model is registered in the
+public ModelRuntime. Its `modelsPath:null` prevents a second ambient config read;
+unselected providers are not passed to it. Arbitrary sampling/per-thinking sampling,
+headers, compat/model overrides, routing fields and environment interpolation
+reject before runtime creation. Endpoint must be HTTPS or local HTTP, without
+userinfo/query/fragment; private endpoint values never enter the report.
 
 Only the chosen provider is requested from the readonly CredentialStore; list
 returns no credential metadata, modify/delete reject, and resolved keys stay in
@@ -84,6 +93,13 @@ model-issued calls, parameters/results, session/provider/thinking identity,
 settlement, unique runs/steps and exact redacted core store readback. Core event
 values form an unordered multiset; concurrent append order is not asserted.
 Checkpoints remain nonresumable observed metadata with empty completion/check lists.
+The actual public provider `onPayload` hook validates the FINAL payload before
+HTTP transport: exact model, `store:false`, streaming, fixed function tools/no
+hosted tools or background/resume controls, mapped reasoning effort and unchanged
+latest fixture prompt. A declared model label or response pin is not proof of the
+actual request. Reports count successfully validated payloads separately from
+request attempts and set effective thinking from each actual session observation;
+if none was constructed it is `not-captured`.
 
 The cancelled task is **not success**. Pi can return `stopReason:error` on its
 aborted follow-up; accept that cancellation scenario only when the fixture tool
@@ -114,6 +130,14 @@ identity/owner/mode change fails. Directory size/times may change through other
 active sessions; report that drift as unknown concurrent-host attribution, not
 an absolute no-write proof. The broker target has a separate metadata comparison.
 No attempt is made to restore, lock or overwrite the operator profile.
+
+The exact original `dd70226` full source review is BLOCK (1 P1/2 P2): arbitrary
+sampling could override request safety, a credential-shaped API label was
+projected, and effective thinking was copied rather than observed. Original
+report/hash and offline zero-transport reproductions remain preserved. The
+bounded correction rejects unsafe selected config, guards the final payload,
+closes API labels and observes the actual thinking level; exact corrected-source
+review/gates/operational acceptance remain separate pending evidence.
 
 Earlier failed child streams, rejected command mode, pre-fix offline failures,
 upstream response errors and SDK cancellation representations remain retained

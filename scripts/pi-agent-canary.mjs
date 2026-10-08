@@ -6,6 +6,8 @@ import { CheckpointStore, EventStore, redactAll } from "@pi-vista/core";
 import { createPiObservation } from "@pi-vista/learning/pi";
 import { RAW, ROOT, TOOLS, CanaryError, assertAbsent, constrainStream, createBudget, createFaultPort, createFixtureTools, createTrial, failureCode, ownedFailureSite, providerFailureCategory, forbidConfigCommands, verifyReadonlyBroker, hash, memoryCatalog, parseCanaryOptions, privateEvidenceFiles, privateRead, profileSnapshot, profileComparison, readonlyCredentials, requireCanary, sdkPin } from "./pi-agent-canary-support.mjs";
 
+import { selectedCanaryProvider, validateEffectiveCanaryModel, guardCanaryPayload, observeThinking } from "./pi-agent-canary-request.mjs";
+
 const OBSERVER_TIMEOUT = 80;
 const classifications = Object.freeze(["fixture-alpha", "fixture-beta", "fixture-pair", "fixture-wait"]);
 const hooks = ["session_start", "session_shutdown", "agent_start", "agent_end", "agent_settled", "tool_execution_start", "tool_execution_end"];
@@ -29,7 +31,7 @@ const canonicalMetadata = value => value === null || typeof value !== "object" ?
   ? `[${value.map(canonicalMetadata).join(",")}]` : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalMetadata(value[key])}`).join(",")}}`;
 const eventValues = events => events.map(canonicalMetadata).sort();
 
-async function scenario(sdk, modelRuntime, model, options, directory, kind, budget) {
+async function scenario(sdk, modelRuntime, model, options, directory, kind, budget, runtimeEvidence) {
   const fixtures = createFixtureTools(path.join(directory, "workspace"));
   const generations = [], responses = [], calls = new Map(); let phase = "startup", extensionErrors = 0, violated = false;
   const faults = kind === "fault" ? createFaultPort() : undefined;
@@ -70,7 +72,9 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
     return { ...made, services: { cwd: target.cwd, agentDir: target.agentDir, modelRuntime, settingsManager, resourceLoader, diagnostics: [] }, diagnostics: [] };
   }, { cwd: path.join(directory, "workspace"), agentDir: path.join(directory, "agent"), sessionManager: sdk.SessionManager.inMemory(path.join(directory, "workspace")) }));
   const session = runtime.session, identity = session.sessionId;
-  const requestState = constrainStream(session, budget);
+  const requestState = constrainStream(session, budget, (payload, effectiveModel, context, thinking) => {
+    guardCanaryPayload(payload, effectiveModel, context, thinking); runtimeEvidence.payloadChecks++;
+  });
   const unsubscribe = session.subscribe(event => {
     if (event.type === "message_end" && event.message?.role === "assistant") {
       const message = event.message;
@@ -99,7 +103,7 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
   }
   const phases = []; const diagnostics = { kind, phase, phaseAccepted: phases, identityViolation: false };
   async function task(name, tool, fixture, abort = false) {
-    phase = name; diagnostics.phase = name; pinned(); const generation = generations.at(-1), firstResponse = responses.length;
+    phase = name; diagnostics.phase = name; observeThinking(session, options, runtimeEvidence); pinned(); const generation = generations.at(-1), firstResponse = responses.length;
     const expectedMarker = `${RAW[3]} ${name.toUpperCase()}_OK`;
     const prompt = `${RAW[2]} Call ${tool} exactly once with fixture=${fixture}, privacy=${RAW[0]}. ${abort ? "Wait for host cancellation; do not claim completion." : `After its result respond exactly ${expectedMarker}.`}`;
     const prompting = session.prompt(prompt, { expandPromptTemplates: false });
@@ -197,8 +201,8 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
 }
 
 // Exported solely for deterministic synthetic SDK mocks. The CLI has no injected SDK/fallback path.
-export async function runRuntimeTrials(sdk, modelRuntime, model, options, directory, budget, scenarios = []) {
-  for (const kind of ["primary", "fault"]) scenarios.push(await scenario(sdk, modelRuntime, model, options, directory, kind, budget));
+export async function runRuntimeTrials(sdk, modelRuntime, model, options, directory, budget, scenarios = [], runtimeEvidence = { effectiveThinking: "not-captured", payloadChecks: 0 }) {
+  for (const kind of ["primary", "fault"]) scenarios.push(await scenario(sdk, modelRuntime, model, options, directory, kind, budget, runtimeEvidence));
   requireCanary((await readdir(path.join(directory, "agent"))).length === 0);
   for (const { text: body } of await privateEvidenceFiles(path.join(directory, "observations"))) assertAbsent(body, [directory, options.sdk, options["profile-dir"]]);
   return scenarios;
@@ -217,7 +221,7 @@ export function quarantineDiagnostics() {
 }
 async function sourceHashes() {
   const scripts = {};
-  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs"]) scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
+  for (const name of ["pi-agent-canary.mjs", "pi-agent-canary-support.mjs", "pi-agent-canary-request.mjs"])  scripts[name] = hash(await readFile(path.join(ROOT, "scripts", name)));
   const modules = {};
   for (const name of ["@pi-vista/core", "@pi-vista/learning/pi"]) modules[name] = hash(await readFile(fileURLToPath(import.meta.resolve(name))));
   return { scripts, publicEntrySha256: modules, compiledTransitiveHealth: "not-claimed" };
@@ -227,6 +231,7 @@ export async function canaryMain(args) {
   try { options = parseCanaryOptions(args); } catch (error) { return { schema: 1, status: "refused", actualRun: "not-run", failure: failureCode(error), authorization: "none", executable: false }; }
   const terminalWrite = process.stdout.write.bind(process.stdout), quarantine = quarantineDiagnostics();
   const budget = createBudget(options); let directory, credentials, before, broker, sdk, report;
+  const runtimeEvidence = { effectiveThinking: "not-captured", payloadChecks: 0 };
   const hardDeadline = setTimeout(() => {
     terminalWrite(JSON.stringify({ schema: 1, status: "failed", actualRun: "deadline-unsettled", failure: "deadline", requestAttempts: budget.attempts, authorization: "none", executable: false, rawDataLogged: false }) + "\n"); process.exit(1);
   }, options["deadline-ms"] + 5000);
@@ -236,23 +241,27 @@ export async function canaryMain(args) {
     credentials = readonlyCredentials(options.provider, () => privateRead(path.join(options["profile-dir"], "auth.json")), options["readonly-broker-pin"] !== undefined);
     // Static mode refuses commands. Optional operator-pinned mode admits only one verified read-only cat key broker.
     const modelConfig = JSON.parse(await budget.wait(privateRead(path.join(options["profile-dir"], "models.json"))));
+    const selected = selectedCanaryProvider(modelConfig, options);
     if (options["readonly-broker-pin"] !== undefined) broker = await budget.wait(verifyReadonlyBroker(modelConfig, options.provider, options["readonly-broker-pin"], options["profile-dir"]));
-    else forbidConfigCommands(modelConfig);
+    else forbidConfigCommands(selected);
     await budget.wait(credentials.store.read(options.provider));
     sdk = await budget.wait(import(pathToFileURL(pin.entry).href));
     const catalogs = memoryCatalog();
-    const modelRuntime = await budget.wait(sdk.ModelRuntime.create({ credentials: credentials.store, modelsPath: path.join(options["profile-dir"], "models.json"), modelsStore: catalogs.store, allowModelNetwork: false, refreshOnCreate: false }));
+    const modelRuntime = await budget.wait(sdk.ModelRuntime.create({ credentials: credentials.store, modelsPath: null, modelsStore: catalogs.store, allowModelNetwork: false, refreshOnCreate: false }));
+    modelRuntime.registerProvider(options.provider, selected);
     const model = modelRuntime.getModel(options.provider, options.model);
-    requireCanary(model && model.provider === options.provider && model.id === options.model && /^[A-Za-z0-9._-]{1,128}$/.test(model.api), "model-drift");
+    validateEffectiveCanaryModel(model, options);
     requireCanary(modelRuntime.getError() === undefined, "invalid-config");
     const auth = await budget.wait(modelRuntime.getAuth(model)); credentials.assertAuth(auth);
     const privateStrings = [directory, options.sdk, options["profile-dir"], model.baseUrl, ...Object.values(auth.auth.headers ?? {}), ...Object.values(model.headers ?? {})].filter(value => typeof value === "string" && value.length > 0);
     directory = await budget.wait(createTrial(options["output-root"])); privateStrings.push(directory);
     report = { schema: 1, status: "running", actualRun: "started", authorization: "none", executable: false, provider: options.provider, model: options.model, api: model.api,
-      requestedThinking: options.thinking, effectiveThinking: options.thinking, sdk: { version: pin.version, manifestSha256: pin.manifestSha256, publicEntrySha256: pin.entrySha256, fullDeclarationHealth: "unresolved-not-tested" }, node: process.version,
+      requestedThinking: options.thinking, effectiveThinking: "not-captured", sdk: { version: pin.version, manifestSha256: pin.manifestSha256, publicEntrySha256: pin.entrySha256, fullDeclarationHealth: "unresolved-not-tested" }, node: process.version,
       sourceSha: options["source-sha"], sourceBinding: "operator-supplied", sourceHashes: await budget.wait(sourceHashes()),
       budget: { maxModelRounds: options["max-model-rounds"], deadlineMs: options["deadline-ms"] }, credentialMode: options["readonly-broker-pin"] === undefined ? "static-provider-api-key" : "operator-pinned-readonly-model-broker", sessionPersistence: "in-memory", catalogPersistence: "in-memory", catalogNetwork: false, rawDataLogged: false };
-    report.scenarios = []; await runRuntimeTrials(sdk, modelRuntime, model, options, directory, budget, report.scenarios);
+    report.scenarios = []; await runRuntimeTrials(sdk, modelRuntime, model, options, directory, budget, report.scenarios, runtimeEvidence);
+    report.effectiveThinking = runtimeEvidence.effectiveThinking; report.validatedPayloads = runtimeEvidence.payloadChecks;
+    requireCanary(runtimeEvidence.payloadChecks > 0 && runtimeEvidence.payloadChecks <= budget.attempts);
     requireCanary(quarantine.counters.unhandledRejections === 0 && credentials.counters.blockedWrites === 0);
     const profile = profileComparison(before, await budget.wait(profileSnapshot(options["profile-dir"])));
     requireCanary(profile.protectedFilesUnchanged);
@@ -264,6 +273,7 @@ export async function canaryMain(args) {
   } catch (error) {
     report = { ...(report ?? { schema: 1, authorization: "none", executable: false }), status: "failed", actualRun: directory ? "started-not-accepted" : "not-run", failure: failureCode(error), ...(ownedFailureSite(error) === undefined ? {} : { ownedFailureSite: ownedFailureSite(error) }), requestAttempts: budget.attempts, rawDataLogged: false };
     // Never project foreign errors, frames, config, paths, model text or half-built raw ledger state.
+    report.effectiveThinking = runtimeEvidence.effectiveThinking; report.validatedPayloads = runtimeEvidence.payloadChecks;
     if (error instanceof CanaryError && Object.hasOwn(error, "canaryDiagnostics")) report.failedScenario = error.canaryDiagnostics;
     if (before) { try {
       const profile = profileComparison(before, await profileSnapshot(options["profile-dir"]));
