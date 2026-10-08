@@ -274,6 +274,7 @@ records.
 - [ai-gate adapter](docs/adapters/ai-gate.md)
 - [Pi run-context adapter](docs/adapters/pi.md)
 - [Explicit optional Pi observation and historical preview](docs/pi-observe-preview.md)
+- [Explicit actual AgentSession canary and sequential operational acceptance](docs/pi-agent-canary.md)
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Explicit receipt file consumer and missing owner producers](docs/receipt-files.md)
