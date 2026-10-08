@@ -26,7 +26,7 @@ The verifier SHALL validate closed detached schema1 gate/test/guard observations
 - **THEN** verification SHALL fail, without relabeling or filling observations
 
 ### Requirement: Local proof lifetime shall not survive copying or failure
-Only exact current verifier-owned handles SHALL pass provenance checks. Revalidation SHALL re-collect all sources, compare immutable observation digests and rotate the handle; failed revalidation SHALL revoke the challenged handle. Copying, serialization, another factory, restart, expiry, clock rollback, shutdown or late callback completion SHALL NOT restore current evidence.
+Only exact current verifier-owned handles SHALL pass provenance checks. Revalidation SHALL re-collect all sources, compare immutable observation digests and rotate the handle without extending its previous deadline; failed revalidation SHALL revoke the challenged handle. A factory-lifetime monotonic anchor SHALL make fixed-wall elapsed freshness non-renewable even through direct verify; collection crossing expiry SHALL refuse. Malformed/mismatching isCurrent queries SHALL return false without consuming a valid handle. Copying, serialization, another factory, restart, expiry, clock rollback, shutdown or late callback completion SHALL NOT restore current evidence.
 
 #### Scenario: History is recalled after restart
 - **WHEN** persisted local evidence or guidance is loaded in a new process

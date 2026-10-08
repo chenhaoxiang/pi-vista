@@ -70,6 +70,7 @@ interface State {
   readonly age: number; readonly timeout: number; readonly proofs: WeakMap<object, LocalProofRecord>;
   readonly pending: Set<AbortController>;
   open: boolean; timeFault: boolean; highWater: number;
+  anchor: { readonly wall: number; readonly mono: number } | undefined;
 }
 const states = new WeakMap<object, State>();
 const KINDS: readonly EvidenceKind[] = ["gate", "test", "guard"];
@@ -113,9 +114,14 @@ function observation(input: unknown): LocalObservation {
 function time(state: State): number {
   if (!state.open || state.timeFault) throw new EvidenceError("unverified-evidence");
   try {
-    const n = integer(state.now());
-    if (n < state.highWater) throw new EvidenceError("unverified-evidence");
-    state.highWater = n; return n;
+    const wall = integer(state.now()); const mono = performance.now();
+    if (wall < state.highWater || !Number.isFinite(mono) || mono < 0 || (state.anchor && mono < state.anchor.mono))
+      throw new EvidenceError("unverified-evidence");
+    // A factory-lifetime anchor advances with monotonic elapsed time. Forward wall
+    // jumps may advance it; a held wall clock never resets observation freshness.
+    if (!state.anchor || wall > state.anchor.wall + Math.floor(mono - state.anchor.mono)) state.anchor = { wall, mono };
+    state.highWater = wall;
+    return integer(Math.max(wall, state.anchor.wall + Math.floor(mono - state.anchor.mono)));
   } catch {
     state.timeFault = true;
     for (const controller of state.pending) controller.abort();
@@ -123,7 +129,7 @@ function time(state: State): number {
   }
 }
 function current(p: LocalObservation, state: State, now: number): boolean {
-  return p.observed_at <= now && now < p.expires_at && now - p.observed_at <= state.age &&
+  return p.observed_at <= state.highWater && now < p.expires_at && now - p.observed_at <= state.age &&
     p.expires_at - p.observed_at <= state.age;
 }
 function successful(p: LocalObservation, state: State): boolean {
@@ -160,7 +166,7 @@ export function createLocalEvidenceVerifier(config: LocalEvidenceConfig): LocalE
     state = { scope: label(c.scope), sources, gates: labels(c.gate_checks), suites: labels(c.test_suites),
       gateVersion: sha(c.gate_version), gateConfig: digest(c.gate_config_digest), now: c.now as () => number,
       age: integer(c.max_age_ms ?? 600_000, 86_400_000, 1), timeout: integer(c.timeout_ms ?? 1_000, 10_000, 1),
-      proofs: new WeakMap(), pending: new Set(), open: true, timeFault: false, highWater: 0 };
+      proofs: new WeakMap(), pending: new Set(), open: true, timeFault: false, highWater: 0, anchor: undefined };
     for (const k of KINDS) if (![...sources.values()].some(s => s.kind === k)) throw new EvidenceError("invalid-config");
     time(state);
   } catch { throw new EvidenceError("invalid-config"); }
@@ -186,7 +192,7 @@ export function createLocalEvidenceVerifier(config: LocalEvidenceConfig): LocalE
         if (lifetime <= 0) throw new EvidenceError("unverified-evidence");
         const deadline = performance.now() + lifetime;
         const proof: LocalVerifiedEvidence = freeze({ ...expected, verification: "local-host-process", trust_basis: "explicit-trusted-host",
-          scope: state.scope, portable: false, authorization: "none", executable: false, verified_at: now,
+          scope: state.scope, portable: false, authorization: "none", executable: false, verified_at: state.highWater,
           observations: freeze(observations.map(summary)) });
         state.proofs.set(proof, { expected, subjects: selected, observations: freeze(observations), deadline });
         return proof;
@@ -194,16 +200,18 @@ export function createLocalEvidenceVerifier(config: LocalEvidenceConfig): LocalE
       finally { state.pending.delete(controller); }
     },
     isCurrent(proof: unknown, expectedInput: EvidenceBinding): boolean {
+      if (proof === null || typeof proof !== "object") return false;
+      const record = state.proofs.get(proof); if (!record) return false;
+      let expected: EvidenceBinding;
+      try { expected = binding(expectedInput); } catch { return false; }
+      if (!sameBinding(record.expected, expected)) return false;
       try {
-        if (proof === null || typeof proof !== "object") return false;
-        const record = state.proofs.get(proof);
-        if (!record || !sameBinding(record.expected, binding(expectedInput))) return false;
-        const valid = record.observations.every(p => current(p, state, time(state))) && performance.now() < record.deadline;
+        const now = time(state);
+        const valid = record.observations.every(p => current(p, state, now)) && performance.now() < record.deadline;
         if (!valid) state.proofs.delete(proof);
         return valid;
       } catch {
-        if (proof !== null && typeof proof === "object") state.proofs.delete(proof);
-        return false;
+        state.proofs.delete(proof); return false;
       }
     },
     async revalidate(proof: LocalVerifiedEvidence): Promise<LocalVerifiedEvidence> {
@@ -213,9 +221,11 @@ export function createLocalEvidenceVerifier(config: LocalEvidenceConfig): LocalE
       state.proofs.delete(proof);
       if (!state.open || state.timeFault || performance.now() >= record.deadline || !record.observations.every(p => current(p, state, time(state)))) throw new EvidenceError("unverified-evidence");
       const fresh = await verifier.verify(record.expected, record.subjects);
-      if (!fresh.observations.every((s, i) => s.observation_digest === proof.observations[i]?.observation_digest)) {
+      if (performance.now() >= record.deadline || !fresh.observations.every((s, i) => s.observation_digest === proof.observations[i]?.observation_digest)) {
         state.proofs.delete(fresh); throw new EvidenceError("unverified-evidence");
       }
+      const freshRecord = state.proofs.get(fresh)!;
+      state.proofs.set(fresh, { ...freshRecord, deadline: Math.min(record.deadline, freshRecord.deadline) });
       return fresh;
     },
     shutdown(): void {

@@ -30,7 +30,7 @@ Mac身份认证可用于必要的本人确认，但“屏幕已解锁”、UID�
 
 `verify(expected, {gate,test,guard})` 每次重新采集3类结果，确认完整绑定/成功/时效。返回deep-frozen的`LocalVerifiedEvidence`，标明verification=`local-host-process`、trust_basis=`explicit-trusted-host`、scope、portable=false、authorization=none、executable=false；只投影安全摘要，不携带原命令/路径/密钥/错误/body/模型文字。
 
-`isCurrent(proof, expected)` 只接受该factory本进程WeakMap里确切对象且未过期的绑定；拷贝、JSON、另一factory、新进程或状态flag不能恢复。`revalidate(proof)` 消耗旧handle、重采集并核对相同摘要；失败或变化撤销旧handle，成功产生新handle。墙钟回退永久关闭该factory的时间上下文；单调elapsed TTL防止固定墙钟无限续期。`shutdown()`永久退休本机上下文并abort在途采集；晚到结果不能复活。没有跨进程时间认证、同步CPU沙箱或对可信回调效果的撤回能力。
+`isCurrent(proof, expected)` 只接受该factory本进程WeakMap里确切对象且未过期的绑定；非法或不匹配的查询只返回false，不消费有效handle。拷贝、JSON、另一factory、新进程或状态flag不能恢复。`revalidate(proof)` 消耗旧handle、重采集并核对相同摘要；失败或变化撤销旧handle，成功产生新handle但不延长旧deadline。墙钟回退永久关闭该factory的时间上下文；工厂生命周期的墙钟/单调时间锚点让有效时刻随elapsed持续推进（前跳可推进锚点，固定墙钟不能重启预算），因此重复verify/rotate不能让不变观察续期，越过旧deadline的采集也拒绝。`verified_at`仍投影实际采样墙钟，单调锚点只用于私有时效判断。`shutdown()`永久退休本机上下文并abort在途采集；晚到结果不能复活。没有跨进程时间认证、同步CPU沙箱或对可信回调效果的撤回能力。
 
 ## 有界实际验收命令
 
