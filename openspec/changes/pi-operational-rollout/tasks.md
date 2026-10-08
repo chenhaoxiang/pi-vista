@@ -21,7 +21,8 @@ verified: 2026-10-07
 - [x] Preserve fresh full7c source BLOCK for default loader discovery; replace it with no-discovery public ResourceLoader and explicit projectTrusted:false. Offline actual public AgentSession bind/reload/dispose has0.agents/ignore attempts and0 model/network calls.
 - [x] Stage1 exact c24 source gates/retained correction closure, controlled full actual-model trial (14 requests/13 payload checks), hostedCI37784791904 and source-mainCI37785194052, normal PR20 merge ac91088/canonical readback.
 - [ ] This later Stage1 documentary closeout reviewed PR/remote inclusion: pending at preparation, distinct from completed source/controlled-runtime evidence.
-- [ ] Stage2: safe trace-to-observed/candidate Script/Step/failure construction, no current-trust lift.
+- [x] Stage2 additive pure trace draft source and initial synthetic pairing/privacy/explicit observed-candidate regressions; no current trust, I/O or bank writes.
+- [ ] Stage2 exact source/tarball consumer gates, independent review, normal source merge/main/documentary readback.
 - [ ] Stage3: actual owner test/gate/guard producer/key provenance and truthful complete receipt acceptance.
 - [ ] Stage4: actual isolated Hindsight service/bank read/write/readback/restart/failure acceptance.
 - [ ] Stage5: explicit usable candidate→verification→confirmation→persistence→recall and lifecycle/key-rotation/reconciliation workflow.
