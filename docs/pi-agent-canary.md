@@ -89,7 +89,10 @@ The primary real session runs fixed read-only fixture tasks:
 6. Awaited public AgentSessionRuntime.dispose shutdown with no observer revival.
 
 A second real session repeats parallel tasks while observer callbacks reject,
-hang and reject late. The original task/tool bodies stay intact; loss and held
+hang and reject late. The normal observer uses a bounded500ms timeout, independent from the injected
+fault observer's80ms timeout. Late actual disk writes may still complete after a
+timeout; eventual readback alone does not erase a dropped observation. The
+original task/tool bodies stay intact; loss and held
 callback quota are reported, never called complete coverage or task/gate PASS.
 The model can access only the four fixed fixture tools, not arbitrary read/bash/
 write, codemode, MCP or another host tool. Inputs use enums; paths/traversal/

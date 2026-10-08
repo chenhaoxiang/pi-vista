@@ -253,7 +253,7 @@ test("pi-agent-canary explicit trial creation never follows a symlink output roo
 test("pi-agent-canary synthetic runtime orchestration checks all lifecycle phases and exact private core readback", async () => fixture(async directory => {
   await trial(directory); const host = mockSdk(), config = options(), budget = createBudget(config);
   const result = await runRuntimeTrials(host.sdk, {}, model, config, directory, budget);
-  assert.equal(host.made.length, 2); assert.equal(budget.attempts, 13); assert.equal(host.managers.every(manager => manager.persistence === "in-memory"), true);
+  assert.equal(host.made.length, 2); assert.equal(result[0].observerTimeoutMs, 500); assert.equal(result[1].observerTimeoutMs, 80); assert.equal(budget.attempts, 13); assert.equal(host.managers.every(manager => manager.persistence === "in-memory"), true);
   assert.equal(host.settings.every(setting => !setting.retry.enabled && setting.retry.provider.maxRetries === 0 && !setting.compaction.enabled && setting.cacheWarming === "off"), true);
   assert.deepEqual(result[0].phases.map(phase => phase.phase), ["startup", "parallel", "abort", "subsequent", "reload"]);
   assert.equal(new Set(result[0].phases.map(phase => phase.runId)).size, 5); assert.equal(result[0].sameSessionAfterAbort, true); assert.equal(result[0].reloadWithNewAddon, true);

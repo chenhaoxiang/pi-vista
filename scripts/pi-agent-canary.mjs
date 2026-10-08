@@ -9,6 +9,7 @@ import { RAW, ROOT, TOOLS, CanaryError, assertAbsent, constrainStream, createBud
 import { selectedCanaryProvider, validateEffectiveCanaryModel, guardCanaryPayload, observeThinking } from "./pi-agent-canary-request.mjs";
 
 const OBSERVER_TIMEOUT = 80;
+const NORMAL_OBSERVER_TIMEOUT = 500;
 const classifications = Object.freeze(["fixture-alpha", "fixture-beta", "fixture-pair", "fixture-wait"]);
 const hooks = ["session_start", "session_shutdown", "agent_start", "agent_end", "agent_settled", "tool_execution_start", "tool_execution_end"];
 const stopReasons = ["stop", "toolUse", "aborted", "error", "length", "pending", "deferred"];
@@ -49,7 +50,7 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
         await mkdir(baseDir, { mode: 0o700 });
         generation.eventStore = new EventStore({ baseDir }); generation.checkpointStore = new CheckpointStore({ baseDir });
         generation.addon = createPiObservation({ resolve_task: async () => ({ repo: "canary-fixture", source_sha: options["source-sha"], policy_version: "canary-v1", env_fingerprint: "private-fixture-v1", task_type: `canary-${phase}`, task_goal: "synthetic fixture lifecycle", bank: "synthetic-no-bank", session_alias: `canary-${kind}` }),
-          now: () => Date.now(), tools: TOOLS.map((native_name, i) => ({ native_name, classification: classifications[i] })), timeout_ms: OBSERVER_TIMEOUT, max_pending_work: 64, max_correlations: 64,
+          now: () => Date.now(), tools: TOOLS.map((native_name, i) => ({ native_name, classification: classifications[i] })), timeout_ms: faults ? OBSERVER_TIMEOUT : NORMAL_OBSERVER_TIMEOUT, max_pending_work: 64, max_correlations: 64,
           events: { append: async event => { generation.events.push(event); if (faults) return faults.call(); await generation.eventStore.append(event); } },
           checkpoints: { save: async checkpoint => { generation.checkpoints.push(checkpoint); if (faults) return faults.call(); await generation.checkpointStore.save(checkpoint); } },
         });
@@ -119,6 +120,7 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
     requireCanary(!phases.some(item => item.runId === status.binding.run_id));
     const observedResponses = responses.slice(firstResponse), observedCalls = [...calls.entries()].filter(([, call]) => call.phase === name);
     diagnostics.identityViolation = violated;
+    diagnostics.observation = { dropped: status.dropped, pendingWork: status.pending_work, pendingCallbacks: status.pending_callbacks };
     diagnostics.responseStops = observedResponses.map(response => response.stopReason);
     diagnostics.responseFailureCategories = observedResponses.map(response => response.failureCategory);
     diagnostics.responseSignalsAborted = observedResponses.map(response => response.requestSignalAborted);
@@ -188,7 +190,7 @@ async function scenario(sdk, modelRuntime, model, options, directory, kind, budg
     const usage = { tokens: {}, cost: null, basis: "SDK-session-statistics-not-independent-billing" };
     for (const key of ["input", "output", "cacheRead", "cacheWrite", "total"]) { requireCanary(Number.isFinite(stats.tokens[key]) && stats.tokens[key] >= 0); usage.tokens[key] = stats.tokens[key]; }
     requireCanary(Number.isFinite(stats.cost) && stats.cost >= 0); usage.cost = stats.cost;
-    return { kind, phases, sameSessionAfterAbort: !faults, reloadWithNewAddon: !faults, awaitedShutdown: true, lateRevival: false, extensionErrors, usage,
+    return { kind, phases, observerTimeoutMs: faults ? OBSERVER_TIMEOUT : NORMAL_OBSERVER_TIMEOUT, sameSessionAfterAbort: !faults, reloadWithNewAddon: !faults, awaitedShutdown: true, lateRevival: false, extensionErrors, usage,
       generations: generations.map(generation => ({ number: generation.number, lifecycle: generation.lifecycle, notificationCounts: generation.counts })),
       ...(faults ? { faultCallbacks: { ...faults.counts } } : {}) };
   } catch (error) {
