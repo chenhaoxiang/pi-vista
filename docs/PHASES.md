@@ -200,7 +200,11 @@ discovery. Exact reviewed c24 actual-model trial passes14requests/13validated
 payloads; source Node20/26 each1009 cases,11tarballs/19exports and exacthead/main
 Node20/22/26 hostedCI pass. Original complete BLOCKs and retained correction
 closure are recorded in the [Stage1 closeout](handoff/2026-10-08-pi-agent-canary-source-closeout.md).
-Stage2 safe experience candidates and all later stages remain pending. No daily session
+Stage2 [trace drafts](trace-candidates.md) are now an additive source candidate:
+explicit pure notification pairing/closed task templates build only existing
+ExperienceObservation input; structural consistency is not owner truth. Explicit
+library observe/nominate is unchanged and cannot create verified/trusted state.
+Stage2 source/consumer/review/normal merge and all later stages remain pending. No daily session
 activation, live bank, production receipt, quality improvement or distribution
 is inferred. SDK full declaration health stays a separate unresolved item.
 
