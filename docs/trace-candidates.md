@@ -15,7 +15,10 @@ pure bounded projection of host-supplied safe Pi metadata into an existing
 ExperienceObservation input. It performs no I/O, callbacks, discovery, signing,
 verifier/library construction, execution, nomination or memory writes. Root
 learning, Pi addon and readonly CLI behavior remain unchanged. This is a source
-candidate pending independent acceptance/CI/normal merge.
+delivered through normal [PR #22](https://github.com/chenhaoxiang/pi-vista/pull/22),
+with fresh complete independent source review, exact head/main CI and actual
+source/consumer evidence. The [Stage2 closeout](handoff/2026-10-08-trace-candidates-source-closeout.md)
+records those pins; no real owner or persistence acceptance is inferred.
 
 ## Input and refusal
 

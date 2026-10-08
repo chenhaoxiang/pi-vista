@@ -54,6 +54,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/handoff/2026-10-08-trace-candidates-source-closeout.md](docs/handoff/2026-10-08-trace-candidates-source-closeout.md): PR22 safe draft source/main/review/1059-case/20-export pins, original base36 refusal and Stage3 MISSING owner boundary
 - [docs/trace-candidates.md](docs/trace-candidates.md): pure Stage2 safe trace observation drafts, shape-only provenance, explicit observe/nominate and no current-proof/memory write
 
 - [docs/handoff/2026-10-08-pi-agent-canary-source-closeout.md](docs/handoff/2026-10-08-pi-agent-canary-source-closeout.md): PR20 actual reviewed-source model canary/1009-case/mainCI pins, preserved BLOCKs and sequential Stage2 boundary
