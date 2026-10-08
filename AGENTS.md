@@ -54,6 +54,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/handoff/2026-10-08-pi-agent-canary-source-closeout.md](docs/handoff/2026-10-08-pi-agent-canary-source-closeout.md): PR20 actual reviewed-source model canary/1009-case/mainCI pins, preserved BLOCKs and sequential Stage2 boundary
 - [docs/pi-agent-canary.md](docs/pi-agent-canary.md): explicit actual AgentSession/model canary, private fixture lifecycle/fault tests, credential/privacy boundaries and separate sequential operational acceptance
 
 - [README.md](README.md): package overview and implementation status

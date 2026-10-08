@@ -194,10 +194,13 @@ bank, explicit usable learning/lifecycle workflow, then paired effectiveness
 evaluation and confirmed release/rollback. See the
 [operational change](../openspec/changes/pi-operational-rollout/tasks.md).
 
-Stage1 [canary](pi-agent-canary.md) adds an opt-in public-SDK script with fixed
-fixture tools and private/in-memory resources. Parent actual-model lifecycle
-trials are recorded independently from deterministic offline/source tests;
-source review/CI/merge remain pending for this new script. No daily session
+Stage1 [canary](pi-agent-canary.md) source is delivered through normal PR20: fixed
+fixture tools, private/in-memory resources, closed final payload and no resource
+discovery. Exact reviewed c24 actual-model trial passes14requests/13validated
+payloads; source Node20/26 each1009 cases,11tarballs/19exports and exacthead/main
+Node20/22/26 hostedCI pass. Original complete BLOCKs and retained correction
+closure are recorded in the [Stage1 closeout](handoff/2026-10-08-pi-agent-canary-source-closeout.md).
+Stage2 safe experience candidates and all later stages remain pending. No daily session
 activation, live bank, production receipt, quality improvement or distribution
 is inferred. SDK full declaration health stays a separate unresolved item.
 

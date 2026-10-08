@@ -16,7 +16,11 @@ provider. It creates private invocation-owned fixture workspace/agentDir/store
 paths under checkout `tmp/pi-agent-canary`; settings, sessions and model catalog
 are in memory. Source/strict tests, actual model acceptance, independent review,
 GitHub CI and merged-source delivery are separate evidence. The implementation
-is still provisional until those final source-delivery checks complete.
+has been delivered through normal [PR #20](https://github.com/chenhaoxiang/pi-vista/pull/20),
+with exact reviewed source actual-model acceptance and head/main CI; see the
+[Stage1 closeout](handoff/2026-10-08-pi-agent-canary-source-closeout.md).
+Later stages, full SDK declaration health and real business/owner/bank acceptance
+remain separate.
 
 It does not install/activate resources in a daily Pi session, change tools/models/
 safety rules, access a real Hindsight bank, create owner evidence, promote a
@@ -170,8 +174,10 @@ uses closed private initial configuration, no dynamic registration, and proper
 off payload semantics. The fresh complete `7c532a6` review then found a separate
 P1: default loader filtering did not prevent prior ambient discovery. Its original
 full BLOCK remains preserved; the next correction uses explicit runtime trust
-and a discovery-free public host loader. Corrected-source review/gates/operational
-acceptance remain separate pending evidence.
+and a discovery-free public host loader. Exact c24 source correction disposition,
+1009-case/strict-consumer evidence, full controlled actual-model trial and normal
+source merge/head-main CI are complete; the [closeout](handoff/2026-10-08-pi-agent-canary-source-closeout.md)
+records those pins without changing earlier failed results.
 
 Earlier failed child streams, rejected command mode, pre-fix offline failures,
 upstream response errors and SDK cancellation representations remain retained
