@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-07
+verified: 2026-10-08
 ---
 
 # Sequential tasks
@@ -25,8 +25,11 @@ verified: 2026-10-07
 - [x] Stage2 exact c29 source/consumer1059cases/11tarballs20exports, fresh full0P0/P1/P2 review, CI37796705511, normal PR22 merge8cd7e37, source-mainCI37797150656/canonical/postmergeNode20 readback.
 - [x] Stage2 documentary closeout PR23/460aa46 included in remote maina595b59/tree49df5b7; fresh6doc0P0/P1/P2 review03d03fdf..., exact head/main CI37801144194/37801638062 and clean0/0 canonical readback verified.
 - [x] User2026-10-08 replaces Stage3 signer establishment with explicit local trusted-host mode; original actual signed producer/key acceptance remains MISSING, not retroactively passed.
-- [ ] Stage3 local source: separate evidence/host factory, exact5bindings/scope/native collection, complete scoped truth, freshness/revalidation/shutdown and hostile/copy/restart/signed-domain separation tests.
-- [ ] Stage3 actual fixed-plan local acceptance, exact source/consumer/installed gates, independent full review, normal PR/head+main CI and source/docs shared closeout.
+- [x] Stage3 local source: separate evidence/host factory, exact5bindings/scope/native collection, complete scoped truth, freshness/revalidation/shutdown and hostile/copy/restart/signed-domain separation tests.
+- [x] Preserve complete14path51bb BLOCK0P0/1P1/1P2; reproduce4red regressions before fixing factory-lifetime monotonic freshness/revalidation deadline and non-mutating malformed queries.
+- [x] Corrected984 exactNode20/26 source/consumer1127cases/11tarballs21exports/strictTS5.9.3 and installedPID32741/32749; targeted completefive-path correction reviewOKnotes0/0/0 combines prior full coverage, notfreshfull15review.
+- [x] Stage3 actual fixed-plan local acceptance (177native/sixadmit-settle/0blocked-dropped), normal PR24/source-main001a4fc with exactCI37848869274/37849179258 and fresh isolated postmainNode20 actualreadback; noMac/signed-owner/bank/defaultPi admission.
+- [ ] This later Stage3 documentary own reviewed PR/main inclusion remains pending at preparation, separate from delivered source/scoped actual acceptance.
 - [ ] Stage4: actual isolated Hindsight service/bank read/write/readback/restart/failure acceptance for guidance only; no unsigned fallback in original signed store/archive.
 - [ ] Stage5: explicit LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall and lifecycle/reconciliation workflow; restart/history reverify, separate signed key rotation remains unresolved when used.
 - [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope.

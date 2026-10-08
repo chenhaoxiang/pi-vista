@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-07
+verified: 2026-10-08
 ---
 
 # pi-vista
@@ -279,7 +279,8 @@ records.
 - [Stage2 safe draft source closeout](docs/handoff/2026-10-08-trace-candidates-source-closeout.md)
 - [Stage1 merged source and actual model canary closeout](docs/handoff/2026-10-08-pi-agent-canary-source-closeout.md)
 - [Owner-normalized shadow adapter](docs/adapters/shadow.md)
-- [Single-owner local host evidence candidate (distinct from signed proof)](docs/local-host-evidence.md)
+- [Single-owner local host evidence (distinct from signed proof)](docs/local-host-evidence.md)
+- [Stage3 local source/scoped runtime closeout and preserved review corrections](docs/handoff/2026-10-08-local-host-evidence-source-closeout.md)
 - [Authority-bound evidence](docs/authoritative-evidence.md)
 - [Explicit receipt file consumer and missing owner producers](docs/receipt-files.md)
 - [Merged receipt consumer source acceptance](docs/handoff/2026-10-07-receipt-file-source-closeout.md)
