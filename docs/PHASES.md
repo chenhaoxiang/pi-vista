@@ -186,6 +186,21 @@ installation, service/interactive/model evaluation, publication and operational
 acceptance. Existing automatic context injection and live/durable roadmap stays
 pending, not satisfied by local guidance selection.
 
+## Sequential operational rollout: acceptance in progress
+
+User approved six stages in order: isolated actual AgentSession/model canary,
+safe trace candidates, truthful owner receipt producers, real isolated Hindsight
+bank, explicit usable learning/lifecycle workflow, then paired effectiveness
+evaluation and confirmed release/rollback. See the
+[operational change](../openspec/changes/pi-operational-rollout/tasks.md).
+
+Stage1 [canary](pi-agent-canary.md) adds an opt-in public-SDK script with fixed
+fixture tools and private/in-memory resources. Parent actual-model lifecycle
+trials are recorded independently from deterministic offline/source tests;
+source review/CI/merge remain pending for this new script. No daily session
+activation, live bank, production receipt, quality improvement or distribution
+is inferred. SDK full declaration health stays a separate unresolved item.
+
 ## Delivery: Repeatable engineering gates (#17)
 
 **Implemented source**: dependency-ordered root gates for all 11 packages,
