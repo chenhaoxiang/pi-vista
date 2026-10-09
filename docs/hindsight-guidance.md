@@ -41,7 +41,11 @@ Token不进入target fingerprint、文档或journal。新document namespace与�
 
 客户端合同仍来自官方HTTP0.10.2/ea5ab3034ceb1fed601950ec8996c69363c0b0b6，静态OpenAPI摘要d34d04b9…。本机服务及distribution标0.10.2；原文/retain/recall主要schemas匹配。MemoryItem仅document_id描述文字有差异；客户端总显式传一个ID，不使用省略ID分组规则。四个实际HTTP/engine/config/main文件不字节等于原pin，用户已明确接受本次实际安装指纹作为运行基线；不升级/改共享服务、不宣称活跃进程内存或整树等同原Git commit。
 
-实际命令仅显式调用，普通测试/CI不操作真实bank。仅允许已批准localhost/专用bank，必须干净精确source SHA、namespace、显式私有credential-config与已批准service-fingerprint文件（指纹无secret值）、timeout、write/read分别admission。凭据读取属于受信operator harness，检查privateFD/身份/模式/drift且不输出，不是library发现；只消费显式top/Pi配置，不读ambient env/Keychain/模型密码或自动刷新。
+实际命令仅显式调用，普通测试/CI不操作真实bank。仅允许已批准localhost/专用bank，必须干净精确source SHA、小写字母/数字/连字符namespace、显式私有credential-config与已批准service-fingerprint文件（指纹无secret值）、timeout、write/read分别admission。凭据读取属于受信operator harness，检查privateFD/身份/模式/drift且不输出，不是library发现；只消费显式top/Pi配置，不读ambient env/Keychain/模型密码或自动刷新。
+
+operator不会从工作树的ignored `dist`/`node_modules`加载客户端。先将精确Git SHA归档到新建的私有测试构建目录，使用既有lockfile、离线`npm ci --ignore-scripts`和build，再动态加载该隔离目录的编译模块及恢复helper。报告包含source SHA、锁定compiler版本、全部workspace运行文件/manifest摘要与整体artifact摘要；导入后、实际调用前后重复检查源码及产物。仅清理本次新建的隔离构建源码，保留构建日志/产物清单、试验报告及不确定journal，不清理旧工作区输出。这是受信宿主下的来源绑定，不是恶意同UID/编译器/OS沙箱证明。
+
+OpenAPI预检按一MiB原始字节进行流式限量、fatal UTF-8解析；超限、无效原文或非200立即取消body，不先完整缓冲后检查。普通合成回归以独立Git fixture和mock fetch证明：旧ignored编译模块不会被执行、实际加载的是fresh archive build、chunked超限和拒绝status均取消读取；它们不是实际bank验收。
 
 ```sh
 node scripts/hindsight-guidance-acceptance.mjs --phase=write --allow-bank-write \

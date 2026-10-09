@@ -6,14 +6,15 @@ import {promisify,types} from 'node:util';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {ROOT,isMain,parseOptions,commandEnvironment} from './release-utils.mjs';
-import {hasKnownCredential,isSafeSegment} from '@pi-vista/core';
-import {createHindsightGuidanceStore,prepareHistoricalGuidance} from '@pi-vista/learning/guidance';
+import {prepareGuidanceClient,readGuidanceMetadata} from './guidance-acceptance-io.mjs';
 
 const exec=promisify(execFile),ENDPOINT='http://127.0.0.1:8888',BANK='pi-vista-local-test-01a114ab';
 const sha=value=>createHash('sha256').update(value).digest('hex');
 export function guidanceAcceptanceOptions(args){
  const raw=parseOptions(args,['phase','source-sha','namespace','credential-config','service-fingerprint','timeout-ms'],['allow-bank-write','allow-bank-read','inject-lost-ack']);delete raw.network;
- const safe=s=>typeof s==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(s)&&isSafeSegment(s)&&!hasKnownCredential(s);
+ // Closed CLI namespace syntax before loading any compiled workspace code.
+ // The freshly source-bound core validators additionally check it before effects.
+ const safe=s=>typeof s==='string'&&/^[a-z][a-z0-9-]{0,63}$/.test(s);
  if(!['write','read'].includes(raw.phase)||typeof raw['source-sha']!=='string'||!(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/).test(raw['source-sha'])||!safe(raw.namespace)||
   typeof raw['credential-config']!=='string'||!path.isAbsolute(raw['credential-config'])||path.normalize(raw['credential-config'])!==raw['credential-config']||/[\x00-\x1f\x7f]/.test(raw['credential-config'])||
   typeof raw['service-fingerprint']!=='string'||!path.isAbsolute(raw['service-fingerprint'])||path.normalize(raw['service-fingerprint'])!==raw['service-fingerprint']||/[\x00-\x1f\x7f]/.test(raw['service-fingerprint'])||
@@ -56,9 +57,9 @@ async function credential(file){
   return selected.apiToken;
  }finally{await fd.close();}
 }
-async function deterministicReference(document){
- const {targetFingerprint}=await import('../packages/learning/dist/hindsight/data.js');
- const {writeRequest,documentId,reference}=await import('../packages/learning/dist/guidance/data.js');
+async function deterministicReference(document,client){
+ const {targetFingerprint}=client.target;
+ const {writeRequest,documentId,reference}=client.data;
  const request=writeRequest('isolated-test',document);return reference('isolated-test',documentId(request,targetFingerprint(ENDPOINT,'isolated-test',BANK)));
 }
 function fixture(options){
@@ -82,19 +83,24 @@ export async function guidanceAcceptance(options){
   options.phase==='write'?'--allow-bank-write':'--allow-bank-read',...(options.lost_ack?['--inject-lost-ack']:[])]);
  const git=async args=>(await exec('git',['-C',ROOT,...args],{cwd:ROOT,env:commandEnvironment(),shell:false,timeout:30000,maxBuffer:1048576})).stdout.trim();
  if(await git(['rev-parse','HEAD'])!==checked.source_sha||await git(['status','--porcelain','--untracked-files=normal']))throw Error('guidance-source-drift');
+ const client=await prepareGuidanceClient(checked.source_sha);
+ try{
+ if(!client.core.isSafeSegment(checked.namespace)||client.core.hasKnownCredential(checked.namespace))throw Error('guidance-options-refused');
+ const {createHindsightGuidanceStore,prepareHistoricalGuidance}=client.guidance;
  let directory=ROOT;for(const part of ['tmp','guidance-acceptance',checked.namespace])directory=await checkedDirectory(directory,part);
  const journal=path.join(directory,'journal');if(checked.phase==='write')await mkdir(journal,{mode:0o700});
  const receiptFile=path.join(directory,'historical-reference.json'),reportFile=path.join(directory,`${checked.phase}-report.json`);
  const report={schema:1,phase:checked.phase,node:process.version,pid:process.pid,source_sha:checked.source_sha,bank:BANK,namespace:checked.namespace,
   status:'not-completed',current_verification:'not-checked',authorization:'none',executable:false,defaultActivation:false,
   acceptedServiceBaseline:'actual-installed0.10.2-fingerprint',originalGitPinDeploymentClaim:false,mainBankRequests:0,
+  clientArtifactIdentity:client.identity,
   bankCreationDeletion:false,sharedServiceRestart:false,credentialValueProjected:false,http:[]};
  let store;const actualFetch=globalThis.fetch;let injected=false;
  try{
   report.serviceFingerprint=await checkServiceFingerprint(checked.service_fingerprint);
+  await client.check();
   const metadata=await actualFetch(ENDPOINT+'/openapi.json',{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(5000),cache:'no-store'});
-  if(metadata.status!==200)throw Error('guidance-service-version-refused');const metadataText=await metadata.text();
-  if(metadataText.length>1048576||JSON.parse(metadataText).info?.version!=='0.10.2')throw Error('guidance-service-version-refused');
+  await readGuidanceMetadata(metadata);
   report.serviceMetadataGETs=1;
   const token=await credential(checked.credential_config);
   globalThis.fetch=async(url,init)=>{
@@ -120,7 +126,7 @@ export async function guidanceAcceptance(options){
     if(!checked.lost_ack||!injected||!['sink-failed','sink-mismatch'].includes(error?.code))throw error;
     const reconciliation=await store.reconcile('isolated-test',document,abort.signal);assert.equal(reconciliation.state,'matched');
     // Read-only reconstruction of this deterministic reference, not a second retain.
-    receipt=await deterministicReference(document);
+    receipt=await deterministicReference(document,client);
     report.injectedLostAckReconciled=true;
    }
    const read=await store.read(receipt,abort.signal);assert.equal(read.document.content,document.content);assert.equal(read.guidance.current_verification,'not-checked');
@@ -138,7 +144,7 @@ export async function guidanceAcceptance(options){
     saved=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
    }else{
     const prior=await store.reconcile('isolated-test',document,abort.signal);assert.equal(prior.state,'matched');
-    saved={reference:await deterministicReference(document),content_digest:document.content_digest};report.recoveredUncertainReferenceReadOnly=true;
+    saved={reference:await deterministicReference(document,client),content_digest:document.content_digest};report.recoveredUncertainReferenceReadOnly=true;
    }
    const read=await store.read(saved.reference,abort.signal);
    assert.equal(read.document.content,document.content);assert.equal(read.document.content_digest,saved.content_digest);assert.equal(read.guidance.current_verification,'not-checked');assert.equal(read.guidance.executable,false);
@@ -149,12 +155,14 @@ export async function guidanceAcceptance(options){
   }
   if(await git(['rev-parse','HEAD'])!==checked.source_sha||await git(['status','--porcelain','--untracked-files=normal']))throw Error('guidance-source-drift');
   assert.deepEqual(await checkServiceFingerprint(checked.service_fingerprint),report.serviceFingerprint);
+  await client.check();
   Object.assign(report,{status:'passed',retainCount:report.http.filter(x=>x.route==='memories').length,recallCount:report.http.filter(x=>x.route==='memories/recall').length,
    safeDocumentSHA256:sha(document.content),proofRestored:false,historyOnly:true});
  }catch(error){report.status='failed';report.failure=typeof error?.code==='string'&&/^sink-(failed|timeout|mismatch)$/.test(error.code)?error.code:
   typeof error?.message==='string'&&/^guidance-[a-z-]+$/.test(error.message)?error.message:'guidance-acceptance-failed';process.exitCode=1;}
  finally{globalThis.fetch=actualFetch;await writeFile(reportFile,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});}
  return reportFile;
+ }finally{await client.close();}
 }
 if(isMain(import.meta.url)){
  try{const options=guidanceAcceptanceOptions(process.argv.slice(2));console.log(`Guidance acceptance: ${await guidanceAcceptance(options)}`);}
