@@ -240,7 +240,13 @@ original/clientrestart/readonly uncertainty reconciliation (including actual120s
 retain timeout), but both have0facts/0own-reference recall: Stage4 operational BLOCK,
 no further retain/reseed, no Stage5/6 advancement. The retained failure/source pins
 are in [Stage4 handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
-Source-main/full operational/documentary closeout remains pending. Actual installed0.10.2
+Source-main/full operational/documentary closeout remains pending. Later exact readonly
+document trace identifies actualQwen27B normalvalidemptyfacts and256s call, notparse/auth
+failure. User then explicitly authorizes only the dedicated bank chunks mode and one new
+namespace synthetictrial; singlePATCH/readback/otherfield-oldDoc equality passed. New
+operator mode/digest admission candidate/local1192gates are not actualPASS; original
+failures remain. See [chunks amendment](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md).
+Actual installed0.10.2
 HTTP/engine/config/main file fingerprints differ from originalea5 source; user
 accepted this concrete deployment fingerprint while preserving the fixed API0.10.2
 client contract, not an in-memory/whole-service/source-equivalence claim. No main-bank

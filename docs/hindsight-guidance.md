@@ -29,6 +29,8 @@ factory要求mode=local-guidance、canonical HTTPS origin、明确bank aliases�
 - `query(alias, safeRetrievalQuery, signal)`：同样做existing-bank预检，固定low/4096/tracefalse/最小include与strict target+guidance tags。最多64项；只投影去重排序、受limit限制的own-targetrefs，不把fact text/rank/trace当历史或证明。foreign/null refs剔除，malformed own refs整次失败。
 - `reconcile(alias, document, signal)`：只有已有精确intent时远端只读对账并可写本地completion，返回matched/not-confirmed，不retains/deletes/resets/接管或恢复权限。
 
+**library不强制任何bank提取模式。** 后继actual operator根据新的明确授权，只允许固定专用bank的chunks模式、observationsfalse且无defaultstrategy；它先读mode/configdigest才建新journal，每次library configGET及结束时重验一致。Mode/shape/drift失败保持overall failed，不能把全局model、modeGET或digest当当前proof。该约束不允许operator发现/修改policy，也不放宽原library/root/signed规则。
+
 Token不进入target fingerprint、文档或journal。新document namespace与原store分离。新alias/endpoint/actual bank不能复用旧claim。existing-bank preflight不是与管理员删除的CAS：服务本身的write-lazy-create在外部竞争下仍是限制，不能声称硬隔离。
 
 ## 持久attempt与不确定结果
@@ -69,5 +71,7 @@ write只允许一次目标retain。lost-ack注入在真实服务器200之后让�
 首次bbd13db合成试验已经得到一次实际retain200、注入lost-ack后的只读对账和精确原文回读；独立新客户端也完成原文/对账，但own-reference recall为0，整体验收失败。专用bank只读诊断确认该文档memory_unit_count=0且三类fact均为0、scope tags正确；三种有界只读查询（默认types、world/experience、任务词）均为空。保留这个失败样本、原报告及journal，不重复retain它，不把original GET拼成recall结果，也不改变bank/shared-service提取配置。
 
 canonical指导文档只有符号化标识/动作元数据时，真实提取模型可能不产生可检索fact；单独的200或原文保存不能保证recall，但本次零提取的精确原因未证明。最后一份a8d9c76/newnamespace完整指导事实的synthetic样本实际POST在120秒内未收到ack，报告sink-timeout且没有重发；独立新客户端由既有intent精确匹配原文，恢复只读reference、original/reconcile均通过。但recall仍0，overall failed/guidance-recall-reference-missing；最终只读元数据确认三类fact仍0。样本、失败、journal保留，停止更多retain/reseed或配置改变，Stage4/5/6不伪收口。脚本保留通过的原文/对账子步骤，不把partial success或original GET变成semantic PASS。
+
+后继用户已明确选择仅专用bank改为chunks，并完成一次PATCH200/回读，其他公开bank字段和旧两doc一致。新sourceoperator以mode/digest admission阻止不符配置；新namespace实际完整试验仍pending，Stage4仍BLOCK。精确只读trace证明两次真实Qwen均success/stop、合法空facts（831ms/256419ms）；未读取模型原文，无认证/解析失败推断。新模式和授权不是把旧失败样本改成PASS；不改变main/sharedservice/model/embedding或自动重处理。详见[提取诊断与chunks后继](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md)。
 
 设计：[Stage4 guidance](../openspec/changes/pi-operational-rollout/stage4-guidance-design.md)；[sequential tasks](../openspec/changes/pi-operational-rollout/tasks.md)；原路线：[signed Hindsight store](hindsight-store.md)、[local host evidence](local-host-evidence.md)。

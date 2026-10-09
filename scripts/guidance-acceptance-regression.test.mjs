@@ -56,11 +56,16 @@ async function fixture(mode='normal'){
  await writeFile('packages/learning/dist/guidance/data.js','export const writeRequest=()=>({});export const documentId=()=>"fixture-id";export const reference=()=>({});');\n`);
  const stateFile=path.join(temporary,'fetch-state.json');
  await writeFile(path.join(owned,'scripts','fixture-fetch.mjs'),`import {writeFileSync} from 'node:fs';
- const state={mode:${JSON.stringify(mode)},pulls:0,cancelled:false,networkCalls:0};
+ const state={mode:${JSON.stringify(mode)},pulls:0,cancelled:false,networkCalls:0,bankConfigGets:0};
  const save=()=>writeFileSync(${JSON.stringify(stateFile)},JSON.stringify(state));save();
  globalThis.fetch=async url=>{
+  if(url==='http://127.0.0.1:8888/v1/default/banks/pi-vista-local-test-01a114ab/config'){
+   state.bankConfigGets++;save();
+   const changed=state.mode==='bank-state-drift'&&state.bankConfigGets>1;
+   return new Response(JSON.stringify({bank_id:'pi-vista-local-test-01a114ab',config:{retain_extraction_mode:state.mode==='bank-concise'?'concise':'chunks',enable_observations:false,retain_default_strategy:state.mode==='bank-default-strategy'?'other-strategy':null,retain_chunk_size:changed?4096:2048},overrides:{retain_extraction_mode:'chunks'}}));
+  }
   if(url!=='http://127.0.0.1:8888/openapi.json')throw Error('fixture refuses actual network');state.networkCalls++;save();
-  if(state.mode==='normal')return new Response(JSON.stringify({info:{version:'0.10.2'}}));
+  if(state.mode==='normal'||state.mode.startsWith('bank-'))return new Response(JSON.stringify({info:{version:'0.10.2'}}));
   if(state.mode==='rejected-status')return new Response(new ReadableStream({cancel(){state.cancelled=true;save();}}),{status:503});
   const chunks=[new TextEncoder().encode('{"info":{"version":"0.10.2"},"padding":"'),...Array.from({length:20},()=>new Uint8Array(100000).fill(97)),new TextEncoder().encode('"}')];
   return new Response(new ReadableStream({pull(controller){state.pulls++;save();if(chunks.length)controller.enqueue(chunks.shift());else controller.close();},cancel(){state.cancelled=true;save();}}));
@@ -99,6 +104,7 @@ test('guidance exact-source harness rebuilds an isolated client instead of execu
   assert.ok(result.report.clientArtifactIdentity.files.some(file=>file.path==='packages/learning/dist/guidance/index.js'&&file.sha256===hash(guidance('fixture-fresh-code'))));
   assert.equal(result.state.networkCalls,1);
   assert.ok(result.report.clientArtifactIdentity.files.some(file=>file.path==='packages/core/dist/fixture-legacy.test.js'&&file.build_only_test===true));
+  assert.equal(result.report.bankPreflight.extraction_mode,'chunks');assert.equal(result.report.bankModeUnchanged,true);assert.equal(result.state.bankConfigGets,2);
  }finally{await f.close();}
 });
 
@@ -143,5 +149,21 @@ test('guidance empty semantic recall remains failed while exact-read and reconci
   assert.equal(result.report.restartedOriginalByteReadback,true);assert.equal(result.report.readOnlyReconciliationMatched,true);
   assert.equal(result.report.recallOwnTargetCount,0);assert.equal(result.report.recallContainsOwnDocument,false);
   assert.equal(result.report.authorization,'none');assert.equal(result.report.executable,false);
+ }finally{await f.close();}
+});
+
+for(const mode of ['bank-concise','bank-default-strategy']){
+ test('guidance scoped bank preflight rejects '+mode+' before journal/retain', {timeout:120000},async()=>{
+  const f=await fixture(mode);try{
+   const result=await f.invoke();assert.notEqual(result.code,0);assert.equal(result.report.status,'failed');assert.equal(result.report.failure,'guidance-bank-mode-refused');
+   assert.equal(result.state.bankConfigGets,1);assert.equal(result.report.http.some(item=>item.route==='memories'),false);
+   await assert.rejects(()=>access(path.join(f.owned,'tmp','guidance-acceptance','fixture-guidance','journal')));
+  }finally{await f.close();}
+ });
+}
+test('guidance scoped bank fingerprint drift refuses final acceptance instead of claiming unchanged policy', {timeout:120000},async()=>{
+ const f=await fixture('bank-state-drift');try{
+  const result=await f.invoke();assert.notEqual(result.code,0);assert.equal(result.report.status,'failed');assert.equal(result.report.failure,'guidance-bank-state-drift');
+  assert.equal(result.report.bankModeUnchanged,undefined);assert.equal(result.state.bankConfigGets,2);
  }finally{await f.close();}
 });

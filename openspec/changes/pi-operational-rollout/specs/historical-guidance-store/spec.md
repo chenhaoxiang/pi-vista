@@ -53,3 +53,10 @@ Ordinary tests/CI SHALL use synthetic loopback fixtures. Actual trial SHALL requ
 - **WHEN** the approved dedicated bank and accepted deployment fingerprints are verified
 - **THEN** synthetic minimized guidance-only persistence MAY be tested
 - **AND** main-bank acceptance writes, service restart, deletion, global configuration/model changes or signed provenance SHALL NOT be inferred or performed
+
+#### Scenario: Owner explicitly adopts deterministic chunks for the dedicated test bank
+- **WHEN** only that bank's extraction-mode change and one new synthetic-document trial are expressly approved
+- **THEN** the actual operator SHALL require resolved chunks mode, disabled observations, no default strategy, and a stable public bank-config digest before journal/retain and at subsequent preflights/completion
+- **AND** incompatible mode or drift SHALL fail acceptance rather than downgrade or modify library defaults
+- **AND** old failed documents and immutable attempts SHALL NOT be retried, reset or reprocessed
+- **AND** mode change or source/fixture evidence alone SHALL NOT establish operational acceptance or current authority

@@ -6,7 +6,7 @@ import {promisify,types} from 'node:util';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {ROOT,isMain,parseOptions,commandEnvironment} from './release-utils.mjs';
-import {prepareGuidanceClient,readGuidanceMetadata} from './guidance-acceptance-io.mjs';
+import {prepareGuidanceClient,readGuidanceMetadata,readGuidanceBankPreflight} from './guidance-acceptance-io.mjs';
 
 const exec=promisify(execFile),ENDPOINT='http://127.0.0.1:8888',BANK='pi-vista-local-test-01a114ab';
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -91,7 +91,7 @@ export async function guidanceAcceptance(options){
  if(!client.core.isSafeSegment(checked.namespace)||client.core.hasKnownCredential(checked.namespace))throw Error('guidance-options-refused');
  const {createHindsightGuidanceStore,prepareHistoricalGuidance}=client.guidance;
  let directory=ROOT;for(const part of ['tmp','guidance-acceptance',checked.namespace])directory=await checkedDirectory(directory,part);
- const journal=path.join(directory,'journal');if(checked.phase==='write')await mkdir(journal,{mode:0o700});
+ const journal=path.join(directory,'journal');
  const receiptFile=path.join(directory,'historical-reference.json'),reportFile=path.join(directory,`${checked.phase}-report.json`);
  const report={schema:1,phase:checked.phase,node:process.version,pid:process.pid,source_sha:checked.source_sha,bank:BANK,namespace:checked.namespace,
   status:'not-completed',current_verification:'not-checked',authorization:'none',executable:false,defaultActivation:false,
@@ -116,9 +116,20 @@ export async function guidanceAcceptance(options){
    if(route==='memories'&&report.http.some(x=>x.route==='memories'))throw Error('guidance-second-retain-refused');
    const attempt={method:init.method,route:isOriginal?'original-document':route,status:null};report.http.push(attempt);
    const response=await actualFetch(url,init);attempt.status=response.status;
+   if(route==='config'){
+    let state;
+    try{state=await readGuidanceBankPreflight(response.clone());}catch(error){await response.body?.cancel().catch(()=>{});throw error;}
+    if(report.bankPreflight&&state.bank_state_sha256!==report.bankPreflight.bank_state_sha256){await response.body?.cancel().catch(()=>{});throw Error('guidance-bank-state-drift');}
+   }
    if(checked.lost_ack&&route==='memories'&&response.status===200&&!injected){injected=true;attempt.deliveredStatus=503;attempt.fault='injected-after-real-success';await response.body?.cancel();return new Response('{}',{status:503});}
    return response;
   };
+  // Explicit actual-bank policy admission; no library discovery/default is changed.
+  const bankState=async()=>readGuidanceBankPreflight(await globalThis.fetch(ENDPOINT+'/v1/default/banks/'+BANK+'/config',{
+   method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)}));
+  report.bankPreflight=await bankState();
+  if(checked.phase==='write')await mkdir(journal,{mode:0o700});
+  const scopedFetch=globalThis.fetch;
   store=createHindsightGuidanceStore({mode:'local-guidance',endpoint:ENDPOINT,banks:{'isolated-test':BANK},journal_directory:journal,bearer_token:token,allow_loopback_http:true,timeout_ms:checked.timeout_ms});
   globalThis.fetch=actualFetch;
   const observation=guidanceAcceptanceFixture(checked.source_sha,checked.namespace),document=prepareHistoricalGuidance(observation),abort=new AbortController();
@@ -160,6 +171,8 @@ export async function guidanceAcceptance(options){
   }
   if(await git(['rev-parse','HEAD'])!==checked.source_sha||await git(['status','--porcelain','--untracked-files=normal']))throw Error('guidance-source-drift');
   assert.deepEqual(await checkServiceFingerprint(checked.service_fingerprint),report.serviceFingerprint);
+  globalThis.fetch=scopedFetch;
+  try{assert.deepEqual(await bankState(),report.bankPreflight);report.bankModeUnchanged=true;}finally{globalThis.fetch=actualFetch;}
   await client.check();
   Object.assign(report,{status:'passed',retainCount:report.http.filter(x=>x.route==='memories').length,recallCount:report.http.filter(x=>x.route==='memories/recall').length,
    safeDocumentSHA256:sha(document.content),proofRestored:false,historyOnly:true});

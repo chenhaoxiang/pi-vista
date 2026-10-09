@@ -71,16 +71,31 @@ export async function prepareGuidanceClient(sourceSha){
 }
 
 /** Fixed one-MiB byte bound, fatal decoding and cancellation, including rejected status. */
-export async function readGuidanceMetadata(response){
- if(response.status!==200||!response.body){await response.body?.cancel().catch(()=>{});throw Error('guidance-service-version-refused');}
+async function readBoundedGuidanceJSON(response,code){
+ if(response.status!==200||!response.body){await response.body?.cancel().catch(()=>{});throw Error(code);}
  const reader=response.body.getReader(),chunks=[];let bytes=0;
  try{
   const declared=response.headers.get('content-length');
   if(declared!==null&&(!/^\d+$/.test(declared)||Number(declared)>1048576))throw Error();
   for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>1048576)throw Error();chunks.push(part.value);}
-  const metadata=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes)));
-  if(metadata.info?.version!=='0.10.2')throw Error();
-  return metadata;
- }catch{throw Error('guidance-service-version-refused');}
+  return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes)));
+ }catch{throw Error(code);}
  finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+}
+export async function readGuidanceMetadata(response){
+ const metadata=await readBoundedGuidanceJSON(response,'guidance-service-version-refused');
+ if(metadata?.info?.version!=='0.10.2')throw Error('guidance-service-version-refused');
+ return metadata;
+}
+/** Operator policy only, not a library default or source of current proof. */
+export async function readGuidanceBankPreflight(response){
+ const value=await readBoundedGuidanceJSON(response,'guidance-bank-mode-refused');
+ const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+ if(!record(value)||value.bank_id!=='pi-vista-local-test-01a114ab'||!record(value.config)||!record(value.overrides)||
+  value.config.retain_extraction_mode!=='chunks'||value.config.enable_observations!==false||
+  value.config.retain_default_strategy!==undefined&&value.config.retain_default_strategy!==null)throw Error('guidance-bank-mode-refused');
+ const canonical=v=>v!==null&&typeof v==='object'?(Array.isArray(v)?'['+v.map(canonical).join(',')+']':'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}'):JSON.stringify(v);
+ // Only a digest of the bank's noncredential public config; no mission/body is projected.
+ return Object.freeze({bank:value.bank_id,extraction_mode:'chunks',observations:false,default_strategy:null,
+  bank_state_sha256:sha256(canonical({config:value.config,overrides:value.overrides}))});
 }
