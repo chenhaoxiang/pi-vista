@@ -48,6 +48,8 @@ async function fixture(mode='normal'){
   }
  }
  await writeFile('packages/core/dist/index.js',${JSON.stringify(core)});
+ // Legacy packages compile tests into dist, but the runtime must not execute them.
+ await writeFile('packages/core/dist/fixture-legacy.test.js',"throw Error('build-only test must never execute');");
  await writeFile('packages/learning/dist/guidance/index.js',${JSON.stringify(guidance('fixture-fresh-code'))});
  await mkdir('packages/learning/dist/hindsight',{recursive:true});
  await writeFile('packages/learning/dist/hindsight/data.js','export const targetFingerprint=()=>"f".repeat(64);');
@@ -96,6 +98,7 @@ test('guidance exact-source harness rebuilds an isolated client instead of execu
   assert.equal(result.report.clientArtifactIdentity.source_sha,f.head);assert.equal(result.report.clientArtifactIdentity.fresh_archive,true);
   assert.ok(result.report.clientArtifactIdentity.files.some(file=>file.path==='packages/learning/dist/guidance/index.js'&&file.sha256===hash(guidance('fixture-fresh-code'))));
   assert.equal(result.state.networkCalls,1);
+  assert.ok(result.report.clientArtifactIdentity.files.some(file=>file.path==='packages/core/dist/fixture-legacy.test.js'&&file.build_only_test===true));
  }finally{await f.close();}
 });
 

@@ -33,16 +33,19 @@ export async function prepareGuidanceClient(sourceSha){
   for(const pkg of packages)assert.equal(await realpath(path.join(built,'node_modules',pkg.manifest.name)),await realpath(pkg.directory));
   const snapshot=async()=>{
    const files=[];
-   const record=async file=>{
+   // A source build may include legacy tests that publication excludes. Hash
+   // them as build-only artifacts; never weaken the original package allowlist.
+   const buildOnlyTest=/(?:^|\/)[A-Za-z0-9_.-]+\.(?:test|spec)\.(?:d\.ts(?:\.map)?|[mc]?js(?:\.map)?)$/;
+   const record=async(file,test=false)=>{
     const stat=await lstat(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>4*1024*1024)throw Error('guidance-client-artifact-refused');
-    files.push({path:path.relative(built,file).split(path.sep).join('/'),sha256:sha256(await readFile(file))});
+    files.push({path:path.relative(built,file).split(path.sep).join('/'),sha256:sha256(await readFile(file)),...(test?{build_only_test:true}:{})});
    };
    await record(path.join(built,'package.json'));await record(path.join(built,'package-lock.json'));
    for(const pkg of packages){
     await record(path.join(pkg.directory,'package.json'));
     for(const file of await listFiles(path.join(pkg.directory,'dist'))){
-     if(!allowedPackagePath('dist/'+file))throw Error('guidance-client-artifact-refused');
-     if(/\.[mc]?js$/.test(file))await record(path.join(pkg.directory,'dist',file));
+     if(!allowedPackagePath('dist/'+file)&&!buildOnlyTest.test(file))throw Error('guidance-client-artifact-refused');
+     if(/\.[mc]?js$/.test(file))await record(path.join(pkg.directory,'dist',file),buildOnlyTest.test(file));
     }
    }
    files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
