@@ -62,11 +62,14 @@ async function deterministicReference(document,client){
  const {writeRequest,documentId,reference}=client.data;
  const request=writeRequest('isolated-test',document);return reference('isolated-test',documentId(request,targetFingerprint(ENDPOINT,'isolated-test',BANK)));
 }
-function fixture(options){
- return {experience_id:`guidance-${options.namespace}`,run_id:`trial-${options.namespace}`,repo:'pi-vista',source_sha:options.source_sha,
+export function guidanceAcceptanceFixture(source,namespace){
+ if(typeof source!=='string'||!(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/).test(source)||typeof namespace!=='string'||!(/^[a-z][a-z0-9-]{0,63}$/).test(namespace))throw Error('guidance-options-refused');
+ // Explicitly synthetic, meaningful guidance rather than identifier-only metadata.
+ // Persistence still does not guarantee that a model will extract recall facts.
+ return {experience_id:`guidance-${namespace}`,run_id:`trial-${namespace}`,repo:'pi-vista',source_sha:source,
   policy_version:'guidance-local-v1',env_fingerprint:'isolated-test-bank',task_type:'metadata-validation',ts:1000,
-  script:{task_type:'metadata-validation',description:'inspect bounded fixture metadata',preconditions:['source-bound'],steps:['inspect-metadata'],postconditions:['metadata-observed'],known_failures:[],applicable_to:[]},
-  steps:[{step_id:`trial-${options.namespace}_s0`,tool:'metadata-reader',action_description:'inspect bounded metadata',check_fn_ids:[],expected_result:'observed',on_failure:'stop',depends_on:[]}]};
+  script:{task_type:'metadata-validation',description:'The synthetic Fixture Metadata Checker requires a fresh source-archive rebuild before metadata validation and rejects stale compiled output.',preconditions:['source-bound'],steps:['inspect-metadata'],postconditions:['metadata-observed'],known_failures:[{symptom:'stale-compiled-output',mitigation:'fresh-source-archive-build'}],applicable_to:[]},
+  steps:[{step_id:`trial-${namespace}_s0`,tool:'metadata-reader',action_description:'Validate synthetic Fixture Metadata Checker metadata after a fresh source-archive rebuild.',check_fn_ids:[],expected_result:'observed',on_failure:'stop',depends_on:[]}]};
 }
 async function checkedDirectory(parent,part){
  const result=path.join(parent,part);await mkdir(result,{recursive:true,mode:0o700});const stat=await lstat(result);
@@ -118,7 +121,7 @@ export async function guidanceAcceptance(options){
   };
   store=createHindsightGuidanceStore({mode:'local-guidance',endpoint:ENDPOINT,banks:{'isolated-test':BANK},journal_directory:journal,bearer_token:token,allow_loopback_http:true,timeout_ms:checked.timeout_ms});
   globalThis.fetch=actualFetch;
-  const observation=fixture(checked),document=prepareHistoricalGuidance(observation),abort=new AbortController();
+  const observation=guidanceAcceptanceFixture(checked.source_sha,checked.namespace),document=prepareHistoricalGuidance(observation),abort=new AbortController();
   if(checked.phase==='write'){
    let receipt;
    try{receipt=await store.retain('isolated-test',document,abort.signal);if(checked.lost_ack)throw Error('guidance-expected-uncertainty-missing');}
@@ -149,9 +152,11 @@ export async function guidanceAcceptance(options){
    const read=await store.read(saved.reference,abort.signal);
    assert.equal(read.document.content,document.content);assert.equal(read.document.content_digest,saved.content_digest);assert.equal(read.guidance.current_verification,'not-checked');assert.equal(read.guidance.executable,false);
    const reconciliation=await store.reconcile('isolated-test',document,abort.signal);assert.equal(reconciliation.state,'matched');
-   const query={repo:observation.repo,source_sha:observation.source_sha,policy_version:observation.policy_version,env_fingerprint:observation.env_fingerprint,task_type:observation.task_type};
-   const refs=await store.query('isolated-test',query,abort.signal);report.recallOwnTargetCount=refs.length;report.recallContainsOwnDocument=refs.some(x=>x.document_id===saved.reference.document_id);assert.ok(report.recallContainsOwnDocument);
+   // Preserve successful substeps even if later semantic recall has no references.
    report.restartedOriginalByteReadback=true;report.readOnlyReconciliationMatched=true;report.receipt=saved.reference;
+   const query={repo:observation.repo,source_sha:observation.source_sha,policy_version:observation.policy_version,env_fingerprint:observation.env_fingerprint,task_type:observation.task_type};
+   const refs=await store.query('isolated-test',query,abort.signal);report.recallOwnTargetCount=refs.length;report.recallContainsOwnDocument=refs.some(x=>x.document_id===saved.reference.document_id);
+   if(!report.recallContainsOwnDocument)throw Error('guidance-recall-reference-missing');
   }
   if(await git(['rev-parse','HEAD'])!==checked.source_sha||await git(['status','--porcelain','--untracked-files=normal']))throw Error('guidance-source-drift');
   assert.deepEqual(await checkServiceFingerprint(checked.service_fingerprint),report.serviceFingerprint);

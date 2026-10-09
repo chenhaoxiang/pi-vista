@@ -64,4 +64,10 @@ write只允许一次目标retain。lost-ack注入在真实服务器200之后让�
 
 本次acceptance通路不读写main。已经安装的coding-agent项目记忆与自动session记录是另一个机制，保持原配置，不被拿来充当这个专用bank的验收。真实retain可消耗服务既有模型/embedding额度，usage不是独立账单；不会自动换模型/权重、扩权限/改Meta/RootG2/HOLD/开启日常Pi或训练。Stage5 usable local workflow与Stage6实际对照/发行仍待后继明确验收。
 
+## 原文持久化不等于语义检索完成
+
+首次bbd13db合成试验已经得到一次实际retain200、注入lost-ack后的只读对账和精确原文回读；独立新客户端也完成原文/对账，但own-reference recall为0，整体验收失败。专用bank只读诊断确认该文档memory_unit_count=0且三类fact均为0、scope tags正确；三种有界只读查询（默认types、world/experience、任务词）均为空。保留这个失败样本、原报告及journal，不重复retain它，不把original GET拼成recall结果，也不改变bank/shared-service提取配置。
+
+canonical指导文档只有符号化标识/动作元数据时，真实提取模型可能不产生可检索fact；单独的200或原文保存不能保证recall。下一份有界正向样本使用明确synthetic的完整指导性事实和新namespace，仍无当前证明、执行权限或真实产品断言。脚本保留已通过的原文/对账子步骤；若own-reference缺失，继续overall failed并固定标记guidance-recall-reference-missing，不能以partial success关闭Stage4。该新样本及最后Stage4运行/交付验收仍待具体证据。
+
 设计：[Stage4 guidance](../openspec/changes/pi-operational-rollout/stage4-guidance-design.md)；[sequential tasks](../openspec/changes/pi-operational-rollout/tasks.md)；原路线：[signed Hindsight store](hindsight-store.md)、[local host evidence](local-host-evidence.md)。

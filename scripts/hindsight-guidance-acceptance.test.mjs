@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {guidanceAcceptanceOptions,guidanceAcceptance} from './hindsight-guidance-acceptance.mjs';
+import {guidanceAcceptanceOptions,guidanceAcceptance,guidanceAcceptanceFixture} from './hindsight-guidance-acceptance.mjs';
+import {prepareHistoricalGuidance} from '@pi-vista/learning/guidance';
 const args=['--phase=write',`--source-sha=${'a'.repeat(40)}`,'--namespace=fixture-guidance','--credential-config=/fixture/credential.json','--service-fingerprint=/fixture/service.json','--timeout-ms=120000','--allow-bank-write'];
 test('guidance actual-bank admission is explicit closed, with no network/default-model/bank overrides',()=>{
  const options=guidanceAcceptanceOptions(args);assert.ok(Object.isFrozen(options));assert.equal(options.phase,'write');assert.equal(options.lost_ack,false);
@@ -22,5 +23,17 @@ test('guidance effectful entry rejects hostile fields before filesystem/credenti
  const coercion={toString(){traps++;throw Error();}};
  for(const value of [proxy,accessor,null,{},Object.freeze({...guidanceAcceptanceOptions(args),namespace:coercion}),Object.freeze({...guidanceAcceptanceOptions(args),extra:true})])
   await assert.rejects(()=>guidanceAcceptance(value));
+ assert.equal(traps,0);
+});
+test('guidance operational positive fixture is explicitly synthetic and valid closed historical metadata',()=>{
+ const raw=guidanceAcceptanceFixture('a'.repeat(40),'fixture-guidance'),doc=prepareHistoricalGuidance(raw),history=JSON.parse(doc.content);
+ assert.match(raw.script.description,/synthetic Fixture Metadata Checker/);assert.match(raw.script.description,/fresh source-archive rebuild/);
+ assert.deepEqual(raw.script.known_failures,[{symptom:'stale-compiled-output',mitigation:'fresh-source-archive-build'}]);
+ assert.equal(history.current_verification,'not-checked');assert.equal(history.authorization,'none');assert.equal(history.executable,false);
+ assert.equal(Object.hasOwn(history.experience,'status'),false);assert.equal(Object.hasOwn(history,'signature'),false);
+});
+test('guidance synthetic fixture rejects hostile source or namespace without hooks',()=>{
+ let traps=0;const hostile={toString(){traps++;throw Error();}};
+ for(const [source,namespace]of [[hostile,'fixture-guidance'],['a'.repeat(40),hostile],['bad','fixture-guidance'],['a'.repeat(40),'../outside']])assert.throws(()=>guidanceAcceptanceFixture(source,namespace));
  assert.equal(traps,0);
 });

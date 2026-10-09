@@ -11,7 +11,7 @@ import {readGuidanceMetadata} from './guidance-acceptance-io.mjs';
 const exec=promisify(execFile),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const core='export const hasKnownCredential=()=>false;export const isSafeSegment=()=>true;\n';
 const guidance=content=>`export const prepareHistoricalGuidance=()=>({content:${JSON.stringify(content)},content_digest:${JSON.stringify(hash(content))}});
-export const createHindsightGuidanceStore=()=>({retain:async()=>({bank:'isolated-test',document_id:'fixture-id',current_verification:'not-checked',authorization:'none',executable:false}),read:async()=>({document:prepareHistoricalGuidance(),guidance:{current_verification:'not-checked',authorization:'none',executable:false}})});\n`;
+export const createHindsightGuidanceStore=()=>({retain:async()=>({bank:'isolated-test',document_id:'fixture-id',current_verification:'not-checked',authorization:'none',executable:false}),read:async()=>({document:prepareHistoricalGuidance(),guidance:{current_verification:'not-checked',authorization:'none',executable:false}}),reconcile:async()=>({state:'matched'}),query:async()=>[]});\n`;
 
 async function fixture(mode='normal'){
  const parent=path.join(ROOT,'tmp','guidance-harness-regressions');await mkdir(parent,{recursive:true});
@@ -78,13 +78,13 @@ async function fixture(mode='normal'){
  await git(['init','--quiet']);await git(['config','user.name','Synthetic Fixture']);await git(['config','user.email','fixture@example.invalid']);
  await git(['add','--','package.json','package-lock.json','.gitignore','packages','scripts']);await git(['-c','core.hooksPath=/dev/null','commit','--quiet','-m','synthetic fixture']);
  const head=await git(['rev-parse','HEAD']);
- const invoke=async(source=head)=>{
+ const invoke=async(source=head,phase='write')=>{
   let code=0;
   try{await run(process.execPath,['--import',path.join(owned,'scripts','fixture-fetch.mjs'),path.join(owned,'scripts','hindsight-guidance-acceptance.mjs'),
-   '--phase=write','--source-sha='+source,'--namespace=fixture-guidance','--credential-config='+config,'--service-fingerprint='+fingerprint,'--timeout-ms=1000','--allow-bank-write']);}
+   '--phase='+phase,'--source-sha='+source,'--namespace=fixture-guidance','--credential-config='+config,'--service-fingerprint='+fingerprint,'--timeout-ms=1000',phase==='write'?'--allow-bank-write':'--allow-bank-read']);}
   catch(error){code=error.code;}
   let report;
-  try{report=JSON.parse(await readFile(path.join(temporary,'guidance-acceptance','fixture-guidance','write-report.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
+  try{report=JSON.parse(await readFile(path.join(temporary,'guidance-acceptance','fixture-guidance',phase+'-report.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
   const state=JSON.parse(await readFile(stateFile,'utf8'));return{code,report,state};
  };
  return{owned,head,marker,invoke,close:()=>rm(owned,{recursive:true,force:true})};
@@ -133,4 +133,15 @@ test('guidance metadata fatal UTF-8 refusal releases the reader',async()=>{
  const response=new Response(new Uint8Array([0xff,0xfe]));
  await assert.rejects(()=>readGuidanceMetadata(response),/guidance-service-version-refused/);
  assert.equal(response.body.locked,false);
+});
+
+test('guidance empty semantic recall remains failed while exact-read and reconciliation substeps are recorded', {timeout:120000},async()=>{
+ const f=await fixture();try{
+  assert.equal((await f.invoke()).report.status,'passed');
+  const result=await f.invoke(f.head,'read');assert.notEqual(result.code,0);
+  assert.equal(result.report.status,'failed');assert.equal(result.report.failure,'guidance-recall-reference-missing');
+  assert.equal(result.report.restartedOriginalByteReadback,true);assert.equal(result.report.readOnlyReconciliationMatched,true);
+  assert.equal(result.report.recallOwnTargetCount,0);assert.equal(result.report.recallContainsOwnDocument,false);
+  assert.equal(result.report.authorization,'none');assert.equal(result.report.executable,false);
+ }finally{await f.close();}
 });
