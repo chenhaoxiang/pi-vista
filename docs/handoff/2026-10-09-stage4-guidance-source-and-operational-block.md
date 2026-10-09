@@ -4,13 +4,15 @@ project: workspace
 owner_repository: chenhaoxiang/pi-vista
 product_line: pi-vista
 release_scope: source candidate packages 0.1.0; publisher channel and actual release version undecided
-status: active
-truth_mode: maintained
+status: completed
+truth_mode: snapshot
 created: 2026-10-09
 verified: 2026-10-09
 ---
 
 # Stage4 guidance：源码候选与真实检索阻塞
+
+本文件保留原concise两样本运行阻塞时点，以下“当前”只指该历史时点；原失败、未知原因和停止边界不反向改成PASS。后继明确授权、精确诊断、chunks单字段变更及新namespace限定范围通过，现行入口为[提取诊断与chunks试验](2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md)。后继PASS不解决这里两份旧失败记录，也不等于main/共享闭环已完成。
 
 ## 当前结论与交付边界
 

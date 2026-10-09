@@ -16,7 +16,7 @@ verified: 2026-10-09
 
 前两次concise合成试验保持**运行验收失败**；[原源码与阻塞记录](2026-10-09-stage4-guidance-source-and-operational-block.md)不反向改成PASS。后继只读诊断已证明两次Qwen提取正常返回合法JSON的显式空facts；用户随后明确批准仅专用bank的chunks模式及一个新namespace有界试验。
 
-已经完成：精确只读trace计数诊断；专用bank一次字段PATCH200/GET回读；其他公开bank配置一致；旧两doc不变；operator chunks-policy/source/type/package/regression本地候选。**新的完整chunks运行试验、源码纠正复审/最新headCI/PR/main/共享收口尚未完成**，不由mode切换推导Stage4PASS或启动Stage5/6。
+已经完成：精确只读trace计数诊断；专用bank一次字段PATCH200/GET回读；其他公开bank配置一致；旧两doc不变；a08b159的1203-case源码门禁、层次纠正复审0/0/0及精确head CI；一个新chunks namespace的write/lost-ack/重启/原文/recall/只读对账和1worldunit计数。**本合成chunks范围运行验收已通过；PR/main/共享收口仍未完成，Stage5/6尚未启动**。不是由mode切换推导PASS，而是依据下方实际新试验。
 
 ## 用户批准的后继范围
 
@@ -80,10 +80,32 @@ library API/default/root/signedstore/journal/query及发布规则不变；仅显
 - 父级离线nativeResponse复现404/超限两路cancel等待，只有取消原分支后结束；独立nativewrite/read fixture复现不同cfgdigest仍双PASS（0真实bank）。0c3b695纠正新增不可覆盖/缺失/corrupt/sourcecfg漂移/字节保留/无tee等8项回归，1200cases和Node20/26/source/consumer通过；a3c8fd48…八文件纠正复审明确关闭F3/F4、保留P2F5：默认TextDecoder会剥BOM，使实际接受bytes与报告digest不一致。
 - 原纠正审查SHA256为b42e79f68476ed15550caf377ea5e4cdb2f0b18953dd0e5fb147925040285c96，source-review-0c3b695-policy-correction.md保留。父级离线复现BOM文件被接受但digest仍等于无BOM原文；新的最小修复直接Buffer逐字节比较、只hash实际接受bytes，read/write-match均拒绝BOM/额外空白/无效UTF8且不覆盖文件。新增3回归后本地1203cases及Node20/26/11tarball22export/strictcompiler均通过；准确新pin/纠正复审/headCI/newruntime仍待完成，不以工程green推导运营PASS。
 
+## 新 chunks namespace 实际验收结果（a08b159）
+
+源码与策略修复后，精确 head `a08b159417a9fc5d05005d84c9225567887405f6` 的 Node20/22/26 CI、GitGuardian、本地1203 cases、11 tarballs/22 exports/strict TypeScript5.9.3均通过；层次同模型源码审查中的原始BLOCK、F3/F4/F5纠正记录均保留。原PR26仍draft，运行结果不等于已合入main。
+
+新 namespace `guidance-01a11fcc-chunks` 的实际试验已通过：
+
+1. **写入进程 PID9162**：bank preflight确认 `chunks`、observations=false、default_strategy=null；trial policy baseline绑定bank/namespace/source SHA/config digest；一次 POST 返回200，客户端注入503，随后只读reconcile与精确原文回读成功。`retainCount=1`，没有第二次POST、旧doc重处理或删除。
+2. **独立读取进程 PID10841**：`retainCount=0`；加载并验证同一私有trial-policy baseline，source/artifact摘要一致；精确原文回读和只读reconcile成功；recall HTTP200返回一个own-target reference，`recallOwnTargetCount=1`、`recallContainsOwnDocument=true`。
+3. **数据库只读计数**：固定bank/新document_id、`default_transaction_read_only=on`；document memory unit count=1，fact type为`world:1`；不读取原文、不执行DML/DDL、不访问其他bank。
+4. 两个进程均返回 `current_verification=not-checked`、`authorization=none`、`executable=false`。这证明该合成chunks持久化/重启/检索链路通过，不证明当前权限、真实owner、签名历史或产品记忆发布。
+
+实际report/source pins保存在原worktree：
+
+- `tmp/guidance-acceptance/guidance-01a11fcc-chunks/write-report.json` SHA256 `01dd26f50072fb55626cb6c55bab8ce87d0528c204abda054e446e8424375ca3`。
+- 同目录read-report SHA256 `1c1a48ac0703ec7c111fe605cdc002903031dfcc3b7a77a9fab728cd181c44ac`。
+- 同目录trial-policy精确字节SHA256 `c54fd5a1ee56987e3575adfb3ec56f4d7cdd099f3d18bce649fee13bafa66649`，两个进程一致。
+- 只读DB计数摘要 `tmp/takeover-01a11fcc/chunks-document-counts-readonly.json` SHA256 `79fa39bcbe827e38662188ca1df630eebde231a6c34c775ead00fddf114091bb`。
+- 客户端artifact digest两阶段均 `cd67da98f2e75f7aecd8bf4514c3c0a9d6eb1ca54122f7237c5dcdd871aee122`；document_id为 `vista-guidance-v1-12a0cdea44495aee-ab40666348f5539db1c0cfe4a5f256f823ef9b39fc1d84f1857347eec44b046a`。
+- 上述摘要由父级核验与报告保全；不能写成审查者独立重放或已在main共享。
+
+安全边界：旧两份concise失败样本、失败报告和journal保留不动；没有重发不确定请求、没有切换模型/embedding/维度/指令、没有重启共享服务、没有main请求。新试验可能消耗既有embedding/reranker额度，但没有改变其配置。
+
+**Stage4 operational acceptance（本试验范围）= PASS with explicit synthetic/chunks scope。** 仍需与正常PR/源码共享收口分别记录；Stage5/6尚未启动。若后续要改变bank策略、重处理旧样本或扩大真实数据范围，必须另行明确范围和验收，不从本结果推导授权。
+
 ## 下一步（未完成）
 
-固定源码和新policy设计、独立窄范围复审与精确CI；复审通过后以**一个新namespace/一份新合成文档**执行一次write/lost-ack及独立clientreadonlyread/recall，核对记忆项和旧两doc未重处理。若新目标或mode不符、source/policy变化、embedding/recall错误，保持真实失败和既有journal，不继续reseeding，不切模型、不改其它policy来绕过。
-
-Stage4完整运行通过、正常PR/远端main/文档共享收口必须分别确认；尚无任何上述完成推断。Stage5/6仍未启动。源PR26仍draft，原失败记录及原review BLOCK不改写。
+完成PR26的最新源码/文档审查、精确head CI、正常PR与远端main回读；运行证据与源码交付分别声明。Stage5的LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall/lifecycle workflow，以及Stage6 paired effectiveness/cost/release仍未启动。
 
 入口：[guidance](../hindsight-guidance.md)、[原阻塞记录](2026-10-09-stage4-guidance-source-and-operational-block.md)、[stage4设计](../../openspec/changes/pi-operational-rollout/stage4-guidance-design.md)。

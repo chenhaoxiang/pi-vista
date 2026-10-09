@@ -10,7 +10,7 @@ verified: 2026-10-09
 
 # 显式 Hindsight 指导性历史存储（源码候选）
 
-用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭。源码候选a8d9c76已通过本地1181cases、11包22入口打包消费者、实际Node20及精确Ubuntu20/22/26 CI、多轮独立同模型源码审查；PR26仍draft、未合入main。两份真实合成试验的原文/重启/失败只读对账成功，但两份均0fact/0own-reference，Stage4 operational BLOCK；不宣称整体验收完成。记录：[源码候选与运行阻塞](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md)。
+用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭。源码候选a8d9c76已通过本地1181cases、11包22入口打包消费者、实际Node20及精确Ubuntu20/22/26 CI、多轮独立同模型源码审查；PR26仍draft、未合入main。原两份concise合成试验的原文/重启/失败只读对账成功，但两份均0fact/0own-reference，其历史Stage4 BLOCK保留。后继获批的一个新chunks namespace已通过完整限定范围运行验收（含1own-reference/1worldunit）；source PR/main/共享闭环仍pending，不从运行部分推导完整交付。记录：[源码候选与运行阻塞](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md)。
 
 ## 独立入口，不是签名降级
 
@@ -72,6 +72,6 @@ write只允许一次目标retain。lost-ack注入在真实服务器200之后让�
 
 canonical指导文档只有符号化标识/动作元数据时，真实提取模型可能不产生可检索fact；单独的200或原文保存不能保证recall，但本次零提取的精确原因未证明。最后一份a8d9c76/newnamespace完整指导事实的synthetic样本实际POST在120秒内未收到ack，报告sink-timeout且没有重发；独立新客户端由既有intent精确匹配原文，恢复只读reference、original/reconcile均通过。但recall仍0，overall failed/guidance-recall-reference-missing；最终只读元数据确认三类fact仍0。样本、失败、journal保留，停止更多retain/reseed或配置改变，Stage4/5/6不伪收口。脚本保留通过的原文/对账子步骤，不把partial success或original GET变成semantic PASS。
 
-后继用户已明确选择仅专用bank改为chunks，并完成一次PATCH200/回读，其他公开bank字段和旧两doc一致。新sourceoperator以mode/digest admission阻止不符配置；新namespace实际完整试验仍pending，Stage4仍BLOCK。精确只读trace证明两次真实Qwen均success/stop、合法空facts（831ms/256419ms）；未读取模型原文，无认证/解析失败推断。新模式和授权不是把旧失败样本改成PASS；不改变main/sharedservice/model/embedding或自动重处理。详见[提取诊断与chunks后继](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md)。
+后继用户已明确选择仅专用bank改为chunks，并完成一次PATCH200/回读，其他公开bank字段和旧两doc一致。新sourceoperator以mode/digest admission阻止不符配置。精确只读trace证明两次真实Qwen均success/stop、合法空facts（831ms/256419ms）；未读取模型原文，无认证/解析失败推断。新模式和授权不是把旧失败样本改成PASS；不改变main/sharedservice/model/embedding或自动重处理。随后新namespace `guidance-01a11fcc-chunks` 已通过一次chunks retain/lost-ack/reconcile、独立重启、原文回读和own-reference recall；只读DB计数为1个world unit。该结果只覆盖明确合成/chunks范围，仍不等于当前proof或产品记忆发布。详见[提取诊断与chunks后继](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md)。
 
 设计：[Stage4 guidance](../openspec/changes/pi-operational-rollout/stage4-guidance-design.md)；[sequential tasks](../openspec/changes/pi-operational-rollout/tasks.md)；原路线：[signed Hindsight store](hindsight-store.md)、[local host evidence](local-host-evidence.md)。
