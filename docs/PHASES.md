@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-08
+verified: 2026-10-09
 ssot: true
 ---
 
@@ -233,8 +233,14 @@ a separate unresolved item.
 Stage3 documentary PR25 is now included in finalmain90add4e with fresh6docreview0/0/0
 and exactCI37850779740/37851081825. Stage4 [guidance-only candidate](hindsight-guidance.md)
 has an explicit user-approved localhost8888 testbankpi-vista-local-test-01a114ab;
-bank creation/config readback is complete, but retain/clientrestart/recall/uncertainty,
-source review/PR/CI/closeout acceptance is still pending. Actual installed0.10.2
+bank creation/config readback is complete. As of2026-10-09, source a8d9c76 has1181
+cases,11tarballs22exports, layered same-model source reviews and exact head Node20/22/26
+CI; PR26 remains draft/unmerged. Two bounded actual synthetic documents passed exact
+original/clientrestart/readonly uncertainty reconciliation (including actual120s
+retain timeout), but both have0facts/0own-reference recall: Stage4 operational BLOCK,
+no further retain/reseed, no Stage5/6 advancement. The retained failure/source pins
+are in [Stage4 handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
+Source-main/full operational/documentary closeout remains pending. Actual installed0.10.2
 HTTP/engine/config/main file fingerprints differ from originalea5 source; user
 accepted this concrete deployment fingerprint while preserving the fixed API0.10.2
 client contract, not an in-memory/whole-service/source-equivalence claim. No main-bank

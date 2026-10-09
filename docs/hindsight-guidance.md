@@ -5,12 +5,12 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-08
-verified: 2026-10-08
+verified: 2026-10-09
 ---
 
 # 显式 Hindsight 指导性历史存储（源码候选）
 
-用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭；创建不代表数据持久化、recall、重启或故障验收通过。当前源码候选尚未经过独立审查、PR/主线CI与文档收口，不宣称 Stage4 完成。
+用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭。源码候选a8d9c76已通过本地1181cases、11包22入口打包消费者、实际Node20及精确Ubuntu20/22/26 CI、多轮独立同模型源码审查；PR26仍draft、未合入main。两份真实合成试验的原文/重启/失败只读对账成功，但两份均0fact/0own-reference，Stage4 operational BLOCK；不宣称整体验收完成。记录：[源码候选与运行阻塞](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md)。
 
 ## 独立入口，不是签名降级
 
@@ -68,6 +68,6 @@ write只允许一次目标retain。lost-ack注入在真实服务器200之后让�
 
 首次bbd13db合成试验已经得到一次实际retain200、注入lost-ack后的只读对账和精确原文回读；独立新客户端也完成原文/对账，但own-reference recall为0，整体验收失败。专用bank只读诊断确认该文档memory_unit_count=0且三类fact均为0、scope tags正确；三种有界只读查询（默认types、world/experience、任务词）均为空。保留这个失败样本、原报告及journal，不重复retain它，不把original GET拼成recall结果，也不改变bank/shared-service提取配置。
 
-canonical指导文档只有符号化标识/动作元数据时，真实提取模型可能不产生可检索fact；单独的200或原文保存不能保证recall。下一份有界正向样本使用明确synthetic的完整指导性事实和新namespace，仍无当前证明、执行权限或真实产品断言。脚本保留已通过的原文/对账子步骤；若own-reference缺失，继续overall failed并固定标记guidance-recall-reference-missing，不能以partial success关闭Stage4。该新样本及最后Stage4运行/交付验收仍待具体证据。
+canonical指导文档只有符号化标识/动作元数据时，真实提取模型可能不产生可检索fact；单独的200或原文保存不能保证recall，但本次零提取的精确原因未证明。最后一份a8d9c76/newnamespace完整指导事实的synthetic样本实际POST在120秒内未收到ack，报告sink-timeout且没有重发；独立新客户端由既有intent精确匹配原文，恢复只读reference、original/reconcile均通过。但recall仍0，overall failed/guidance-recall-reference-missing；最终只读元数据确认三类fact仍0。样本、失败、journal保留，停止更多retain/reseed或配置改变，Stage4/5/6不伪收口。脚本保留通过的原文/对账子步骤，不把partial success或original GET变成semantic PASS。
 
 设计：[Stage4 guidance](../openspec/changes/pi-operational-rollout/stage4-guidance-design.md)；[sequential tasks](../openspec/changes/pi-operational-rollout/tasks.md)；原路线：[signed Hindsight store](hindsight-store.md)、[local host evidence](local-host-evidence.md)。

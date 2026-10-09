@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-08
+verified: 2026-10-09
 ---
 
 # Sequential tasks
@@ -32,13 +32,17 @@ verified: 2026-10-08
 - [x] Later Stage3 six-document PR25/98d96a9 included in finalmain90add4e/tree2e00b3b, fresh6docreview0/0/0SHA2b168..., exacthead/mainCI37850779740/37851081825 and clean canonical0/0 readback verified.
 - [x] User approves localhost8888 dedicatedpi-vista-local-test-01a114ab creation/synthetic guidance writes/credential-source use; no main-bank acceptance writes/deletion/shared-service restart or global/model change.
 - [x] Source/version comparison discloses actual0.10.2 deployed file differences; user accepts actual installed fingerprint, keeps originalea5/static0.10.2 client reference without livebyte-equality claim. Explicitone-shotbankpreflight404/create200/configGET200, observationsfalse, zero guidance retain at provisioning.
-- [ ] Stage4 guidance source: independent explicit local-guidance addon and immutable uncertainty journal; offline/native hostile/readback/restart/signature-domain separation/source-consumer/installed validation.
-- [ ] Stage4 actual exact-source dedicated-bank retain/original/readback/new-client/recall/lost-ack/readonlyreconciliation, independent review/normalPR/head-mainCI/sharedcloseout; originalsigned store/archive not relaxed.
+- [x] Stage4 bounded source candidate a8d9c76: independent local-guidance addon, unchanged immutable journal/signed/root/CLI/gates, source/hostile/native-process/installed11tarball22export/strictcompiler/actualNode20 validation1181cases; explicit operator source-bound fresh build and streamed metadata corrections.
+- [x] Preserve original full17 BLOCK0P0/1P1/1P2 and red regressions; retained targeted5/narrow3/narrow4 reviews0/0/0 and exact source-head Ubuntu20/22/26 CI37920913953. This is layered coverage, notfreshfull19; PR26draft/unmerged.
+- [x] Preserve two actual isolated synthetic trials: bbdretain200/injectedlostack/read+reconcile, a8actual120stimeout/newclientreadonly original recovery; two different POST attempts, no repeated retain; both0facts/0ownrefs, no extracted-root-cause claim, no config/model/otherbank change or further reseeding. Handoff2026-10-09 is candidate, notsharedmainclosure.
+- [ ] Stage4 actual complete recall/operational acceptance and normalPR/mainCI/sharedcloseout: BLOCK0own semanticrefs despite exact original persistence/restart/reconciliation. Do not replace recall withGET, reset claims or advanceStage5/6; originalsigned store/archive not relaxed.
 - [ ] Stage5: explicit LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall and lifecycle/reconciliation workflow; restart/history reverify, separate signed key rotation remains unresolved when used.
 - [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
-- [ ] Real test-bank service/permissions and publisher account/channel/version require concrete facts when their stage begins. Actual signer/key provenance remains MISSING for the separate signed route; the local route does not require establishing signing keys.
+- [x] Actual0.10.2 installed fingerprint and dedicated-test-bank retain/read/recall permissions established; notsemantic/operational acceptance or whole-service/in-memory/upstreampin equality.
+- [ ] Dedicated bank zero fact/own-reference cause remains unproven; later diagnostic scope/config or new trial plan must be explicit, no further writes under the concluded bounded experiment.
+- [ ] Publisher account/channel/version still require concrete facts. Actual signer/key provenance remains MISSING for the separate signed route; the local route does not require establishing signing keys.
 - [ ] Native Mac personal-authentication broker is not implemented; current explicit user authorization and trusted-host responsibility are not a screen-lock/UID identity attestation.
 - Default global activation, active-session patching, production-bank writes, automatic models/weights/safety changes and executable learned bypass are not approved by these stage goals.
