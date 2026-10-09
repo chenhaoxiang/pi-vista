@@ -286,6 +286,7 @@ records.
 - [Merged receipt consumer source acceptance](docs/handoff/2026-10-07-receipt-file-source-closeout.md)
 - [Verified learning and offline retrieval](docs/learning.md)
 - [Portable signed historical recall and observed-only import](docs/portable-recall.md)
+- [Explicit local historical guidance candidate and isolated bank acceptance](docs/hindsight-guidance.md)
 - [Explicit Hindsight original store and local attempt protection](docs/hindsight-store.md)
 - [Merged store source acceptance and remaining operational work](docs/handoff/2026-10-07-hindsight-store-source-closeout.md)
 - [Repeatable source and packed-consumer gates](docs/release-contract.md)

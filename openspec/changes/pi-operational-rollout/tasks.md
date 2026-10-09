@@ -29,8 +29,11 @@ verified: 2026-10-08
 - [x] Preserve complete14path51bb BLOCK0P0/1P1/1P2; reproduce4red regressions before fixing factory-lifetime monotonic freshness/revalidation deadline and non-mutating malformed queries.
 - [x] Corrected984 exactNode20/26 source/consumer1127cases/11tarballs21exports/strictTS5.9.3 and installedPID32741/32749; targeted completefive-path correction reviewOKnotes0/0/0 combines prior full coverage, notfreshfull15review.
 - [x] Stage3 actual fixed-plan local acceptance (177native/sixadmit-settle/0blocked-dropped), normal PR24/source-main001a4fc with exactCI37848869274/37849179258 and fresh isolated postmainNode20 actualreadback; noMac/signed-owner/bank/defaultPi admission.
-- [ ] This later Stage3 documentary own reviewed PR/main inclusion remains pending at preparation, separate from delivered source/scoped actual acceptance.
-- [ ] Stage4: actual isolated Hindsight service/bank read/write/readback/restart/failure acceptance for guidance only; no unsigned fallback in original signed store/archive.
+- [x] Later Stage3 six-document PR25/98d96a9 included in finalmain90add4e/tree2e00b3b, fresh6docreview0/0/0SHA2b168..., exacthead/mainCI37850779740/37851081825 and clean canonical0/0 readback verified.
+- [x] User approves localhost8888 dedicatedpi-vista-local-test-01a114ab creation/synthetic guidance writes/credential-source use; no main-bank acceptance writes/deletion/shared-service restart or global/model change.
+- [x] Source/version comparison discloses actual0.10.2 deployed file differences; user accepts actual installed fingerprint, keeps originalea5/static0.10.2 client reference without livebyte-equality claim. Explicitone-shotbankpreflight404/create200/configGET200, observationsfalse, zero guidance retain at provisioning.
+- [ ] Stage4 guidance source: independent explicit local-guidance addon and immutable uncertainty journal; offline/native hostile/readback/restart/signature-domain separation/source-consumer/installed validation.
+- [ ] Stage4 actual exact-source dedicated-bank retain/original/readback/new-client/recall/lost-ack/readonlyreconciliation, independent review/normalPR/head-mainCI/sharedcloseout; originalsigned store/archive not relaxed.
 - [ ] Stage5: explicit LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall and lifecycle/reconciliation workflow; restart/history reverify, separate signed key rotation remains unresolved when used.
 - [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope.
 

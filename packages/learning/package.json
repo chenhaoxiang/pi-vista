@@ -18,6 +18,10 @@
       "types": "./dist/trace/index.d.ts",
       "import": "./dist/trace/index.js"
     },
+    "./guidance": {
+      "types": "./dist/guidance/index.d.ts",
+      "import": "./dist/guidance/index.js"
+    },
     "./pi": {
       "types": "./dist/pi/index.d.ts",
       "import": "./dist/pi/index.js"

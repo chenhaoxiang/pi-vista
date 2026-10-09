@@ -230,6 +230,17 @@ status restoration. No daily session activation, live bank, production receipt,
 quality improvement or distribution is inferred. SDK full declaration health stays
 a separate unresolved item.
 
+Stage3 documentary PR25 is now included in finalmain90add4e with fresh6docreview0/0/0
+and exactCI37850779740/37851081825. Stage4 [guidance-only candidate](hindsight-guidance.md)
+has an explicit user-approved localhost8888 testbankpi-vista-local-test-01a114ab;
+bank creation/config readback is complete, but retain/clientrestart/recall/uncertainty,
+source review/PR/CI/closeout acceptance is still pending. Actual installed0.10.2
+HTTP/engine/config/main file fingerprints differ from originalea5 source; user
+accepted this concrete deployment fingerprint while preserving the fixed API0.10.2
+client contract, not an in-memory/whole-service/source-equivalence claim. No main-bank
+acceptance data or shared service/global/model settings are changed, no bank deletion
+or original signed-store/rootLearning downgrade is introduced. Stage5/6 still later.
+
 ## Delivery: Repeatable engineering gates (#17)
 
 **Implemented source**: dependency-ordered root gates for all 11 packages,

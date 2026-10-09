@@ -54,6 +54,9 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/hindsight-guidance.md](docs/hindsight-guidance.md): Stage4 explicit guidance-only candidate; approved isolated bank/actual0.10.2 deployment fingerprint, no signed/root Learning fallback or current-proof restoration
+- [openspec/changes/pi-operational-rollout/stage4-guidance-design.md](openspec/changes/pi-operational-rollout/stage4-guidance-design.md): dedicated bank scope, actual-source differences, byte-exact readback, immutable uncertainty journal and client-restart acceptance plan
+
 - [docs/handoff/2026-10-08-local-host-evidence-source-closeout.md](docs/handoff/2026-10-08-local-host-evidence-source-closeout.md): PR24 local-host source/scoped runtime/1127-case/21-export pins, retained BLOCK/red regressions, targeted fix review and still-separate Mac/signed/bank authority
 - [docs/local-host-evidence.md](docs/local-host-evidence.md): delivered single-owner explicit local-host source; distinct process-only proof/scoped actual acceptance, no signing fallback, Mac broker or original Learning admission
 - [openspec/changes/pi-operational-rollout/stage3-local-host-design.md](openspec/changes/pi-operational-rollout/stage3-local-host-design.md): Stage3 scope amendment and Stage4–6 history/current-verification boundaries
