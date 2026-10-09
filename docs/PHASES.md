@@ -233,14 +233,12 @@ a separate unresolved item.
 Stage3 documentary PR25 is now included in finalmain90add4e with fresh6docreview0/0/0
 and exactCI37850779740/37851081825. Stage4 [guidance-only candidate](hindsight-guidance.md)
 has an explicit user-approved localhost8888 testbankpi-vista-local-test-01a114ab;
-bank creation/config readback is complete. As of2026-10-09, source a8d9c76 has1181
-cases,11tarballs22exports, layered same-model source reviews and exact head Node20/22/26
-CI; PR26 remains draft/unmerged. Two bounded actual synthetic documents passed exact
-original/clientrestart/readonly uncertainty reconciliation (including actual120s
-retain timeout), but both have0facts/0own-reference recall: Stage4 operational BLOCK,
-no further retain/reseed, no Stage5/6 advancement. The retained failure/source pins
-are in [Stage4 handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
-Source-main/full operational/documentary closeout remains pending. Later exact readonly
+bank creation/config readback is complete. Historical pre-chunks source snapshot `a8d9c76`
+had1181cases and the original two concise trials failed with0facts/0ownrefs; those pins
+remain in the completed/snapshot [historical handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
+The current corrected source candidate is `a08b159` with1203cases,11tarballs22exports,
+layered same-model reviews and exact head Node20/22/26 CI; PR26 remains draft/unmerged.
+Later exact readonly
 document trace identifies actualQwen27B normalvalidemptyfacts and256s call, notparse/auth
 failure. User then explicitly authorizes only the dedicated bank chunks mode and one new
 namespace synthetictrial; singlePATCH/readback/otherfield-oldDoc equality passed. New

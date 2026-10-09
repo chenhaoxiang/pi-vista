@@ -10,7 +10,7 @@ verified: 2026-10-09
 
 # 显式 Hindsight 指导性历史存储（源码候选）
 
-用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭。源码候选a8d9c76已通过本地1181cases、11包22入口打包消费者、实际Node20及精确Ubuntu20/22/26 CI、多轮独立同模型源码审查；PR26仍draft、未合入main。原两份concise合成试验的原文/重启/失败只读对账成功，但两份均0fact/0own-reference，其历史Stage4 BLOCK保留。后继获批的一个新chunks namespace已通过完整限定范围运行验收（含1own-reference/1worldunit）；source PR/main/共享闭环仍pending，不从运行部分推导完整交付。记录：[源码候选与运行阻塞](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md)。
+用户在 Stage3 选择单人本机可信宿主模式，并批准 Stage4 在现有 localhost Hindsight 服务新建 `pi-vista-local-test-01a114ab` 专用测试 bank。创建前404/创建200/配置回读200已确认，该 bank observations关闭。当前源码候选a08b159已通过本地1203cases、11包22入口打包消费者、实际Node20及精确Ubuntu20/22/26 CI、多轮独立同模型源码审查；PR26仍draft、未合入main。原两份concise合成试验的原文/重启/失败只读对账成功，但两份均0fact/0own-reference，其历史Stage4 BLOCK保留。后继获批的一个新chunks namespace已通过完整限定范围运行验收（含1own-reference/1worldunit）；source PR/main/共享闭环仍pending，不从运行部分推导完整交付。记录：[源码候选与运行阻塞](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md)。
 
 ## 独立入口，不是签名降级
 
