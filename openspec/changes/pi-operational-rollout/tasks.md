@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-08
+verified: 2026-10-09
 ---
 
 # Sequential tasks
@@ -29,13 +29,24 @@ verified: 2026-10-08
 - [x] Preserve complete14path51bb BLOCK0P0/1P1/1P2; reproduce4red regressions before fixing factory-lifetime monotonic freshness/revalidation deadline and non-mutating malformed queries.
 - [x] Corrected984 exactNode20/26 source/consumer1127cases/11tarballs21exports/strictTS5.9.3 and installedPID32741/32749; targeted completefive-path correction reviewOKnotes0/0/0 combines prior full coverage, notfreshfull15review.
 - [x] Stage3 actual fixed-plan local acceptance (177native/sixadmit-settle/0blocked-dropped), normal PR24/source-main001a4fc with exactCI37848869274/37849179258 and fresh isolated postmainNode20 actualreadback; noMac/signed-owner/bank/defaultPi admission.
-- [ ] This later Stage3 documentary own reviewed PR/main inclusion remains pending at preparation, separate from delivered source/scoped actual acceptance.
-- [ ] Stage4: actual isolated Hindsight service/bank read/write/readback/restart/failure acceptance for guidance only; no unsigned fallback in original signed store/archive.
+- [x] Later Stage3 six-document PR25/98d96a9 included in finalmain90add4e/tree2e00b3b, fresh6docreview0/0/0SHA2b168..., exacthead/mainCI37850779740/37851081825 and clean canonical0/0 readback verified.
+- [x] User approves localhost8888 dedicatedpi-vista-local-test-01a114ab creation/synthetic guidance writes/credential-source use; no main-bank acceptance writes/deletion/shared-service restart or global/model change.
+- [x] Source/version comparison discloses actual0.10.2 deployed file differences; user accepts actual installed fingerprint, keeps originalea5/static0.10.2 client reference without livebyte-equality claim. Explicitone-shotbankpreflight404/create200/configGET200, observationsfalse, zero guidance retain at provisioning.
+- [x] Stage4 bounded source candidate a8d9c76: independent local-guidance addon, unchanged immutable journal/signed/root/CLI/gates, source/hostile/native-process/installed11tarball22export/strictcompiler/actualNode20 validation1181cases; explicit operator source-bound fresh build and streamed metadata corrections.
+- [x] Preserve original full17 BLOCK0P0/1P1/1P2 and red regressions; retained targeted5/narrow3/narrow4 reviews0/0/0 and exact source-head Ubuntu20/22/26 CI37920913953. This is layered coverage, notfreshfull19; PR26draft/unmerged.
+- [x] Preserve two actual isolated synthetic trials: bbdretain200/injectedlostack/read+reconcile, a8actual120stimeout/newclientreadonly original recovery; two different POST attempts, no repeated retain; both0facts/0ownrefs, no extracted-root-cause claim, no config/model/otherbank change or further reseeding. Handoff2026-10-09 is candidate, notsharedmainclosure.
+- [x] User authorizes exact-bank/doc-only readonly extraction diagnosis; readonly SQL column projection proves both actualQwen27B calls success/stop/validJSONexplicitfacts=[] (831ms/256419ms), no model input/output/credential/or otherbank read. Direct0fact mechanism known, semanticjudgment notclaimed.
+- [x] Later explicit owner amendment permits only dedicatedbank retain_extraction_mode chunks, newnamespaceone synthetictrial/mode-bound preflight. OnePATCH200/GET confirms otherpubliccfg/overrides/old2docsunchanged; noembedding/model/main/reprocess/globalwrite.
+- [x] New chunks operator mode/configdigest+private cross-phase trial-policy admission, one-stream exact-byte response guard, BOM byte equality/digest correction: exactsourcea08b159 local1203/source/Node20/11tarball22exports passed, layered correction review0/0/0, exactUbuntu20/22/26CI37990954332/GGsuccess; priorF3/F4BLOCK/F5P2 retained.
+- [x] One newnamespaceguidance-01a11fcc-chunks actual retain200/injected503/read-onlyreconcile/exactoriginal; independentPID9162→10841/readretain0/recallownref1, matchingpolicy/sourceartifact/configdigests, readonlyDB1worldunit. Old2concise failures/doc/journal retained, no reprocessing or replay, originalsigned/root store notrelaxed. Scopeonlysynthetic/chunks, no currentproof/authority/productbank defaultactivation.
+- [ ] Stage4 normalPR/mainCI/sharedcloseout: scoped actualruntime passed, PR26/latestdocument/main inclusion stillpending; Stage5/6 notstarted.
 - [ ] Stage5: explicit LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall and lifecycle/reconciliation workflow; restart/history reverify, separate signed key rotation remains unresolved when used.
 - [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
-- [ ] Real test-bank service/permissions and publisher account/channel/version require concrete facts when their stage begins. Actual signer/key provenance remains MISSING for the separate signed route; the local route does not require establishing signing keys.
+- [x] Actual0.10.2 installed fingerprint and dedicated-test-bank retain/read/recall permissions established; notsemantic/operational acceptance or whole-service/in-memory/upstreampin equality.
+- [x] Original zero-fact direct cause established by readonly projectedtrace: model returns validemptyfacts; unknownwhy/modelquality/globalhealth remain. Originalbounded2docwrites concluded; new onebankchunks policy/newtrial explicitly approved, notsilent continuation.
+- [ ] Publisher account/channel/version still require concrete facts. Actual signer/key provenance remains MISSING for the separate signed route; the local route does not require establishing signing keys.
 - [ ] Native Mac personal-authentication broker is not implemented; current explicit user authorization and trusted-host responsibility are not a screen-lock/UID identity attestation.
 - Default global activation, active-session patching, production-bank writes, automatic models/weights/safety changes and executable learned bypass are not approved by these stage goals.

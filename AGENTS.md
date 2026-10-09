@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-08
+verified: 2026-10-09
 ---
 
 # Repository-local contributor contract
@@ -53,6 +53,11 @@ owner normalization, preserves non-positive outcomes and cannot activate models,
 prove isolation or change eligibility. No CLI check/promote/replay command is added.
 
 ## Public document map
+
+- [docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md](docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md): exact readonly Qwen empty-facts/256s diagnosis, explicitly approved one-bank chunks mode change, no reprocessing of old failures, operator mode/digest admission, scoped new chunks runtime PASS/1worldunit and still-pending PR/main shared closure
+- [docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md](docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md): historical completed/snapshot source candidate/1181-case/layered review/exact CI pins and retained zero-fact/timeout trials; original concise Stage4 BLOCK remains history, newer authorized chunks scope routed above, no retroactive PASS
+- [docs/hindsight-guidance.md](docs/hindsight-guidance.md): Stage4 explicit guidance-only candidate; approved isolated bank/actual0.10.2 deployment fingerprint, no signed/root Learning fallback or current-proof restoration
+- [openspec/changes/pi-operational-rollout/stage4-guidance-design.md](openspec/changes/pi-operational-rollout/stage4-guidance-design.md): dedicated bank scope, actual-source differences, byte-exact readback, immutable uncertainty journal and client-restart acceptance plan
 
 - [docs/handoff/2026-10-08-local-host-evidence-source-closeout.md](docs/handoff/2026-10-08-local-host-evidence-source-closeout.md): PR24 local-host source/scoped runtime/1127-case/21-export pins, retained BLOCK/red regressions, targeted fix review and still-separate Mac/signed/bank authority
 - [docs/local-host-evidence.md](docs/local-host-evidence.md): delivered single-owner explicit local-host source; distinct process-only proof/scoped actual acceptance, no signing fallback, Mac broker or original Learning admission

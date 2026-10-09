@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-08
+verified: 2026-10-09
 ssot: true
 ---
 
@@ -229,6 +229,32 @@ local learning workflow require new current verification after restart, not hist
 status restoration. No daily session activation, live bank, production receipt,
 quality improvement or distribution is inferred. SDK full declaration health stays
 a separate unresolved item.
+
+Stage3 documentary PR25 is now included in finalmain90add4e with fresh6docreview0/0/0
+and exactCI37850779740/37851081825. Stage4 [guidance-only candidate](hindsight-guidance.md)
+has an explicit user-approved localhost8888 testbankpi-vista-local-test-01a114ab;
+bank creation/config readback is complete. Historical pre-chunks source snapshot `a8d9c76`
+had1181cases and the original two concise trials failed with0facts/0ownrefs; those pins
+remain in the completed/snapshot [historical handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
+The current corrected source candidate is `a08b159` with1203cases,11tarballs22exports,
+layered same-model reviews and exact head Node20/22/26 CI; PR26 remains draft/unmerged.
+Later exact readonly
+document trace identifies actualQwen27B normalvalidemptyfacts and256s call, notparse/auth
+failure. User then explicitly authorizes only the dedicated bank chunks mode and one new
+namespace synthetictrial; singlePATCH/readback/otherfield-oldDoc equality passed. New
+operator mode/digest admission plus exact-byte policy corrections have1203cases,
+11tarballs22exports/actualNode20/exactheadCI passing. One approved new namespace
+`guidance-01a11fcc-chunks` then passed one retain/lost-ack readonly reconcile,
+independent restart/original read and own-reference recall; readonly DB count1worldunit.
+This is synthetic/chunks-scoped operational evidence, not product authority or main
+inclusion. Old failures remain preserved/unprocessed, Stage5/6 notstarted. See
+[chunks amendment](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md).
+Actual installed0.10.2
+HTTP/engine/config/main file fingerprints differ from originalea5 source; user
+accepted this concrete deployment fingerprint while preserving the fixed API0.10.2
+client contract, not an in-memory/whole-service/source-equivalence claim. No main-bank
+acceptance data or shared service/global/model settings are changed, no bank deletion
+or original signed-store/rootLearning downgrade is introduced. Stage5/6 still later.
 
 ## Delivery: Repeatable engineering gates (#17)
 
