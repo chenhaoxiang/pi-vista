@@ -29,7 +29,7 @@ async function fixture(mode='normal'){
   const target=path.join(owned,path.relative(ROOT,pkg.directory));await mkdir(target,{recursive:true});
   await copyFile(path.join(pkg.directory,'package.json'),path.join(target,'package.json'));
  }
- for(const file of ['hindsight-guidance-acceptance.mjs','release-utils.mjs','guidance-acceptance-io.mjs']){
+ for(const file of ['hindsight-guidance-acceptance.mjs','release-utils.mjs','guidance-acceptance-io.mjs','guidance-trial-policy.mjs']){
   try{await copyFile(path.join(ROOT,'scripts',file),path.join(owned,'scripts',file));}catch(error){if(error.code!=='ENOENT')throw error;}
  }
  const learning=path.join(owned,'packages','learning');const corePath=path.join(owned,'packages','core');
@@ -40,6 +40,7 @@ async function fixture(mode='normal'){
  await mkdir(path.join(owned,'node_modules','@pi-vista'),{recursive:true});
  for(const pkg of packages)await symlink(path.join(owned,path.relative(ROOT,pkg.directory)),path.join(owned,'node_modules',pkg.manifest.name),'dir');
  const relativePackages=packages.map(pkg=>path.relative(ROOT,pkg.directory));
+ const runtimeGuidance=mode==='bank-cross-phase'?guidance('fixture-fresh-code').replace('query:async()=>[]','query:async()=>[{document_id:"fixture-id"}]'):guidance('fixture-fresh-code');
  await writeFile(path.join(owned,'scripts','fixture-build.mjs'),`import {mkdir,writeFile,readFile} from 'node:fs/promises';
  for(const directory of ${JSON.stringify(relativePackages)}){
   const pkg=JSON.parse(await readFile(directory+'/package.json','utf8'));
@@ -50,7 +51,7 @@ async function fixture(mode='normal'){
  await writeFile('packages/core/dist/index.js',${JSON.stringify(core)});
  // Legacy packages compile tests into dist, but the runtime must not execute them.
  await writeFile('packages/core/dist/fixture-legacy.test.js',"throw Error('build-only test must never execute');");
- await writeFile('packages/learning/dist/guidance/index.js',${JSON.stringify(guidance('fixture-fresh-code'))});
+ await writeFile('packages/learning/dist/guidance/index.js',${JSON.stringify(runtimeGuidance)});
  await mkdir('packages/learning/dist/hindsight',{recursive:true});
  await writeFile('packages/learning/dist/hindsight/data.js','export const targetFingerprint=()=>"f".repeat(64);');
  await writeFile('packages/learning/dist/guidance/data.js','export const writeRequest=()=>({});export const documentId=()=>"fixture-id";export const reference=()=>({});');\n`);
@@ -61,7 +62,7 @@ async function fixture(mode='normal'){
  globalThis.fetch=async url=>{
   if(url==='http://127.0.0.1:8888/v1/default/banks/pi-vista-local-test-01a114ab/config'){
    state.bankConfigGets++;save();
-   const changed=state.mode==='bank-state-drift'&&state.bankConfigGets>1;
+   const changed=state.mode==='bank-state-drift'&&state.bankConfigGets>1||state.mode==='bank-cross-phase'&&process.argv.includes('--phase=read');
    return new Response(JSON.stringify({bank_id:'pi-vista-local-test-01a114ab',config:{retain_extraction_mode:state.mode==='bank-concise'?'concise':'chunks',enable_observations:false,retain_default_strategy:state.mode==='bank-default-strategy'?'other-strategy':null,retain_chunk_size:changed?4096:2048},overrides:{retain_extraction_mode:'chunks'}}));
   }
   if(url!=='http://127.0.0.1:8888/openapi.json')throw Error('fixture refuses actual network');state.networkCalls++;save();
@@ -105,6 +106,7 @@ test('guidance exact-source harness rebuilds an isolated client instead of execu
   assert.equal(result.state.networkCalls,1);
   assert.ok(result.report.clientArtifactIdentity.files.some(file=>file.path==='packages/core/dist/fixture-legacy.test.js'&&file.build_only_test===true));
   assert.equal(result.report.bankPreflight.extraction_mode,'chunks');assert.equal(result.report.bankModeUnchanged,true);assert.equal(result.state.bankConfigGets,2);
+  assert.equal(result.report.crossPhasePolicyBound,true);assert.equal(result.report.trialPolicy.bank_state_sha256,result.report.bankPreflight.bank_state_sha256);
  }finally{await f.close();}
 });
 
@@ -165,5 +167,27 @@ test('guidance scoped bank fingerprint drift refuses final acceptance instead of
  const f=await fixture('bank-state-drift');try{
   const result=await f.invoke();assert.notEqual(result.code,0);assert.equal(result.report.status,'failed');assert.equal(result.report.failure,'guidance-bank-state-drift');
   assert.equal(result.report.bankModeUnchanged,undefined);assert.equal(result.state.bankConfigGets,2);
+ }finally{await f.close();}
+});
+
+test('guidance independent restarted read refuses a new public-policy baseline', {timeout:120000},async()=>{
+ const f=await fixture('bank-cross-phase');try{
+  const written=await f.invoke();assert.equal(written.report.status,'passed');
+  const restarted=await f.invoke(f.head,'read');assert.notEqual(restarted.code,0);assert.equal(restarted.report.status,'failed');
+  assert.notEqual(restarted.report.bankPreflight.bank_state_sha256,written.report.bankPreflight.bank_state_sha256);
+  assert.equal(restarted.report.failure,'guidance-trial-policy-mismatch');assert.equal(restarted.report.crossPhasePolicyBound,undefined);
+  assert.equal(restarted.report.http.some(item=>item.route==='memories'),false);
+ }finally{await f.close();}
+});
+
+test('guidance restarted uncertainty recovery refuses missing baseline rather than minting a new policy', {timeout:120000},async()=>{
+ const f=await fixture();try{
+  assert.equal((await f.invoke()).report.status,'passed');
+  const owned=path.join(f.owned,'tmp','guidance-acceptance','fixture-guidance');
+  await rm(path.join(owned,'trial-policy.json'));await rm(path.join(owned,'historical-reference.json'));
+  const restarted=await f.invoke(f.head,'read');assert.notEqual(restarted.code,0);assert.equal(restarted.report.failure,'guidance-trial-policy-refused');
+  assert.equal(restarted.report.recoveredUncertainReferenceReadOnly,undefined);assert.equal(restarted.report.crossPhasePolicyBound,undefined);
+  assert.equal(restarted.report.http.some(item=>item.route==='memories'),false);
+  await assert.rejects(()=>access(path.join(owned,'trial-policy.json')));
  }finally{await f.close();}
 });

@@ -72,10 +72,12 @@ library API/default/root/signedstore/journal/query及发布规则不变；仅显
 
 - source SHA/fresh archive/锁定build/安装文件指纹仍在前；OpenAPI版本/bytecap不降级。
 - 读专用bank config，必须resolvedchunks、observationsfalse、无retain_default_strategy，才创建新journal/执行retain；bank响应非凭据公开config/override只以canonical digest记录，不投影mission/body。
-- library每次config预检及结束时，重验同一mode及configdigest；漂移失败，不声称current authority。管理员并发改变仍不是远端CAS。
+- 初次write在retain之前将bank/namespace/sourceSHA/完整公开configdigest写入私有0700trial目录的独占0600单链接trial-policy文件、file/dirsync；重启read（包括receipt缺失的只读不确定恢复）必须读取同一不可覆盖基线。缺失/损坏/source或policy不匹配均失败，不重新定基线、不重置journal、不授权新POST；这是历史比较元数据，不是审批账本或当前proof。
+- library每次config预检及结束时，重验同一mode/configdigest及持久trial基线；漂移失败。config响应单流限量读取/校验后提供原始字节一致的Response给原library，不使用clone/tee串行取消。管理员并发改变仍不是远端CAS。
 - GET/POST固定专用路由、一次retain、只读recovery、旧不确定intent不重放等继续保留。operator不提供PATCH/default发现或其他bank入口；policy变更由此次单独获批的受信动作完成。
 - 新回归覆盖chunks合法/foreignmain/concise/observations/默认strategy/shape拒绝、超限/statuscancel、原生fixture在不符mode前无journal/retain，以及末尾drift不伪PASS；原断言和metadata/emptyrecallfail等保留。
-- 最新本地候选 **1192 native cases**（原1181+11policycases），0failed/cancelled/skipped/todo；Node26 source与实际Node20.20.2 source/consumer、11tarballs22exports/strictTS5.9.3均通过。最新源pin/独立review/headCI仍待固定，不能把工作树候选当精确运行source。
+- 原2fae08d候选 **1192 native cases**（原1181+11policycases）、Node20/26/source/consumer通过，但十一文件复审93af285c…为BLOCK0P0/2P1/0P2：clone串行cancel等待未消费原分支；重启read重新定policy基线。原审查SHA256为3e9060e78e302c2bf71ec5315ee6264454071712029e2ade0abd3deca8c003db，保留为source-review-2fae08d-chunks-original.md，不反写成PASS。
+- 父级离线nativeResponse复现404/超限两路cancel等待，只有取消原分支后结束；独立nativewrite/read fixture复现不同cfgdigest仍双PASS（0真实bank）。纠正新增不可覆盖/缺失/corrupt/sourcecfg漂移/字节保留/无tee等8项回归，目标1200cases；最终全套门禁、准确commit与纠正review仍待证据，不以局部green替代。
 
 ## 下一步（未完成）
 

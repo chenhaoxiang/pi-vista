@@ -71,14 +71,15 @@ export async function prepareGuidanceClient(sourceSha){
 }
 
 /** Fixed one-MiB byte bound, fatal decoding and cancellation, including rejected status. */
-async function readBoundedGuidanceJSON(response,code){
+async function readBoundedGuidanceJSON(response,code,withBytes=false){
  if(response.status!==200||!response.body){await response.body?.cancel().catch(()=>{});throw Error(code);}
  const reader=response.body.getReader(),chunks=[];let bytes=0;
  try{
   const declared=response.headers.get('content-length');
   if(declared!==null&&(!/^\d+$/.test(declared)||Number(declared)>1048576))throw Error();
   for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>1048576)throw Error();chunks.push(part.value);}
-  return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,bytes)));
+  const raw=Buffer.concat(chunks,bytes),value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));
+  return withBytes?{value,bytes:raw}:value;
  }catch{throw Error(code);}
  finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
 }
@@ -88,8 +89,7 @@ export async function readGuidanceMetadata(response){
  return metadata;
 }
 /** Operator policy only, not a library default or source of current proof. */
-export async function readGuidanceBankPreflight(response){
- const value=await readBoundedGuidanceJSON(response,'guidance-bank-mode-refused');
+function bankPreflight(value){
  const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
  if(!record(value)||value.bank_id!=='pi-vista-local-test-01a114ab'||!record(value.config)||!record(value.overrides)||
   value.config.retain_extraction_mode!=='chunks'||value.config.enable_observations!==false||
@@ -98,4 +98,13 @@ export async function readGuidanceBankPreflight(response){
  // Only a digest of the bank's noncredential public config; no mission/body is projected.
  return Object.freeze({bank:value.bank_id,extraction_mode:'chunks',observations:false,default_strategy:null,
   bank_state_sha256:sha256(canonical({config:value.config,overrides:value.overrides}))});
+}
+export async function readGuidanceBankPreflight(response){
+ return bankPreflight(await readBoundedGuidanceJSON(response,'guidance-bank-mode-refused'));
+}
+/** Consume one bounded stream: no tee cancellation wait on an unread branch. */
+export async function bufferGuidanceBankPreflight(response){
+ const buffered=await readBoundedGuidanceJSON(response,'guidance-bank-mode-refused',true);
+ const state=bankPreflight(buffered.value);
+ return Object.freeze({state,response:new Response(buffered.bytes,{status:200,headers:{'content-type':'application/json'}})});
 }

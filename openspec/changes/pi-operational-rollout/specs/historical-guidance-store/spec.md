@@ -57,6 +57,9 @@ Ordinary tests/CI SHALL use synthetic loopback fixtures. Actual trial SHALL requ
 #### Scenario: Owner explicitly adopts deterministic chunks for the dedicated test bank
 - **WHEN** only that bank's extraction-mode change and one new synthetic-document trial are expressly approved
 - **THEN** the actual operator SHALL require resolved chunks mode, disabled observations, no default strategy, and a stable public bank-config digest before journal/retain and at subsequent preflights/completion
+- **AND** that digest SHALL be persisted before retain in a private immutable trial baseline bound to bank, namespace and source SHA, then reused by the independent restarted-read/reconciliation phase
+- **AND** missing/corrupt/source-or-policy-mismatched baseline SHALL fail without establishing a new baseline, resetting a journal or authorizing another POST
 - **AND** incompatible mode or drift SHALL fail acceptance rather than downgrade or modify library defaults
+- **AND** bounded config validation SHALL not await cancellation of an unread cloned response branch
 - **AND** old failed documents and immutable attempts SHALL NOT be retried, reset or reprocessed
 - **AND** mode change or source/fixture evidence alone SHALL NOT establish operational acceptance or current authority

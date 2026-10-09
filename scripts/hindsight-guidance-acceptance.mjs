@@ -6,7 +6,8 @@ import {promisify,types} from 'node:util';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {ROOT,isMain,parseOptions,commandEnvironment} from './release-utils.mjs';
-import {prepareGuidanceClient,readGuidanceMetadata,readGuidanceBankPreflight} from './guidance-acceptance-io.mjs';
+import {prepareGuidanceClient,readGuidanceMetadata,readGuidanceBankPreflight,bufferGuidanceBankPreflight} from './guidance-acceptance-io.mjs';
+import {bindGuidanceTrialPolicy} from './guidance-trial-policy.mjs';
 
 const exec=promisify(execFile),ENDPOINT='http://127.0.0.1:8888',BANK='pi-vista-local-test-01a114ab';
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -117,9 +118,9 @@ export async function guidanceAcceptance(options){
    const attempt={method:init.method,route:isOriginal?'original-document':route,status:null};report.http.push(attempt);
    const response=await actualFetch(url,init);attempt.status=response.status;
    if(route==='config'){
-    let state;
-    try{state=await readGuidanceBankPreflight(response.clone());}catch(error){await response.body?.cancel().catch(()=>{});throw error;}
-    if(report.bankPreflight&&state.bank_state_sha256!==report.bankPreflight.bank_state_sha256){await response.body?.cancel().catch(()=>{});throw Error('guidance-bank-state-drift');}
+    const buffered=await bufferGuidanceBankPreflight(response);
+    if(report.bankPreflight&&buffered.state.bank_state_sha256!==report.bankPreflight.bank_state_sha256){await buffered.response.body?.cancel();throw Error('guidance-bank-state-drift');}
+    return buffered.response;
    }
    if(checked.lost_ack&&route==='memories'&&response.status===200&&!injected){injected=true;attempt.deliveredStatus=503;attempt.fault='injected-after-real-success';await response.body?.cancel();return new Response('{}',{status:503});}
    return response;
@@ -128,6 +129,8 @@ export async function guidanceAcceptance(options){
   const bankState=async()=>readGuidanceBankPreflight(await globalThis.fetch(ENDPOINT+'/v1/default/banks/'+BANK+'/config',{
    method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)}));
   report.bankPreflight=await bankState();
+  report.trialPolicy=await bindGuidanceTrialPolicy(directory,checked.phase,{source_sha:checked.source_sha,namespace:checked.namespace,bank:report.bankPreflight});
+  report.crossPhasePolicyBound=true;
   if(checked.phase==='write')await mkdir(journal,{mode:0o700});
   const scopedFetch=globalThis.fetch;
   store=createHindsightGuidanceStore({mode:'local-guidance',endpoint:ENDPOINT,banks:{'isolated-test':BANK},journal_directory:journal,bearer_token:token,allow_loopback_http:true,timeout_ms:checked.timeout_ms});
@@ -173,6 +176,7 @@ export async function guidanceAcceptance(options){
   assert.deepEqual(await checkServiceFingerprint(checked.service_fingerprint),report.serviceFingerprint);
   globalThis.fetch=scopedFetch;
   try{assert.deepEqual(await bankState(),report.bankPreflight);report.bankModeUnchanged=true;}finally{globalThis.fetch=actualFetch;}
+  assert.deepEqual(await bindGuidanceTrialPolicy(directory,'read',{source_sha:checked.source_sha,namespace:checked.namespace,bank:report.bankPreflight}),report.trialPolicy);
   await client.check();
   Object.assign(report,{status:'passed',retainCount:report.http.filter(x=>x.route==='memories').length,recallCount:report.http.filter(x=>x.route==='memories/recall').length,
    safeDocumentSHA256:sha(document.content),proofRestored:false,historyOnly:true});
