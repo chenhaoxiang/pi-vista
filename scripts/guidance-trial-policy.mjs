@@ -42,8 +42,8 @@ export async function bindGuidanceTrialPolicy(directory,phase,binding){
   const bytes=await handle.readFile(),after=await handle.stat(),named=await lstat(file);
   if(['ino','dev','size','mtimeMs','ctimeMs','nlink','mode','uid'].some(k=>after[k]!==first[k])||named.ino!==first.ino||named.dev!==first.dev||bytes.length!==first.size)refused();
   // Whole closed generated record equality binds all fields; no normalization or reset.
-  if(new TextDecoder('utf8',{fatal:true}).decode(bytes)!==text)throw Error('guidance-trial-policy-mismatch');
-  return Object.freeze({...safe,policy_digest:createHash('sha256').update(text).digest('hex')});
+  if(!bytes.equals(Buffer.from(text,'utf8')))throw Error('guidance-trial-policy-mismatch');
+  return Object.freeze({...safe,policy_digest:createHash('sha256').update(bytes).digest('hex')});
  }catch(error){
   if(error?.message==='guidance-trial-policy-mismatch')throw error;
   refused();

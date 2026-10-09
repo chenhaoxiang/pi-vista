@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdir,mkdtemp,readFile,rm,writeFile,symlink,chmod} from 'node:fs/promises';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {ROOT} from './release-utils.mjs';
 import {bufferGuidanceBankPreflight} from './guidance-acceptance-io.mjs';
 import {bindGuidanceTrialPolicy} from './guidance-trial-policy.mjs';
@@ -21,6 +22,7 @@ test('guidance private immutable trial policy matches across restart and rejects
  const f=await fixture();try{
   const value=binding(),first=await bindGuidanceTrialPolicy(f.owned,'write',value),bytes=await readFile(path.join(f.owned,'trial-policy.json'),'utf8');
   assert.deepEqual(await bindGuidanceTrialPolicy(f.owned,'read',value),first);assert.equal(first.bank_state_sha256,value.bank.bank_state_sha256);
+  assert.equal(first.policy_digest,createHash('sha256').update(await readFile(path.join(f.owned,'trial-policy.json'))).digest('hex'));
   for(const changed of [{...value,source_sha:'c'.repeat(40)},{...value,namespace:'other-fixture'},{...value,bank:{...value.bank,bank_state_sha256:'c'.repeat(64)}}]){
    await assert.rejects(()=>bindGuidanceTrialPolicy(f.owned,'read',changed),/guidance-trial-policy-mismatch/);
    await assert.rejects(()=>bindGuidanceTrialPolicy(f.owned,'write',changed),/guidance-trial-policy-mismatch/);

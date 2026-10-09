@@ -77,7 +77,8 @@ library API/default/root/signedstore/journal/query及发布规则不变；仅显
 - GET/POST固定专用路由、一次retain、只读recovery、旧不确定intent不重放等继续保留。operator不提供PATCH/default发现或其他bank入口；policy变更由此次单独获批的受信动作完成。
 - 新回归覆盖chunks合法/foreignmain/concise/observations/默认strategy/shape拒绝、超限/statuscancel、原生fixture在不符mode前无journal/retain，以及末尾drift不伪PASS；原断言和metadata/emptyrecallfail等保留。
 - 原2fae08d候选 **1192 native cases**（原1181+11policycases）、Node20/26/source/consumer通过，但十一文件复审93af285c…为BLOCK0P0/2P1/0P2：clone串行cancel等待未消费原分支；重启read重新定policy基线。原审查SHA256为3e9060e78e302c2bf71ec5315ee6264454071712029e2ade0abd3deca8c003db，保留为source-review-2fae08d-chunks-original.md，不反写成PASS。
-- 父级离线nativeResponse复现404/超限两路cancel等待，只有取消原分支后结束；独立nativewrite/read fixture复现不同cfgdigest仍双PASS（0真实bank）。纠正新增不可覆盖/缺失/corrupt/sourcecfg漂移/字节保留/无tee等8项回归，目标1200cases；最终全套门禁、准确commit与纠正review仍待证据，不以局部green替代。
+- 父级离线nativeResponse复现404/超限两路cancel等待，只有取消原分支后结束；独立nativewrite/read fixture复现不同cfgdigest仍双PASS（0真实bank）。0c3b695纠正新增不可覆盖/缺失/corrupt/sourcecfg漂移/字节保留/无tee等8项回归，1200cases和Node20/26/source/consumer通过；a3c8fd48…八文件纠正复审明确关闭F3/F4、保留P2F5：默认TextDecoder会剥BOM，使实际接受bytes与报告digest不一致。
+- 原纠正审查SHA256为b42e79f68476ed15550caf377ea5e4cdb2f0b18953dd0e5fb147925040285c96，source-review-0c3b695-policy-correction.md保留。父级离线复现BOM文件被接受但digest仍等于无BOM原文；新的最小修复直接Buffer逐字节比较、只hash实际接受bytes，read/write-match均拒绝BOM/额外空白/无效UTF8且不覆盖文件。新增3回归后本地1203cases及Node20/26/11tarball22export/strictcompiler均通过；准确新pin/纠正复审/headCI/newruntime仍待完成，不以工程green推导运营PASS。
 
 ## 下一步（未完成）
 
