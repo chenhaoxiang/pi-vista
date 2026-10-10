@@ -186,6 +186,8 @@ export async function guidanceAcceptance(options){
  return reportFile;
  }finally{await client.close();}
 }
+// Explicit operator reuse only. Existing CLI/default/private read contracts stay unchanged.
+export {credential as readGuidanceCredential,checkServiceFingerprint as checkGuidanceServiceFingerprint};
 if(isMain(import.meta.url)){
  try{const options=guidanceAcceptanceOptions(process.argv.slice(2));console.log(`Guidance acceptance: ${await guidanceAcceptance(options)}`);}
  catch(error){console.error(typeof error?.message==='string'&&/^guidance-[a-z-]+$/.test(error.message)?error.message:'guidance-acceptance-failed');process.exitCode=1;}
