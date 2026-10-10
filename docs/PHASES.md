@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-09
+verified: 2026-10-10
 ssot: true
 ---
 
@@ -237,7 +237,11 @@ bank creation/config readback is complete. Historical pre-chunks source snapshot
 had1181cases and the original two concise trials failed with0facts/0ownrefs; those pins
 remain in the completed/snapshot [historical handoff](handoff/2026-10-09-stage4-guidance-source-and-operational-block.md).
 The current corrected source candidate is `a08b159` with1203cases,11tarballs22exports,
-layered same-model reviews and exact head Node20/22/26 CI; PR26 remains draft/unmerged.
+layered same-model reviews and exact head Node20/22/26 CI. PR26 normally merged into
+main75a2741 with exact mainCI38002400266/Node20/22/26 and canonical0/0clean readback;
+post-main actualNode20 source/consumer1203cases/22exports also passed. The later
+supplementary [main closeout](handoff/2026-10-09-stage4-shared-main-closeout.md) has its
+own pending documentary inclusion; source/runtime delivery is not product authority.
 Later exact readonly
 document trace identifies actualQwen27B normalvalidemptyfacts and256s call, notparse/auth
 failure. User then explicitly authorizes only the dedicated bank chunks mode and one new
