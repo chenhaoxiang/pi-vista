@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-10
+verified: 2026-10-11
 ssot: true
 ---
 
@@ -297,6 +297,37 @@ exactdocheadCI38055998963/mainCI38056567710PASS, canonical0-0clean andisolated
 postmainNode20source/consumer1282cases/23exportsPASS. Later [main closeout](handoff/2026-10-10-local-workflow-main-closeout.md)
 has its own pendinginclusion; Stage6pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
 above are the source-library closeout's boundary, not a denial of this later scopedtrial.
+
+## Stage6 paired pilot: design and offline metrics only
+
+A [four-case paired pilot design](../openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md)
+and closed offline metric tests are being prepared. Source, model, SDK, thinking,
+tool definitions and budget must be equal within each pair; only fresh-verified
+historical guidance context differs. The plan-only script refuses actual runtime.
+The initial exactac147f8 eight-path audit was BLOCK (4P1/3P2). Closed metric
+corrections now require pair/session identities, fixed subject/accepted history,
+condition/context digests, bounded requests, consistent non-success categories,
+unknown reasoning/cost and same-schema mismatch fixtures. Metadata is not proof.
+A separate uncommitted runtime draft consumed16actual requests/8sessions with
+0bank writes; all strict final decisions were fixture-mismatch and profile
+metadata drift was unclassified. Its raw report incorrectly labelled aggregation
+completion passed; an explicit INVALID assessment supersedes that interpretation
+without rewriting the original. The draft is retained under tmp, not delivered
+or wired into the tracked CLI. No accepted actual quality/ROI/cost reduction,
+default activation or release claim exists; corrected runtime remains pending.
+
+## Meta terminal-outcomes consumer compatibility (read-only)
+
+The Meta PR551 actual-readonly reconciliation sample was consumed through the
+existing compiled `@pi-vista/adapter-ai-gate` public adapter in the exclusive
+Stage6 worktree on Node20.20.2 and Node26.9.0. Both runs accepted exactly three
+closed rows while preserving `gate-evaluate=unknown/not-evaluated`,
+`actual-merge=ok/already-merged`, and `post-merge-ci=ok/ci-success`; they kept
+PR head/source `073614e05f...` distinct from execution merge
+`0dda6960...`, rejected the whole CLI object, and verified fail-open store
+behavior. This is adapter compatibility evidence only: 0 bank/model calls,
+`new_merge_requests=0`, `no_current_permission_grant=true`, and no publication
+or live producer claim.
 
 ## Delivery: Repeatable engineering gates (#17)
 
