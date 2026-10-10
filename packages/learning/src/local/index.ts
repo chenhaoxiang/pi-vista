@@ -172,7 +172,8 @@ export function createLocalLearningLibrary(config: LocalLearningConfig): LocalLe
       still(p, result.fresh); p.record.receipt = result.accepted; return raise(p.record, "persisted");
     },
     async reconcileGuidance(bankInput: string, input: GuidanceDocument) {
-      requireOpen(); const bank = label(bankInput); const doc = document(input).document;
+      requireOpen(); const bank = label(bankInput); let doc: GuidanceDocument;
+      try { doc = document(input).document; } catch { throw new LearningError("invalid-input"); }
       return io(async (signal, check) => {
         check(); const { value: raw } = await native(store!.reconcile(bank, doc, signal)); check();
         try {

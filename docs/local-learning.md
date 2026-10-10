@@ -50,9 +50,9 @@ const context = library.compileContext(library.retrieve([persisted], safeQuery))
 
 ## 历史检索与只读恢复
 
-`reconcileGuidance(bank, document)` 仅委派原 existing-intent/original-read 只读对账，返回 `matched`/`not-confirmed`，始终 `current_verification=not-checked`、`authorization=none`、`executable=false`。它不 retain、不重置 journal、不自动提升句柄；新 factory 可用保存的安全 canonical 文档对账，但不能恢复旧计划/current proof。
+`reconcileGuidance(bank, document)` 对输入 canonical 文档的任何解析失败均返回新的固定 `LearningError("invalid-input")`，不回显原异常、输入片段或 stack，不调用 store；合法输入仅委派原 existing-intent/original-read 只读对账，返回 `matched`/`not-confirmed`，始终 `current_verification=not-checked`、`authorization=none`、`executable=false`。它不 retain、不重置 journal、不自动提升句柄；新 factory 可用保存的安全 canonical 文档对账，但不能恢复旧计划/current proof。
 
-`readGuidance(reference)` 核对封闭 ref、bank/document_id、文档 canonical 字节/摘要/idempotency 与指导数据的一致性。`recallGuidance(bank, query)` 在一个总 deadline 内查询限量 refs、去重、读取原文并筛选 repo/source/policy/environment/task，不接受任意 fact prose、rank、flags 或“摘要回显”替代原文。结果是历史指导，不是当前可执行状态。
+`readGuidance(reference)` 核对封闭 ref、bank/document_id、文档 canonical 字节/摘要/idempotency 与指导数据的一致性，包括可推导的 ID 后缀必须等于 SHA256(idempotency_key)；不冒称证明 target 前缀/Owner 真实性，实际目标映射仍由显式可信 store 负责。`recallGuidance(bank, query)` 在一个总 deadline 内查询限量 refs、去重、读取原文并筛选 repo/source/policy/environment/task，不接受任意 fact prose、rank、flags 或“摘要回显”替代原文。结果是历史指导，不是当前可执行状态。
 
 `importGuidance(history, explicitNewContext)` 只接受本 factory 从原文重新读取的历史 view，以不同 experience_id/run_id 建立 `observed` 记录。其余四绑定必须一致；旧 model/failure 测量不重命名成新 run 的测量。之后仍需 nominate 与新的当前 proof。复制的历史 view 可通过明确原文读取重新建立指导 view，但不能直接恢复权限。
 

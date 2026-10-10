@@ -1,5 +1,5 @@
 import { LearningError, type ExperienceObservation } from "../contract.js";
-import { canonical, digest, frozen, invalid, label, own } from "../data.js";
+import { canonical, digest, frozen, hash, invalid, label, own } from "../data.js";
 import { document, prepareGuidanceDocument, writeRequest } from "../guidance/data.js";
 import type { GuidanceReadback, GuidanceReceipt, GuidanceReference } from "../guidance/contract.js";
 
@@ -12,7 +12,8 @@ export function snapshotReference(input: unknown): GuidanceReference | GuidanceR
   const base = { bank: label(v.bank), document_id: v.document_id, current_verification: "not-checked" as const,
     authorization: "none" as const, executable: false as const };
   if (!Object.hasOwn(v, "content_digest")) return frozen(base);
-  if (typeof v.idempotency_key !== "string" || !/^guidance-[a-f0-9]{64}$/u.test(v.idempotency_key)) invalid();
+  if (typeof v.idempotency_key !== "string" || !/^guidance-[a-f0-9]{64}$/u.test(v.idempotency_key) ||
+      v.document_id.slice(-64) !== hash(v.idempotency_key)) invalid();
   return frozen({ ...base, content_digest: digest(v.content_digest), idempotency_key: v.idempotency_key });
 }
 export function receipt(input: unknown, bank: string, doc: Parameters<typeof document>[0]): GuidanceReceipt {
