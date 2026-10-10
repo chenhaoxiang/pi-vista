@@ -126,7 +126,7 @@ export function createLocalPiObserver({ store, now = Date.now, readHead,
     }
   };
   return Object.freeze({ extension, controller: addon.controller,
-    hostStatus: () => Object.freeze({ registration, binding, persistence: "local-event-buffer", authorization: "none", executable: false }) });
+    hostStatus: () => Object.freeze({ registration, binding, persistence: store === undefined ? "default-local-event-store" : "host-supplied-append-port", authorization: "none", executable: false }) });
 }
 
 export function localObserverExtension(pi, options) {

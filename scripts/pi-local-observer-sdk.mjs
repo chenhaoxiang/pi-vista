@@ -138,9 +138,9 @@ async function child(sdkRoot, fixture, scenario) {
       assert.deepEqual(await store.listRuns(), []);
     }
     assert.equal(transportCalls, 0);
-    const report = { scenario, passed: true, core_version: packageInfo.version, node: process.version,
+    const report = { scenario, passed: true, sdk_version: packageInfo.version, node: process.version,
       context: contextShape[0], persisted_events: events.length, native_read_verified: true,
-      primary_model_thinking_tools_prompt_preserved: true, synthetic_requests: rounds, model_network_requests: transportCalls,
+      primary_model_thinking_tools_prompt_preserved: true, synthetic_requests: rounds, intercepted_model_runtime_calls: transportCalls,
       authorization: "none", executable: false, default_path_isolated: true };
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } finally { if (!session.isIdle) await session.abort(); session.dispose(); }
@@ -155,6 +155,8 @@ export function parseLocalObserverSdkOptions(args) {
   }
   if (!values.sdk || !isAbsolute(values.sdk) || normalize(values.sdk) !== values.sdk || values.sdk.includes("\0")) throw new Error("invalid-sdk-path");
   if ((values.fixture === undefined) !== (values.scenario === undefined)) throw new Error("invalid-fixture");
+  if (values.fixture !== undefined && (!isAbsolute(values.fixture) || normalize(values.fixture) !== values.fixture || values.fixture.includes("\0") ||
+      !values.fixture.startsWith(join(ROOT, "tmp", "release-contract") + "/"))) throw new Error("invalid-fixture");
   return values;
 }
 

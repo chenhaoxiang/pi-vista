@@ -14,7 +14,8 @@ const exec = promisify(execFile);
 test("SDK acceptance options are explicit and reject duplicates or malformed fixture combinations", () => {
   assert.deepEqual(parseLocalObserverSdkOptions(["--sdk=/synthetic/sdk"]), { sdk: "/synthetic/sdk" });
   for (const args of [[], ["--sdk=relative"], ["--sdk=/synthetic/sdk", "--sdk=/other"], ["--sdk=/synthetic/sdk", "--unknown=x"],
-    ["--sdk=/synthetic/sdk", "--fixture=/synthetic/fixture"], ["--sdk=/synthetic/sdk", "--scenario=normal"]]) {
+    ["--sdk=/synthetic/sdk", "--fixture=/synthetic/fixture"], ["--sdk=/synthetic/sdk", "--scenario=normal"],
+    ["--sdk=/synthetic/sdk", "--fixture=/Users/robotmac/.worktree/pi-vista/default-observation-entry-01a120e4/tmp/release-contract/../outside", "--scenario=normal"]]) {
     assert.throws(() => parseLocalObserverSdkOptions(args));
   }
 });
@@ -71,6 +72,7 @@ test("Pi local observer records native notification results without changing the
   assert.ok(events.every(event => event.repo === "session-cwd"));
   assert.equal(observer.controller.status().authorization, "none");
   assert.equal(observer.controller.status().executable, false);
+  assert.equal(observer.hostStatus().persistence, "host-supplied-append-port");
 }));
 
 test("Observer storage failure is fail-open and unrelated host handlers continue", async () => {
@@ -89,6 +91,7 @@ test("Observer storage failure is fail-open and unrelated host handlers continue
   await drain(observer);
   assert.deepEqual(calls, []);
   assert.equal(observer.controller.status().authorization, "none");
+  assert.equal(observer.hostStatus().persistence, "host-supplied-append-port");
 });
 
 test("Default extension persists only redacted local metadata when explicitly scoped", async () => fixture(async root => {

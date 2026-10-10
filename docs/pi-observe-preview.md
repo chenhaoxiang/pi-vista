@@ -52,8 +52,12 @@ and tool execution outcomes to the existing `@pi-vista/core` event contract.
 
 The entry is source/contract delivery, not a global installation or proof that a
 running session has loaded it. Loading it in an actual Pi session is a separate
-host acceptance step; missing cwd/HEAD or registration conflicts produce a fixed
-observer diagnostic and remain invisible to the primary task. Native SDK context
+host acceptance step. Missing cwd/HEAD or a refused/failed host registration call
+produces a fixed observer diagnostic without affecting the primary task. Loading-time
+command introspection is best-effort: the installed SDK binds `getCommands()` only
+after factory loading and resolves collisions through its own command namespace.
+The observer does not guarantee an extra conflict diagnostic or override Pi's
+command handling. Native SDK context
 `cwd` is an own accessor: the wiring samples that trusted accessor once rather
 than requiring a data descriptor. Stale/throwing contexts and invalid/late HEAD
 results cannot claim an observed binding. Session replacement/shutdown invalidates
@@ -72,8 +76,8 @@ node scripts/pi-local-observer-sdk.mjs --sdk=/absolute/path/to/installed/pi-codi
 This runs actual `loadExtensions`/`AgentSession` with an isolated `HOME` and native
 `read`, using synthetic provider streams only. Normal recording, EventStore I/O
 fault and unborn Git HEAD each verify that native input/result and the selected
-model/thinking/tools/prompt remain unchanged. It records source/core fingerprints
-and actual context shape. It is not a global install, a real model-quality trial,
+model/thinking/tools/prompt remain unchanged. It records the entry byte digest, installed Pi SDK version and actual context
+shape. Its intercepted ModelRuntime-call counter is not a network-layer audit. It is not a global install, a real model-quality trial,
 full SDK declaration validation, or an active-session reload.
 
 ```ts

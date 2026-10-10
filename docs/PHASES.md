@@ -181,10 +181,20 @@ dependency diagnostics is separately approved. Original gate/assertion blobs
 are unchanged; one branch-added loss-counter expectation was aligned and strengthened.
 Original full BLOCK and both root-cause fixes, retained same-model recheck, actual
 head/main CI and postmerge evidence are in [the closeout](handoff/2026-10-07-pi-observe-preview-source-closeout.md).
-**Pending**: full host declaration health, actual owner producer/key provenance (MISSING), default
+****Pending**: full host declaration health, actual owner producer/key provenance (MISSING), default
 installation, service/interactive/model evaluation, publication and operational
 acceptance. Existing automatic context injection and live/durable roadmap stays
 pending, not satisfied by local guidance selection.
+
+**Host-side local notification entry (source candidate)**: `scripts/pi-local-observer.mjs`
+reuses the existing notification addon and writes only redacted metadata through the
+local `EventStore` (`~/.pi/vista`) by default. It is fail-open, does not inject
+context or change model/provider/thinking/tools/guard/gate behavior, and is not a
+global installation or active-session reload. Missing cwd/HEAD, stale contexts and
+host registration failure remain fixed diagnostics only; loading-time command
+introspection is best-effort and Pi retains its own command conflict handling.
+Actual installed-SDK acceptance uses the isolated `scripts/pi-local-observer-sdk.mjs`
+fixture runner; its synthetic provider stream is not model-quality or live evidence.
 
 ## Sequential operational rollout: acceptance in progress
 
