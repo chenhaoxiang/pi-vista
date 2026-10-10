@@ -12,11 +12,12 @@ import { parseLocalObserverSdkOptions } from "./pi-local-observer-sdk.mjs";
 
 const exec = promisify(execFile);
 test("Default observation state declares its best-effort local store without performing I/O", () => {
-  const observer = createLocalPiObserver();
-  assert.equal(observer.hostStatus().persistence, "default-local-event-store");
-  assert.equal(observer.hostStatus().registration, "not-registered");
-  assert.equal(observer.controller.status().authorization, "none");
-  observer.controller.shutdown();
+  for (const observer of [createLocalPiObserver(), createLocalPiObserver({ store: null })]) {
+    assert.equal(observer.hostStatus().persistence, "default-local-event-store");
+    assert.equal(observer.hostStatus().registration, "not-registered");
+    assert.equal(observer.controller.status().authorization, "none");
+    observer.controller.shutdown();
+  }
 });
 test("SDK acceptance options are explicit and reject duplicates or malformed fixture combinations", () => {
   assert.deepEqual(parseLocalObserverSdkOptions(["--sdk=/synthetic/sdk"]), { sdk: "/synthetic/sdk" });

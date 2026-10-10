@@ -82,7 +82,7 @@ fault and unborn Git HEAD each verify that native input/result and the selected
 model/thinking/tools/prompt remain unchanged. It records the entry byte digest,
 installed Pi SDK version and actual context shape. The latest local Node26
 acceptance bound the entry digest to
-`9b695cb9c6100d62ae2a14eaf2cb5492278f196e207a8c82bb727a29f59ddce6`;
+`02a6f2d79b19e8455d1efdc29369364d9b1917e3d8b84526d34e5225ce1ad145`;
 re-run after any entry change. Its intercepted ModelRuntime-call counter is not
 a network-layer audit. It is not a global install, a real model-quality trial,
 full SDK declaration validation, or an active-session reload.
