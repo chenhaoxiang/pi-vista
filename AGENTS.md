@@ -78,6 +78,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/pi-agent-canary.md](docs/pi-agent-canary.md): explicit actual AgentSession/model canary, private fixture lifecycle/fault tests, credential/privacy boundaries and separate sequential operational acceptance
 
 - [README.md](README.md): package overview and implementation status
+- [docs/pi-continuum.md](docs/pi-continuum.md): Pi-Continuum unified Policy/Execution/Evidence/Evaluation architecture, non-degradation contract and P0→P2 gates
+- [openspec/changes/pi-operational-rollout/pi-continuum-architecture.md](openspec/changes/pi-operational-rollout/pi-continuum-architecture.md): ordered S0/S1/default-entry delta and P0→P2 source/runtime/evaluation acceptance plan
 - [docs/handoff/2026-10-06-source-merge-closeout.md](docs/handoff/2026-10-06-source-merge-closeout.md): merged-source evidence, source PR reconciliation and remaining boundaries
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
 - [docs/infrastructure-integration.md](docs/infrastructure-integration.md): candidate inventory, public source pins, functional validation snapshot and open blockers
@@ -105,7 +107,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/release-contract.md](docs/release-contract.md): repeatable source/Node20/actual packed-consumer evidence and non-release boundaries
 - [openspec/changes/verified-learning/proposal.md](openspec/changes/verified-learning/proposal.md): inherited evidence/learning/shadow/retrieval/release continuation
 - [docs/PHASES.md](docs/PHASES.md): implemented slice versus future phases
-- [docs/architecture.md](docs/architecture.md): storage and safety boundaries
+- [docs/architecture.md](docs/architecture.md): storage, safety and Pi-Continuum integration boundary
 - [packages/core/README.md](packages/core/README.md): public core runtime contract
 - [packages/protocol/README.md](packages/protocol/README.md): protocol interfaces
 - [docs/adapters/pi.md](docs/adapters/pi.md),
