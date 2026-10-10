@@ -37,15 +37,17 @@ node scripts/local-learning-workflow.mjs --phase=read \
 1. 拒绝不完整/未知/accessor/Proxy/不匹配 phase 选项；核对精确 HEAD/clean source。复用 fresh Git archive+locked build/hash helper，仅显式 opt-in 加载同一 archive 的 LOCAL/verifier/固定 ledger。包含新加载脚本的 artifact bytes 校验；不在启动时加载忽略的 checkout dist。
 2. 执行三个固定 trusted host 命令：原 source gate、使用原 native reporter 的正数 learning suite、原 packed-consumer gate。原 stdout PASS/总数字不是 native counters。guard只覆盖这些固定命令的 admit/settle（6events），不覆盖 Gitmetadata、嵌套子进程、FS/OS/Meta/日常Pi；bankroute audit是单独范围。
 3. native 完成时固定 observation timestamp；每次 collection/revalidation 再核 source/artifact，但不重标旧结果时间或用历史flag续期。scope/五绑定、gate版本/config、全部必需checks/suite/完整声明覆盖精确绑定，current proof仅本进程。
-4. 首个 bank preflight、跨阶段 immutable trial-policy 完成后才允许journal/retain。写阶段仅一次 LOCAL observe→candidate→fresh verify→preview→宿主精确内容确认→retain/readback；保留private reference/projection、体验当前context，并验证deprecate使旧selection失效。
-5. 独立读阶段只读原文/对账/query。可显式注入“真实原文GET200后向客户端交503”的一次读故障，记录原失败，再只读恢复，不停止服务器或重发 retain。缺 reference时也只能用已有intent/deterministic ref只读恢复，缺/漂移policy不能重建baseline。
+4. 首个 bank preflight、跨阶段 immutable trial-policy（显式绑定实际 clientArtifactIdentity.sha256，legacy默认字节/字段不变）完成后才允许journal/retain；独立read、缺ref恢复和final check都比较同一artifact摘要，不仅检查各进程自己的重建。写阶段仅一次 LOCAL observe→candidate→fresh verify→preview→宿主精确内容确认→retain/readback；保留private reference/projection、体验当前context，并验证deprecate使旧selection失效。
+5. 独立读阶段只读原文/对账/query。可显式注入“真实原文GET200后向客户端交503”的一次读故障，记录原失败，再只读恢复，不停止服务器或重发 retain。故障只在预期原文read步骤armed，缺reference的初始只读reconcile不消耗注入，以保证两种场景能组合。缺 reference时也只能用已有intent/deterministic ref只读恢复，缺/漂移policy不能重建baseline。
 6. 历史以新run/experience identity导入observed，不能复用保存的handle/proof/plan；当前context需独立客户端重新执行固定host plan后采集fresh proof。query必须包含自己的ref并精确original；终态和shutdown不被晚回调或保存flags复活。
 
-隐私/恢复边界不变：原library/root/signed/guidance/journal/schema/断言/锁/CI未改变；helpers仅additive explicit LOCAL加载和原私有reader命名导出，旧caller默认不加载/不增加返回字段。没有新的批准或第二学习账本；已有授权内的confirmation仅表示精确内容 API。新write不确定保留failed/unknown，拒绝第二retain；所有旧失败/journal不清理、不重处理。生命周期只在本进程，历史不证明原record仍active或恢复当前权限。
+隐私/恢复边界不变：原library/root/signed/guidance/journal/schema/断言/锁/CI未改变；helpers仅additive explicit LOCAL加载、原私有reader命名导出，以及trial-policy第四个可选artifact摘要；旧caller默认不加载/不增加返回字段，旧policy生成字节保持一致。没有新的批准或第二学习账本；已有授权内的confirmation仅表示精确内容 API。新write不确定保留failed/unknown，拒绝第二retain；所有旧失败/journal不清理、不重处理。生命周期只在本进程，历史不证明原record仍active或恢复当前权限。
 
 ## 合成与完整门禁不混算
 
-普通测试使用test-owned tmp、合成 service/config、拦截 fetch、真正编译的11包/真实tarballs和独立native进程，不连接真实bank/model。新全流程夹具使用**小的合成host compiler-contract + 两个实际原生LOCAL API用例**，避免在外层门禁内递归重跑全部旧套件；它不称全仓语义覆盖。原完整source/native/consumer门禁仍原样在外层Node20/26与 hosted CI执行，不能用夹具报告代替。
+普通测试使用test-owned tmp、合成 service/config、拦截 fetch、真正编译的11包/真实tarballs和独立native进程，不连接真实bank/model。夹具消费者仅安装实际runtime tarballs，以已锁定source compiler/types作显式类型检查，不假定offline registry packument已warm；这不是外层consumer-installed compiler合同，原完整外层gate仍照常执行。新全流程夹具使用**小的合成host compiler-contract + 两个实际原生LOCAL API用例**，避免在外层门禁内递归重跑全部旧套件；它不称全仓语义覆盖。原完整source/native/consumer门禁仍原样在外层Node20/26与 hosted CI执行，不能用夹具报告代替。
+
+初始e4 fresh9源码审查BLOCK0/2/0（artifact跨阶段未绑定、缺ref+readfault组合失败）与原Node20/22/26 hosted release-suite失败保留。父级4artifact红回归、缺ref+fault实际native红回归先于最小修复；在精确原e4隔离WT/仅公开compiler tarballs缓存复现fixture消费的ENOTCACHED，再以同类cold cache验证新fixture（0bank/globalcache改动），不拿本地复现代替新head hosted成功。
 
 初次重型fixture三次尝试在旧Pi observer `checkpoints reject preserves synchronous notifications and consumes late failure` 短预算测试失败；日志和失败报告保留，未修改或放宽旧断言。新fixture仅收窄自身目的后通过，不宣称修复那项负载下失败。外层完整门禁仍必须真实通过；重复失败就保留具体技术阻塞，不继续无效重试或触发真实POST。
 

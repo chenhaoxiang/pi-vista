@@ -97,7 +97,7 @@ export async function localLearningWorkflow(input){
    gate_checks:[PLAN[0],PLAN[2],'source-identity'],gate_version:c.source_sha,gate_config_digest:configDigest,test_suites:[suite.name],now:Date.now,max_age_ms:300000,timeout_ms:10000});
   Object.assign(report,{expected,nativeSuite:suite,guard:ledger.details(),sourceReport:source.path,consumerReport:consumer.path,nativeEvidenceDirectory:path.relative(ROOT,nativeDir)});
   report.serviceFingerprint=await checkGuidanceServiceFingerprint(c.service_fingerprint);await readGuidanceMetadata(await actualFetch(ENDPOINT+'/openapi.json',{credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)}));
-  const token=await readGuidanceCredential(c.credential_config);let baseline,faultInjected=false;
+  const token=await readGuidanceCredential(c.credential_config);let baseline,faultInjected=false,faultArmed=false;
   const scopedFetch=async(url,init)=>{
    if(typeof url!=='string'||!init)throw Error('local-workflow-network-scope-refused');const target=new URL(url),prefix=`/v1/default/banks/${BANK}/`,route=target.pathname.slice(prefix.length);
    const original=/^documents\/vista-guidance-v1-[a-f0-9]{16}-[a-f0-9]{64}$/.test(route);
@@ -105,11 +105,11 @@ export async function localLearningWorkflow(input){
    if(route==='memories'&&(c.phase!=='write'||report.http.some(x=>x.route==='memories')))throw Error('local-workflow-repeat-retain-refused');
    const record={method:init.method,route:original?'original-document':route,status:null};report.http.push(record);const response=await actualFetch(url,init);record.status=response.status;
    if(route==='config'){const buffered=await bufferGuidanceBankPreflight(response);if(baseline&&baseline.bank_state_sha256!==buffered.state.bank_state_sha256){await buffered.response.body?.cancel();throw Error('local-workflow-bank-state-drift');}return buffered.response;}
-   if(c.read_fault&&original&&response.status===200&&!faultInjected){faultInjected=true;record.deliveredStatus=503;record.fault='client-injected-after-real-read-success';await response.body?.cancel();return new Response('{}',{status:503});}
+   if(c.read_fault&&faultArmed&&original&&response.status===200&&!faultInjected){faultInjected=true;record.deliveredStatus=503;record.fault='client-injected-after-real-read-success';await response.body?.cancel();return new Response('{}',{status:503});}
    return response;
   };
   const bankState=async()=>readGuidanceBankPreflight(await scopedFetch(ENDPOINT+`/v1/default/banks/${BANK}/config`,{method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)}));
-  baseline=await bankState();report.bankPreflight=baseline;report.trialPolicy=await bindGuidanceTrialPolicy(dir,c.phase,{source_sha:c.source_sha,namespace:c.namespace,bank:baseline});
+  baseline=await bankState();report.bankPreflight=baseline;report.trialPolicy=await bindGuidanceTrialPolicy(dir,c.phase,{source_sha:c.source_sha,namespace:c.namespace,bank:baseline},client.identity.sha256);
   if(c.phase==='write')await mkdir(journal,{mode:0o700});
   globalThis.fetch=scopedFetch;const store=client.guidance.createHindsightGuidanceStore({mode:'local-guidance',endpoint:ENDPOINT,banks:{[ALIAS]:BANK},journal_directory:journal,bearer_token:token,allow_loopback_http:true,timeout_ms:c.timeout_ms});globalThis.fetch=actualFetch;
   library=client.local.createLocalLearningLibrary({mode:'local-learning',scope:SCOPE,verifier,store,timeout_ms:c.timeout_ms});
@@ -126,6 +126,7 @@ export async function localLearningWorkflow(input){
    Object.assign(report,{candidateVerified:true,exactPreviewConfirmed:true,oneShotPersisted:true,exactOriginalReadback:true,currentContextItems:1,deprecationInvalidatesSelection:true,reference:persisted.persistence});
   }else{
    let saved;try{saved=await privateHistory(historyFile);}catch(e){if(e.code!=='ENOENT')throw e;const r=await library.reconcileGuidance(ALIAS,document);assert.equal(r.state,'matched');saved={reference:ref,content_digest:document.content_digest};report.missingReferenceRecoveredReadOnly=true;}
+   faultArmed=true;
    let history;try{history=await library.readGuidance(saved.reference);}catch(e){if(!c.read_fault||!faultInjected||e.code!=='sink-failed')throw e;report.injectedReadFailed=e.code;const r=await library.reconcileGuidance(ALIAS,document);assert.equal(r.state,'matched');history=await library.readGuidance(saved.reference);report.clientReadFaultRecoveredReadOnly=true;}
    assert.equal(history.document.content,document.content);assert.equal(history.content_digest,saved.content_digest);assert.equal((await library.reconcileGuidance(ALIAS,document)).state,'matched');
    const rows=await library.recallGuidance(ALIAS,query);assert.ok(rows.some(r=>r.document_id===ref.document_id));
@@ -137,7 +138,7 @@ export async function localLearningWorkflow(input){
     freshReadRunVerification:true,currentContextItems:context.item_count,rejectionInvalidatesSelection:true,reference:saved.reference});
   }
   assert.deepEqual(await bankState(),baseline);assert.deepEqual(await checkGuidanceServiceFingerprint(c.service_fingerprint),report.serviceFingerprint);
-  assert.deepEqual(await bindGuidanceTrialPolicy(dir,'read',{source_sha:c.source_sha,namespace:c.namespace,bank:baseline}),report.trialPolicy);await client.check();remaining();
+  assert.deepEqual(await bindGuidanceTrialPolicy(dir,'read',{source_sha:c.source_sha,namespace:c.namespace,bank:baseline},client.identity.sha256),report.trialPolicy);await client.check();remaining();
   library.shutdown();verifier.shutdown();Object.assign(report,{status:'passed',retainCount:report.http.filter(x=>x.route==='memories').length,recallCount:report.http.filter(x=>x.route==='memories/recall').length,
    currentVerificationAfterShutdown:'not-current',safeDocumentSHA256:document.content_digest,historyOnly:true,bankModeUnchanged:true,sourceArtifactRechecked:true});
  }catch(e){report.failure=typeof e?.code==='string'&&/^(?:sink-|invalid-|unverified-|promotion-|stale-)[a-z-]+$/.test(e.code)?e.code:typeof e?.message==='string'&&/^(?:local-workflow|guidance)-[a-z-]+$/.test(e.message)?e.message:'local-workflow-acceptance-failed';process.exitCode=1;}

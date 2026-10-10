@@ -10,7 +10,7 @@ import {ROOT,npmCli,npmFlags} from './release-utils.mjs';
 const exec=promisify(execFile);
 const hashBlob=bytes=>createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`)).update(bytes).digest('hex');
 
-test('LOCAL actual compiled source/operator native write+independent read composes fresh proof and readonly recovery with zero real network', {timeout:600000},async()=>{
+async function nativeWorkflowFixture(missingReference=false){
  const parent=path.join(ROOT,'tmp/local-workflow-native');await mkdir(parent,{recursive:true});const owned=await mkdtemp(path.join(parent,'case-'));
  const checkout=path.join(owned,'fixture-source');await mkdir(checkout);
  const run=(file,args,cwd=checkout,extra={})=>exec(file,args,{cwd,env:{...process.env,...extra},shell:false,timeout:300000,maxBuffer:32*1024*1024});
@@ -19,7 +19,7 @@ test('LOCAL actual compiled source/operator native write+independent read compos
   const archive=path.join(owned,'source.tar');await run('git',['-C',ROOT,'archive','--format=tar',`--output=${archive}`,'HEAD']);await run('tar',['-xf',archive,'-C',checkout]);
   // Only these current new operator/helper bytes overlay the immutable delivered
   // source. Do not copy this test into the fixture: no recursive runner graph.
-  for(const file of ['guidance-acceptance-io.mjs','hindsight-guidance-acceptance.mjs','local-learning-workflow.mjs'])await copyFile(path.join(ROOT,'scripts',file),path.join(checkout,'scripts',file));
+  for(const file of ['guidance-acceptance-io.mjs','hindsight-guidance-acceptance.mjs','guidance-trial-policy.mjs','local-learning-workflow.mjs'])await copyFile(path.join(ROOT,'scripts',file),path.join(checkout,'scripts',file));
   const temp=path.join(checkout,'tmp');await mkdir(temp,{mode:0o700});
   // A deliberately small synthetic HOST PLAN, not recursive execution of all
   // pre-existing source tests. Target repository gates/assertions stay untouched
@@ -33,6 +33,16 @@ test('native fixture real root keeps its signed verifier domain',()=>{const f=fa
   await writeFile(path.join(checkout,'scripts/source-gate.mjs'),`import {mkdir,writeFile,readFile,copyFile} from 'node:fs/promises';import path from 'node:path';import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {ROOT,npmCli,npmFlags,createRunDirectory,commandEnvironment} from './release-utils.mjs';
 const directory=await createRunDirectory('source');await promisify(execFile)(process.execPath,[await npmCli(),'run','build',...npmFlags(directory,false)],{cwd:ROOT,env:commandEnvironment(),shell:false,timeout:120000,maxBuffer:1048576});
 const native=path.join(ROOT,'packages/learning/dist-test');await mkdir(native,{recursive:true});await copyFile(path.join(ROOT,'scripts/fixture-native-source.mjs'),path.join(native,'fixture-native.test.js'));await writeFile(path.join(directory,'report.json'),JSON.stringify({status:'passed',network:false,node:process.version,scope:'synthetic-native-compiler-contract',not_full_source_evidence:true}));console.log('Source evidence: '+directory);\n`);
+  // No warm registry packument assumption: install REAL runtime tarballs only,
+  // use the already source-locked compiler/types explicitly for this FIXTURE.
+  // The outer unchanged consumer gate still installs/verifies its own compiler.
+  await writeFile(path.join(checkout,'scripts/packed-consumer.mjs'),`import assert from 'node:assert/strict';import {mkdir,writeFile,readFile,realpath} from 'node:fs/promises';import path from 'node:path';import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {ROOT,npmCli,npmFlags,createRunDirectory,discoverPackages,publicEntrypoints,commandEnvironment} from './release-utils.mjs';
+const run=promisify(execFile),directory=await createRunDirectory('consumer'),tarDir=path.join(directory,'tarballs'),consumer=path.join(directory,'installed-fixture-consumer');await mkdir(tarDir);await mkdir(consumer);const npm=await npmCli(),flags=npmFlags(directory,false),packages=await discoverPackages(),tarballs=[],entries=[];
+for(const pkg of packages){const p=await run(process.execPath,[npm,'pack','--workspace='+pkg.manifest.name,'--json','--pack-destination='+tarDir,...flags],{cwd:ROOT,env:commandEnvironment(),shell:false,timeout:120000,maxBuffer:1048576});const m=JSON.parse(p.stdout)[0];assert.equal(m.name,pkg.manifest.name);tarballs.push(path.join(tarDir,m.filename));entries.push(...publicEntrypoints(pkg.manifest));}
+await writeFile(path.join(consumer,'package.json'),JSON.stringify({name:'native-fixture-tarball-consumer',version:'0.0.0',private:true,type:'module'}));await run(process.execPath,[npm,'install','--workspaces=false','--omit=dev','--save-exact',...flags,...tarballs],{cwd:consumer,env:commandEnvironment(),shell:false,timeout:120000,maxBuffer:1048576});
+const sourceCompiler=path.join(ROOT,'node_modules/typescript/bin/tsc'),lock=JSON.parse(await readFile(path.join(ROOT,'package-lock.json'),'utf8')),compiler=JSON.parse(await readFile(path.join(ROOT,'node_modules/typescript/package.json'),'utf8'));assert.equal(compiler.version,lock.packages['node_modules/typescript'].version);
+const imports=entries.map((e,i)=>'import * as value'+i+' from '+JSON.stringify(e.specifier)+';').join('\\n');await writeFile(path.join(consumer,'consumer.mts'),imports+'\\nexport const namespaces=['+entries.map((_,i)=>'value'+i).join(',')+'];\\n');await writeFile(path.join(consumer,'tsconfig.json'),JSON.stringify({compilerOptions:{target:'ES2022',module:'NodeNext',moduleResolution:'NodeNext',strict:true,skipLibCheck:false,types:['node'],typeRoots:[path.join(ROOT,'node_modules/@types')],outDir:'dist'},include:['consumer.mts']}));await run(process.execPath,[sourceCompiler,'-p','tsconfig.json'],{cwd:consumer,env:commandEnvironment(),shell:false,timeout:120000,maxBuffer:1048576});
+await run(process.execPath,['--input-type=module','-e','const {namespaces}=await import(\"./dist/consumer.mjs\");if(namespaces.length!=='+entries.length+')throw Error(\"fixture imports missing\");'],{cwd:consumer,env:commandEnvironment(),shell:false,timeout:30000,maxBuffer:1048576});await writeFile(path.join(directory,'report.json'),JSON.stringify({status:'passed',network:false,node:process.version,scope:'synthetic-real-tarballs-source-locked-compiler',not_full_consumer_evidence:true,packages:packages.map(p=>p.manifest.name),exports:entries.map(e=>e.specifier)}));console.log('Packed-consumer evidence: '+directory);\n`);
   const config=path.join(temp,'synthetic-config.json'),fingerprint=path.join(temp,'synthetic-service.json'),stateFile=path.join(temp,'http-state.json');
   await writeFile(config,JSON.stringify({apiUrl:'http://127.0.0.1:8888',apiToken:'synthetic-fixture-bearer'}),{mode:0o600});
   const files=[];
@@ -73,11 +83,14 @@ globalThis.fetch=async(url,init={})=>{const s=state(),target=new URL(url),prefix
    }
    assert.equal(output.stderr,'');const report=JSON.parse(await readFile(path.join(temp,'local-learning-workflow/fixture-local-native',phase+'-report.json'),'utf8'));assert.equal(report.status,'passed');return report;
   };
-  const write=await invoke('write'),read=await invoke('read');assert.notEqual(write.pid,read.pid);await assert.rejects(()=>readFile(marker));
+  const write=await invoke('write');
+  if(missingReference)await rm(path.join(temp,'local-learning-workflow/fixture-local-native/historical-reference.json'));
+  const read=await invoke('read');assert.notEqual(write.pid,read.pid);await assert.rejects(()=>readFile(marker));
+  if(missingReference)assert.equal(read.missingReferenceRecoveredReadOnly,true);
   assert.equal(write.oneShotPersisted,true);assert.equal(write.retainCount,1);assert.equal(write.deprecationInvalidatesSelection,true);
   assert.equal(read.retainCount,0);assert.equal(read.clientReadFaultRecoveredReadOnly,true);assert.equal(read.injectedReadFailed,'sink-failed');assert.equal(read.recallContainsOwnDocument,true);
   assert.equal(read.historyImportedObserved,true);assert.equal(read.historyCannotRestoreCurrentProof,true);assert.equal(read.freshReadRunVerification,true);assert.equal(read.currentContextItems,1);assert.equal(read.rejectionInvalidatesSelection,true);
-  assert.equal(write.clientArtifactIdentity.sha256,read.clientArtifactIdentity.sha256);assert.equal(write.trialPolicy.policy_digest,read.trialPolicy.policy_digest);assert.equal(write.safeDocumentSHA256,read.safeDocumentSHA256);
+  assert.equal(write.clientArtifactIdentity.sha256,read.clientArtifactIdentity.sha256);assert.equal(write.trialPolicy.policy_digest,read.trialPolicy.policy_digest);assert.equal(write.trialPolicy.client_artifact_sha256,write.clientArtifactIdentity.sha256);assert.equal(write.safeDocumentSHA256,read.safeDocumentSHA256);
   assert.ok(write.clientArtifactIdentity.files.some(x=>x.path==='scripts/local-host-acceptance.mjs'));
   assert.equal(write.guard.coverage,'complete');assert.equal(write.guard.event_count,6);assert.equal(read.guard.event_count,6);assert.equal(write.nativeSuite.total,2);assert.equal(write.nativeSuite.name,'learning-native');
   assert.equal(read.currentVerificationAfterShutdown,'not-current');assert.equal(read.authorization,'none');assert.equal(read.executable,false);assert.equal(read.defaultActivation,false);
@@ -86,4 +99,6 @@ globalThis.fetch=async(url,init={})=>{const s=state(),target=new URL(url),prefix
   // independently rebuilds and collects its own current host evidence.
   assert.equal(write.source_sha,source);assert.equal(read.source_sha,source);assert.equal(read.bankModeUnchanged,true);
  }finally{await rm(owned,{recursive:true,force:true});}
-});
+}
+test('LOCAL actual compiled source/operator native write+independent read composes fresh proof and readonly recovery with zero real network',{timeout:600000},()=>nativeWorkflowFixture());
+test('LOCAL missing saved reference plus read fault composes only readonly recovery',{timeout:600000},()=>nativeWorkflowFixture(true));
