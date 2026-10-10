@@ -73,7 +73,7 @@ Pi-Continuum 是 ai-gate、workspace-guard、Pi native host 与 pi-vista 的内�
 S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**。
 
 - S0：本架构、现有owner路由、职责/状态/合同与事实边界；不修改运行时。
-- S1：本地通知观察宿主接线，复用 `createPiObservation` 和 `EventStore`。默认记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、注册冲突和存储故障固定诊断/fail-open。先源/mock、再实际SDK、再明确本机加载，分别留证。
+- S1：本地通知观察宿主接线，复用 `createPiObservation` 和 `EventStore`。本源切片属于用户本轮“按顺序实施”授权范围（实现授权不等于已安装/已加载）；默认记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、注册冲突和存储故障固定诊断/fail-open。先源/mock、再实际SDK、再明确本机加载，分别留证。
 - 会话source只声明采样的session-cwd scope，不假装知道实际受影响仓库。同步host callback必须轻量；Promise timeout不能 sandbox 同步CPU/副作用。
 
 ### P0：先修 harness，再调用模型
@@ -107,5 +107,7 @@ Timeline/trace assertions、run→regression promotion、pass^k、observability�
 agentmemory仅作为memory benchmark对照，不替换当前Hindsight/LOCAL。不要为了复用而另装社区SDK、改primary model/thinking/tools、引入更重的agent framework或新的审批。
 
 ## 9. Owner落位
+
+S1 默认入口当前是源码候选，不代表全局 Pi 已安装或现有 session 已加载；其实际装机/启用仍需本机 host acceptance 和独立回读，不把本段实现授权写成默认 live activation。
 
 Vista主架构维护本页与 `docs/architecture.md`，实施计划维护同一 `openspec/changes/pi-operational-rollout/`。Meta保留自己的policy/guard/gate/execution/reconcile实现与文档，只链接共同边界，不复制Vista实现。当前用户已授权按顺序连续实施；只有真实scope变化、必要技术条件失败、资金或实际用户规则才停相关动作并请求必要输入，不重新索要每一步批准。

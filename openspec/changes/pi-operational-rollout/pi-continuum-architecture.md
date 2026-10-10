@@ -16,9 +16,9 @@ second ledger.
 
 ## P0 / S0–S1
 
-- [x] Define Policy / Execution / Evidence / Evaluation planes and one-way dependency.
-- [x] Define independent permission/execution/verification/experience state dimensions.
-- [x] Preserve Meta `ai-gate-observations/1`, exact merge SHA reconciliation and Vista closed-row boundary.
+- [x] Define Policy / Execution / Evidence / Evaluation planes and one-way dependency (candidate in this worktree; pending independent PR/main readback).
+- [x] Define independent permission/execution/verification/experience state dimensions (candidate in this worktree; pending independent PR/main readback).
+- [x] Preserve Meta `ai-gate-observations/1`, exact merge SHA reconciliation and Vista closed-row boundary (candidate in this worktree; pending independent PR/main readback).
 - [ ] Finish the new default-entry delta (not a repeat of delivered PR18/20): local EventStore wiring, fail-open storage, fixed diagnostics, actual SDK default-entry dispatch and missing-cwd/HEAD evidence.
 - [ ] Record source, mock, installed SDK and actual selected-session runtime separately; do not call source compatibility default activation.
 
@@ -34,6 +34,4 @@ second ledger.
 - [ ] Add context ROI and native-first non-degradation comparison before any guided context injection.
 - [ ] Only after measured benefit, evaluate k=3, timeline/regression promotion, release and rollback scope.
 
-Every checked task requires source tests, fresh review, exact CI and main readback. No
-result from synthetic, historical or sample compatibility evidence promotes itself to
-current permission, default activation, publication or financial authority.
+Every checked task requires source tests where applicable, fresh review, exact CI and main readback. This Change is currently a docs/spec candidate pending its independent PR/main closeout; no result from synthetic, historical or sample compatibility evidence promotes itself to current permission, default activation, publication or financial authority.
