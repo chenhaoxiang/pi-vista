@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-10
+verified: 2026-10-11
 ---
 
 # Sequential tasks
@@ -49,7 +49,7 @@ verified: 2026-10-10
 - [x] Stage5 actual SCOPED usable LOCAL workflow onsource846/newnamespaceworkflow-01a11fcc-actual/onesyntheticdoc: PID14348freshverify/preview/exactconfirm/ONEretain200/original/currentcontext/deprecate; independentPID52511retain0/original/read503failure→readonlyrecon/recovery/recallownref1/importobserved/freshcurrentcontext/reject. Same source/artifact/policy/config/docdigests; eachactuallearning590/nativeguard6fixedcommandevents/0blocked-dropped,shutdownnot-current/historynone-notchecked-false. No newbankcfg/global/model/service/main/dailyactivation/oldreprocessing; signedkeyrotation separateunresolved whenused. Source/fixtures notsubstituteforactual evidence.
 - [x] Stage5 operator+runtime sharedclosure: originalfull9BLOCK+parentred+retained7source0/0/0 and5runtime-doc0/0/0 preserved; PR30ordinarymergemainb245d7f includesreviewedhead66d72/source846/runtime safetyrecords. ExactheadCI38055998963+GG/mainCI38056567710Node20/22/26SUCCESS, ancestry/treeequal/canonicalff-only0-0clean, isolatedpostmainactualNode20source/consumer1282nativecases/11tarball23exportsPASS. Scopedruntime/source/git !=defaultactivation/product/currentpermission orStage6.
 - [ ] This later operational main-closeout document itself still awaits independent PR/main inclusion at preparation; do not use PR30 as proof it was already delivered.
-- [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope. Four-case pilot design and closed metric tests exist; actual SDK/native current-guidance wiring, model calls and paired measurements are not started.
+- [ ] Stage6: accepted actual paired effectiveness/cost evaluation then confirmed release/rollback scope. Initialac eight-path BLOCK4P1/3P2+six parentred preserved; metric correction is non-authorizing source only. A separate uncommitted16-call/8session/0bank draft was executed but INVALID: strict decisions0/8 and profile drift not attributed; original completion-passed report+superseding invalid assessment retained, no further calls after limit. Accepted runtime/provenance/quality measurements/release still pending; tracked CLI remains plan-only, draft under tmp not shipped.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.

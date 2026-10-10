@@ -18,7 +18,7 @@ test('Stage6 planner hostile input rejects without getters or executable coercio
  assert.throws(()=>stage6PlanOptions(a));assert.throws(()=>stage6PlanOptions(p));assert.equal(calls,0);
 });
 test('Stage6 planner import/evaluation is hermetic and has no private config or SDK imports', {timeout:10000},async()=>{
- const dir=fileURLToPath(new URL('../tmp/stage6-plan-tests/',import.meta.url));await mkdir(dir,{recursive:true});const owned=await mkdtemp(path.join(dir,'case-'));
+ const dir=fileURLToPath(new URL('../tmp/',import.meta.url));await mkdir(dir,{recursive:true});const owned=await mkdtemp(path.join(dir,'stage6-plan-case-'));
  try{const source=await readFile(new URL('./stage6-paired-evaluation.mjs',import.meta.url),'utf8');assert.doesNotMatch(source,/node:fs|node:child_process|@pi-vista|pi-coding-agent|profile-dir|coding-agent.json|readGuidanceCredential/);
  const code=`import assert from 'node:assert/strict';let calls=0;globalThis.fetch=()=>{calls++;throw Error();};globalThis.setTimeout=()=>{calls++;throw Error();};const m=await import(${JSON.stringify(new URL('./stage6-paired-evaluation.mjs',import.meta.url).href)});assert.equal(m.stage6Main(['--plan-only']).actualRun,'not-run');assert.equal(calls,0);console.log(JSON.stringify({calls}));`;
  const r=await promisify(execFile)(process.execPath,['--input-type=module','-e',code],{cwd:owned,env:{PATH:path.dirname(process.execPath),HOME:owned,TMPDIR:owned},shell:false,timeout:5000,maxBuffer:8192});assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),{calls:0});
