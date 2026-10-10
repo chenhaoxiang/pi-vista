@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-09
+verified: 2026-10-10
 ---
 
 # Repository-local contributor contract
@@ -54,8 +54,10 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/local-learning.md](docs/local-learning.md): Stage5 opt-in LOCAL source candidate, exact host proof/preview/confirmation/guidance/recall/lifecycle; original signed/root APIs unchanged, no default activation or new real-bank sample
+- [openspec/changes/pi-operational-rollout/stage5-local-learning-design.md](openspec/changes/pi-operational-rollout/stage5-local-learning-design.md): bounded LOCAL workflow/API/cancellation/restart plan; source and larger operational acceptance remain distinct
 - [docs/handoff/2026-10-09-stage4-shared-main-closeout.md](docs/handoff/2026-10-09-stage4-shared-main-closeout.md): merged PR26/75a2741, exact main CI/post-main Node20 verification, scoped chunks runtime PASS and remaining Stage5/6 boundaries
-- [docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md](docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md): exact readonly Qwen empty-facts/256s diagnosis, explicitly approved one-bank chunks mode change, no reprocessing of old failures, operator mode/digest admission, scoped new chunks runtime PASS/1worldunit and still-pending PR/main shared closure
+- [docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md](docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md): exact readonly Qwen empty-facts/256s diagnosis, explicitly approved one-bank chunks mode change, no reprocessing of old failures, operator mode/digest admission, scoped new chunks runtime PASS/1worldunit, PR26 source/main and PR27 supplementary documentary closure
 - [docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md](docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md): historical completed/snapshot source candidate/1181-case/layered review/exact CI pins and retained zero-fact/timeout trials; original concise Stage4 BLOCK remains history, newer authorized chunks scope routed above, no retroactive PASS
 - [docs/hindsight-guidance.md](docs/hindsight-guidance.md): Stage4 explicit guidance-only candidate; approved isolated bank/actual0.10.2 deployment fingerprint, no signed/root Learning fallback or current-proof restoration
 - [openspec/changes/pi-operational-rollout/stage4-guidance-design.md](openspec/changes/pi-operational-rollout/stage4-guidance-design.md): dedicated bank scope, actual-source differences, byte-exact readback, immutable uncertainty journal and client-restart acceptance plan
