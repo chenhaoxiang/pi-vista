@@ -298,6 +298,16 @@ postmainNode20source/consumer1282cases/23exportsPASS. Later [main closeout](hand
 has its own pendinginclusion; Stage6pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
 above are the source-library closeout's boundary, not a denial of this later scopedtrial.
 
+## Stage6 paired pilot: design and offline metrics only
+
+A [four-case paired pilot design](../openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md)
+and closed offline metric tests are being prepared. Source, model, SDK, thinking,
+tool definitions and budget must be equal within each pair; only fresh-verified
+historical guidance context differs. The plan-only script refuses actual runtime.
+Actual subject native evidence/history re-import/SDK request-budget wiring,
+model calls and measurements are NOT implemented or executed yet. No model
+quality, ROI/cost reduction, default activation or release claim exists.
+
 ## Delivery: Repeatable engineering gates (#17)
 
 **Implemented source**: dependency-ordered root gates for all 11 packages,
