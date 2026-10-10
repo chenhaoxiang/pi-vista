@@ -95,6 +95,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/learning.md](docs/learning.md): process-local verified learning, exact confirmed sink/readback, failure/replay and character-bounded retrieval
 - [docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md](docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md): PR18 source/main/CI pins, preserved BLOCK and corrected961-case/19-export/SDK-dispatch evidence; no default/live/full-SDK-health acceptance
 - [docs/pi-observe-preview.md](docs/pi-observe-preview.md): optional explicit Pi notification/preview/controller candidate, local-only selection, SDK declaration limitation and no authority/default activation
+- [scripts/pi-local-observer.mjs](scripts/pi-local-observer.mjs): explicit host wiring for notification-only local observation; default local EventStore metadata/fail-open, no bank/history/verifier/model/permission port
+- [scripts/pi-local-observer-sdk.mjs](scripts/pi-local-observer-sdk.mjs): explicit installed-SDK acceptance with isolated HOME, synthetic provider streams, native read and no global/default activation
 - [docs/handoff/2026-10-07-portable-recall-source-closeout.md](docs/handoff/2026-10-07-portable-recall-source-closeout.md): PR12 pins/CI/current-main restart proofs, historical-vs-current trust and remaining host/live scope
 - [docs/handoff/2026-10-07-portable-recall-entry-fixes.md](docs/handoff/2026-10-07-portable-recall-entry-fixes.md): original portable review BLOCK, new-identity/public-counter corrections and bounded local proof
 - [docs/portable-recall.md](docs/portable-recall.md): explicit signed historical archives/Hindsight ports, restart authentication and observed-only import without current authority

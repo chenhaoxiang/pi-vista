@@ -73,7 +73,7 @@ Pi-Continuum 是 ai-gate、workspace-guard、Pi native host 与 pi-vista 的内�
 S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**。
 
 - S0：本架构、现有owner路由、职责/状态/合同与事实边界；不修改运行时。
-- S1：本地通知观察宿主接线，复用 `createPiObservation` 和 `EventStore`。本源切片属于用户本轮“按顺序实施”授权范围（实现授权不等于已安装/已加载）；默认记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、注册冲突和存储故障固定诊断/fail-open。先源/mock、再实际SDK、再明确本机加载，分别留证。
+- S1：本地通知观察宿主接线，复用 `createPiObservation` 和 `EventStore`。本源切片属于用户本轮“按顺序实施”授权范围（实现授权不等于已安装/已加载）；默认记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、宿主注册调用失败和存储故障固定诊断/fail-open；加载期命令表预检仅 best-effort，不覆盖 Pi 自身冲突处理。先源/mock、再实际SDK、再明确本机加载，分别留证。
 - 会话source只声明采样的session-cwd scope，不假装知道实际受影响仓库。同步host callback必须轻量；Promise timeout不能 sandbox 同步CPU/副作用。
 
 ### P0：先修 harness，再调用模型

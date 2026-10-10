@@ -30,6 +30,8 @@ export interface PiObservationConfig {
 export type PiNotification = "session_start" | "session_shutdown" | "agent_start" | "agent_end" | "agent_settled" | "tool_execution_start" | "tool_execution_end";
 /** Structural public host subset: no SDK runtime import or bundled SDK is needed. */
 export interface PiUIContext {
+  /** Host SDK ExtensionContext.cwd is an own accessor in the native runtime; absent in synthetic/non-session contexts. */
+  readonly cwd?: string;
   readonly hasUI: boolean;
   readonly ui: { notify(message: string, type?: "info" | "warning" | "error"): void };
 }

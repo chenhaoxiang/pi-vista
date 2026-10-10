@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-07
+verified: 2026-10-10
 ssot: true
 ---
 
@@ -28,6 +28,72 @@ merge or release permission. Actual compatible owner receipt producers and
 public-key provenance remain **MISSING / separately unaccepted**.
 
 ## Explicit host wiring
+
+### Local notification entry (new, observer-only)
+
+`scripts/pi-local-observer.mjs` is the smallest host-side wiring entry for the
+existing `createPiObservation()` addon. It maps only Pi lifecycle notifications
+and tool execution outcomes to the existing `@pi-vista/core` event contract.
+
+- The default entry uses the existing local `EventStore` at `~/.pi/vista` for
+  redacted event metadata only. It does not open a bank, configure history, inject
+  context, call a model, or obtain a verifier/current proof.
+- A trusted host may explicitly pass an append-capable `{ append }` store port
+  (for example, `new EventStore({ baseDir })`) for isolation or tests. The store
+  is a fail-open observation port; its errors do not block tool execution or
+  agent settlement.
+- Task binding is a symbolic `session-cwd` observation scope with a host-read
+  Git HEAD. It is not a claim about the tool's affected repository, complete
+  guard coverage, Owner identity, financial effect, or current permission.
+- The entry exposes the existing non-authorizing `/vista-status`,
+  `/vista-preview`, `/vista-adopt`, and `/vista-verify` commands. Preview/history
+  and current verification remain explicit; they are not injected into model
+  context or execution.
+- `hostStatus().persistence` is `default-local-event-store` when `store` is
+  `null`/`undefined`, and `host-supplied-append-port` otherwise. This status is
+  descriptive only; it never implies current permission or durable proof.
+
+The entry is source/contract delivery, not a global installation or proof that a
+running session has loaded it. Loading it in an actual Pi session is a separate
+host acceptance step. Missing cwd/HEAD or a refused/failed host registration call
+produces a fixed observer diagnostic without affecting the primary task. Loading-time
+command introspection is best-effort and its availability is host/SDK-specific.
+If a same-name command is actually detected, this observer instance declines
+registration with a fixed diagnostic; otherwise Pi retains its own command
+namespace handling. This does not block tools or alter Pi's conflict handling.
+Duplicate-load/reload behavior is part of the separate local-loading acceptance.
+Native SDK context
+`cwd` is an own accessor: the wiring samples that trusted accessor once rather
+than requiring a data descriptor. Stale/throwing contexts and invalid/late HEAD
+results cannot claim an observed binding. Session replacement/shutdown invalidates
+outstanding binding work; timeout bounds asynchronous observation, not synchronous
+host callback CPU work.
+
+The Pi-Continuum boundary is maintained in this document and the
+[PHASES roadmap](PHASES.md#explicit-optional-pi-observation-and-preview-source-delivered);
+the separate [rollout Change](../openspec/changes/pi-operational-rollout/pi-continuum-architecture.md)
+records the broader ordered architecture, not a runtime requirement for this
+source slice. Source regressions cover hanging/invalid/failed
+HEAD readers, stale contexts, late generation results, command introspection and
+registration cleanup, with pending-work counters drained before assertions.
+After building the existing packages, explicit installed SDK acceptance is:
+
+```sh
+node scripts/pi-local-observer-sdk.mjs --sdk=/absolute/path/to/installed/pi-coding-agent
+```
+
+This runs actual `loadExtensions`/`AgentSession` with an isolated `HOME` and native
+`read`, using synthetic provider streams only. Normal recording, EventStore I/O
+fault and unborn Git HEAD each verify that native input/result and the selected
+model/thinking/tools/prompt remain unchanged. It records the entry byte digest,
+installed Pi SDK version and actual context shape. The latest local Node26
+acceptance bound the entry digest to
+`02a6f2d79b19e8455d1efdc29369364d9b1917e3d8b84526d34e5225ce1ad145`;
+re-run after any entry change. This local record was produced with installed
+Pi SDK `1.1.0-fork.1` on Node26; it is not a portable full-SDK compatibility claim.
+Its intercepted ModelRuntime-call counter is not a network-layer audit. It is not
+a global install, a real model-quality trial,
+full SDK declaration validation, or an active-session reload.
 
 ```ts
 import { createPiObservation } from "@pi-vista/learning/pi";
@@ -95,9 +161,11 @@ private keys are never inputs. The resolver receives no raw event or context.
 Tool native names are lookup-only bounded host keys (`read`/`bash` are allowed);
 only safe classification values are emitted. Unknown names map to `unclassified`.
 
-Omitted stores mean **no storage**, not core defaults. Wrap class store methods in
-closed `{append}` / `{save}` callbacks, keeping private paths/config out of the
-port. Only normalized safe core events/checkpoints cross these ports. Checkpoints
+Omitted stores mean **no storage**, not core defaults, for the reusable addon
+configuration. The host wiring above deliberately opts into the default local
+`EventStore` path when no store is supplied. Wrap class store methods in closed
+`{append}` / `{save}` callbacks, keeping private paths/config out of the port.
+Only normalized safe core events/checkpoints cross these ports. Checkpoints
 have empty completed/pending/check lists and `resumable: false`; they never imply
 successful steps, a factual source check or resumption permission.
 
