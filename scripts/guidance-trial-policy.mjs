@@ -13,14 +13,17 @@ function fields(value,keys){
  return safe;
 }
 /** Historical trial comparison only; never an approval ledger or current proof. */
-export async function bindGuidanceTrialPolicy(directory,phase,binding){
+export async function bindGuidanceTrialPolicy(directory,phase,binding,artifactDigest){
+ // Explicit additive comparison only. Legacy calls produce identical bytes/fields.
+ if(artifactDigest!==undefined&&(typeof artifactDigest!=='string'||!/^[a-f0-9]{64}$/.test(artifactDigest)))refused();
  if(typeof directory!=='string'||directory.length>4096||/[\x00-\x1f\x7f]/.test(directory)||!path.isAbsolute(directory)||path.normalize(directory)!==directory||!['write','read'].includes(phase))refused();
  const input=fields(binding,['source_sha','namespace','bank']);
  if(typeof input.source_sha!=='string'||!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(input.source_sha)||typeof input.namespace!=='string'||!/^[a-z][a-z0-9-]{0,63}$/.test(input.namespace))refused();
  const bank=fields(input.bank,['bank','extraction_mode','observations','default_strategy','bank_state_sha256']);
  if(bank.bank!=='pi-vista-local-test-01a114ab'||bank.extraction_mode!=='chunks'||bank.observations!==false||bank.default_strategy!==null||typeof bank.bank_state_sha256!=='string'||!/^[a-f0-9]{64}$/.test(bank.bank_state_sha256))refused();
  const safe=Object.freeze({schema:1,purpose:'historical-guidance-trial-policy',bank:bank.bank,namespace:input.namespace,source_sha:input.source_sha,
-  extraction_mode:'chunks',observations:false,default_strategy:null,bank_state_sha256:bank.bank_state_sha256});
+  extraction_mode:'chunks',observations:false,default_strategy:null,bank_state_sha256:bank.bank_state_sha256,
+  ...(artifactDigest===undefined?{}:{client_artifact_sha256:artifactDigest})});
  const text=JSON.stringify(safe)+'\n',file=path.join(directory,'trial-policy.json');
  let parent;try{parent=await lstat(directory);}catch{refused();}
  if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==process.getuid()||(parent.mode&0o7777)!==0o700)refused();

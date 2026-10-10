@@ -8,7 +8,8 @@ import {ROOT,commandEnvironment,createRunDirectory,discoverPackages,listFiles,np
 
 const exec=promisify(execFile);
 /** Operator-only: build a fresh exact Git archive, never import ignored checkout outputs. */
-export async function prepareGuidanceClient(sourceSha){
+export async function prepareGuidanceClient(sourceSha,localWorkflow=false){
+ if(typeof localWorkflow!=='boolean')throw Error('guidance-client-options-refused');
  if(typeof sourceSha!=='string'||!(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/).test(sourceSha))throw Error('guidance-source-drift');
  const git=async args=>(await exec('git',['-C',ROOT,...args],{cwd:ROOT,env:commandEnvironment(),shell:false,timeout:30000,maxBuffer:1048576})).stdout.trim();
  const sourceCheck=async()=>{if(await git(['rev-parse','HEAD'])!==sourceSha||await git(['status','--porcelain','--untracked-files=normal']))throw Error('guidance-source-drift');};
@@ -41,6 +42,7 @@ export async function prepareGuidanceClient(sourceSha){
     files.push({path:path.relative(built,file).split(path.sep).join('/'),sha256:sha256(await readFile(file)),...(test?{build_only_test:true}:{})});
    };
    await record(path.join(built,'package.json'));await record(path.join(built,'package-lock.json'));
+   if(localWorkflow)for(const helper of ['local-host-acceptance.mjs','release-utils.mjs','run-tests.mjs'])await record(path.join(built,'scripts',helper));
    for(const pkg of packages){
     await record(path.join(pkg.directory,'package.json'));
     for(const file of await listFiles(path.join(pkg.directory,'dist'))){
@@ -58,6 +60,12 @@ export async function prepareGuidanceClient(sourceSha){
   const guidance=await load('packages/learning/dist/guidance/index.js');
   const target=await load('packages/learning/dist/hindsight/data.js');
   const data=await load('packages/learning/dist/guidance/data.js');
+  // Additive opt-in: both factories resolve within the SAME exact archive/domain.
+  // Legacy callers load/return only the original modules; no default behavior change.
+  const local=localWorkflow?await load('packages/learning/dist/local/index.js'):undefined;
+  const host=localWorkflow?await load('packages/evidence/dist/host.js'):undefined;
+  const plan=localWorkflow?await load('scripts/local-host-acceptance.mjs'):undefined;
+  if(localWorkflow&&(typeof local.createLocalLearningLibrary!=='function'||typeof host.createLocalEvidenceVerifier!=='function'||typeof plan.createHostPlanLedger!=='function'))throw Error('guidance-client-api-refused');
   for(const [module,names] of [[core,['hasKnownCredential','isSafeSegment']],[guidance,['createHindsightGuidanceStore','prepareHistoricalGuidance']],
    [target,['targetFingerprint']],[data,['writeRequest','documentId','reference']]]){
    for(const name of names)if(typeof module[name]!=='function')throw Error('guidance-client-api-refused');
@@ -66,7 +74,7 @@ export async function prepareGuidanceClient(sourceSha){
   await check();
   const artifactIdentity=Object.freeze({...identity,files:Object.freeze(identity.files.map(file=>Object.freeze(file))),sha256:sha256(serialized)});
   await writeFile(path.join(directory,'client-artifacts.json'),JSON.stringify(artifactIdentity,null,2)+'\n',{flag:'wx',mode:0o600});
-  return Object.freeze({core,guidance,target,data,identity:artifactIdentity,check,close});
+  return Object.freeze({core,guidance,target,data,...(localWorkflow?{local,host,plan}:{}),identity:artifactIdentity,check,close});
  }catch(error){await close();throw Error(/^guidance-[a-z-]+$/.test(error.message??'')?error.message:'guidance-client-build-refused');}
 }
 
