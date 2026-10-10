@@ -63,7 +63,7 @@ export function snapshotPairMeasurement(input){
  if(v.timeout_ms!==PAIR_TIMEOUT_MS||v.round_budget!==PAIR_ROUND_BUDGET)refused();
  guidance(v);if(v.arm==='baseline'?v.guidance_mode!=='none':v.guidance_mode!=='historical-observed')refused();
  if(count(v.request_attempts)>PAIR_ROUND_BUDGET||count(v.retry_count)!==0||v.run_identity_digest===v.session_identity_digest)refused();
- if(v.success){if(v.failure_category!=='none'||v.cancelled||!v.trace_accuracy||!v.decision_parsed||v.disagreement_count!==0)refused();}else if(v.failure_category==='none')refused();
+ if(v.success){if(v.request_attempts<1||v.failure_category!=='none'||v.cancelled||!v.trace_accuracy||!v.decision_parsed||v.disagreement_count!==0)refused();}else if(v.failure_category==='none')refused();
  const t=own(v.tokens,TOKEN_KEYS);for(const key of TOKEN_KEYS)if(key!=='reasoning'||t[key]!==null)count(t[key]);
  if(v.sdk_cost!==null)number(v.sdk_cost);if(v.cost_priced?(v.sdk_cost===null||v.sdk_cost===0):v.sdk_cost!==null)refused();
  if(typeof v.output_digest!=='string'||!/^[a-f0-9]{64}$/.test(v.output_digest))refused();

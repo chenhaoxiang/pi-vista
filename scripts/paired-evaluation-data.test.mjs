@@ -50,6 +50,9 @@ test('F6 same-shape stale/environment fixtures differ even for all-e/f and 64-by
  for(const len of [40,64])for(const char of ['e','f']){const source=char.repeat(len),fixture=pairedFixture('stale-artifact',source,env);assert.equal(fixture.source_sha.length,len);assert.match(fixture.source_sha,/^[a-f0-9]+$/);assert.notEqual(fixture.source_sha,source);}
  const fixture=pairedFixture('environment-drift',PAIR_SOURCE_SHA,env);assert.match(fixture.env_fingerprint,/^[a-f0-9]{64}$/);assert.notEqual(fixture.env_fingerprint,env);
 });
+test('successful rows require at least one model request while zero-request failures remain admissible',()=>{
+ const good=measurement('healthy-metadata','baseline');assert.throws(()=>snapshotPairMeasurement({...good,request_attempts:0}));const failed=snapshotPairMeasurement({...good,success:false,decision_parsed:false,request_attempts:0,failure_category:'provider-unavailable'});assert.equal(failed.request_attempts,0);
+});
 test('zero strict semantic decisions cannot be an affirmative measured quality result',()=>{
  const rows=pairedOrder().map(({case_id,arm})=>({...measurement(case_id,arm,false),trace_accuracy:true,decision_parsed:false}));
  const out=aggregatePairedMeasurements(rows);assert.equal(out.evaluation_status,'unknown');assert.equal(out.decision_parsed,0);assert.equal(out.baseline.successes,0);assert.equal(out.guided.successes,0);assert.equal(out.baseline.trace_accurate,4);assert.equal(out.baseline.failure_categories['fixture-mismatch'],4);assert.equal(out.capability_claim,'none');
