@@ -253,8 +253,8 @@ operator mode/digest admission plus exact-byte policy corrections have1203cases,
 `guidance-01a11fcc-chunks` then passed one retain/lost-ack readonly reconcile,
 independent restart/original read and own-reference recall; readonly DB count1worldunit.
 This is synthetic/chunks-scoped operational evidence, not product authority or main
-inclusion. Old failures remain preserved/unprocessed. Stage5 is now a separate source
-candidate below; its larger operational acceptance and Stage6 remain pending. See
+inclusion. Old failures remain preserved/unprocessed. Stage5's separate source slice
+is delivered below; its larger operational acceptance and Stage6 remain pending. See
 [chunks amendment](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md).
 Actual installed0.10.2
 HTTP/engine/config/main file fingerprints differ from originalea5 source; user
