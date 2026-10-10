@@ -54,10 +54,12 @@ The entry is source/contract delivery, not a global installation or proof that a
 running session has loaded it. Loading it in an actual Pi session is a separate
 host acceptance step. Missing cwd/HEAD or a refused/failed host registration call
 produces a fixed observer diagnostic without affecting the primary task. Loading-time
-command introspection is best-effort: the installed SDK binds `getCommands()` only
-after factory loading and resolves collisions through its own command namespace.
-The observer does not guarantee an extra conflict diagnostic or override Pi's
-command handling. Native SDK context
+command introspection is best-effort and its availability is host/SDK-specific.
+If a same-name command is actually detected, this observer instance declines
+registration with a fixed diagnostic; otherwise Pi retains its own command
+namespace handling. This does not block tools or alter Pi's conflict handling.
+Duplicate-load/reload behavior is part of the separate local-loading acceptance.
+Native SDK context
 `cwd` is an own accessor: the wiring samples that trusted accessor once rather
 than requiring a data descriptor. Stale/throwing contexts and invalid/late HEAD
 results cannot claim an observed binding. Session replacement/shutdown invalidates
@@ -65,9 +67,10 @@ outstanding binding work; timeout bounds asynchronous observation, not synchrono
 host callback CPU work.
 
 The [Pi-Continuum rollout Change](../openspec/changes/pi-operational-rollout/pi-continuum-architecture.md)
-records the scope and acceptance. The source unit regressions preserve the initial
-3 failures (hanging reader, invalid HEAD, command introspection) and the fixed
-counter-drained cases. Explicit installed SDK acceptance is:
+records the scope and acceptance. Source regressions cover hanging/invalid/failed
+HEAD readers, stale contexts, late generation results, command introspection and
+registration cleanup, with pending-work counters drained before assertions.
+After building the existing packages, explicit installed SDK acceptance is:
 
 ```sh
 node scripts/pi-local-observer-sdk.mjs --sdk=/absolute/path/to/installed/pi-coding-agent
@@ -76,8 +79,12 @@ node scripts/pi-local-observer-sdk.mjs --sdk=/absolute/path/to/installed/pi-codi
 This runs actual `loadExtensions`/`AgentSession` with an isolated `HOME` and native
 `read`, using synthetic provider streams only. Normal recording, EventStore I/O
 fault and unborn Git HEAD each verify that native input/result and the selected
-model/thinking/tools/prompt remain unchanged. It records the entry byte digest, installed Pi SDK version and actual context
-shape. Its intercepted ModelRuntime-call counter is not a network-layer audit. It is not a global install, a real model-quality trial,
+model/thinking/tools/prompt remain unchanged. It records the entry byte digest,
+installed Pi SDK version and actual context shape. The latest local Node26
+acceptance bound the entry digest to
+`9b695cb9c6100d62ae2a14eaf2cb5492278f196e207a8c82bb727a29f59ddce6`;
+re-run after any entry change. Its intercepted ModelRuntime-call counter is not
+a network-layer audit. It is not a global install, a real model-quality trial,
 full SDK declaration validation, or an active-session reload.
 
 ```ts
