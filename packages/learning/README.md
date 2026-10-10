@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-07
+verified: 2026-10-10
 ---
 
 # @pi-vista/learning
@@ -89,6 +89,15 @@ failure handling, current-vs-historical proof, controller-lifetime clock/lost-ID
 limits and the installed SDK declaration limitation. Source PR18 acceptance is
 recorded in [the closeout](../../docs/handoff/2026-10-07-pi-observe-preview-source-closeout.md). Pi1.0.4 needs Node22.19+; Node20 support is
 for this library/mock-host seam, not the host SDK.
+
+The separate `@pi-vista/learning/local` subpath exports `createLocalLearningLibrary`
+and LOCAL types. It accepts only the exact `createLocalEvidenceVerifier` identity
+and configured scope, preserves root/signed acceptance, and explicitly composes
+safe observation/candidate/current proof, exact guidance preview/confirmation,
+one-shot retain/readback, read-only reconciliation, original-history recall/import
+and process-local lifecycle/context. `persisted` is non-authorizing and historical
+content stays not-checked/none/false. No default client, Pi injection or new real
+bank operation is installed. See [the LOCAL guide](../../docs/local-learning.md).
 
 Full input schemas, confirmation/transport semantics, lifecycle and privacy
 limits: [docs/learning.md](../../docs/learning.md) in the source repository.

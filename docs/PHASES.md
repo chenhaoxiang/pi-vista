@@ -240,8 +240,10 @@ The current corrected source candidate is `a08b159` with1203cases,11tarballs22ex
 layered same-model reviews and exact head Node20/22/26 CI. PR26 normally merged into
 main75a2741 with exact mainCI38002400266/Node20/22/26 and canonical0/0clean readback;
 post-main actualNode20 source/consumer1203cases/22exports also passed. The later
-supplementary [main closeout](handoff/2026-10-09-stage4-shared-main-closeout.md) has its
-own pending documentary inclusion; source/runtime delivery is not product authority.
+supplementary [main closeout](handoff/2026-10-09-stage4-shared-main-closeout.md) is itself
+now included by ordinaryPR27/main22e06da with exacthead/mainCI and clean canonical
+readback; preparation-time pending wording is historical, not missing delivery.
+Source/runtime delivery is not product authority.
 Later exact readonly
 document trace identifies actualQwen27B normalvalidemptyfacts and256s call, notparse/auth
 failure. User then explicitly authorizes only the dedicated bank chunks mode and one new
@@ -251,7 +253,8 @@ operator mode/digest admission plus exact-byte policy corrections have1203cases,
 `guidance-01a11fcc-chunks` then passed one retain/lost-ack readonly reconcile,
 independent restart/original read and own-reference recall; readonly DB count1worldunit.
 This is synthetic/chunks-scoped operational evidence, not product authority or main
-inclusion. Old failures remain preserved/unprocessed, Stage5/6 notstarted. See
+inclusion. Old failures remain preserved/unprocessed. Stage5 is now a separate source
+candidate below; its larger operational acceptance and Stage6 remain pending. See
 [chunks amendment](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md).
 Actual installed0.10.2
 HTTP/engine/config/main file fingerprints differ from originalea5 source; user
@@ -259,6 +262,21 @@ accepted this concrete deployment fingerprint while preserving the fixed API0.10
 client contract, not an in-memory/whole-service/source-equivalence claim. No main-bank
 acceptance data or shared service/global/model settings are changed, no bank deletion
 or original signed-store/rootLearning downgrade is introduced. Stage5/6 still later.
+
+## Stage5 explicit LOCAL lifecycle: source candidate
+
+The separate [`@pi-vista/learning/local`](local-learning.md) factory composes the
+existing local-host verifier and canonical guidance store: explicit safe observation,
+candidate/current proof, exact preview/confirmation, one-shot retain+exact readback,
+readonly reconciliation, history-only recall/import and process-local terminal/context
+lifecycle. Native promise/one-total-deadline/retirement checks do not undo host effects;
+uncertain writes are not retried. History and saved flags cannot restore live handles.
+Root/signed APIs, observer/CLI/gates/locks/dependencies/original assertions are unchanged.
+Additive synthetic/native process and public HTTP/journal tests are passing locally;
+full source/packed-consumer/independent review/PR/main delivery is still in progress.
+No actual bank sample, daily activation, model or owner policy change occurs. The larger
+Stage5 operational workflow and Stage6 paired effectiveness/cost/release remain pending.
+[Design](../openspec/changes/pi-operational-rollout/stage5-local-learning-design.md).
 
 ## Delivery: Repeatable engineering gates (#17)
 

@@ -22,6 +22,10 @@
       "types": "./dist/guidance/index.d.ts",
       "import": "./dist/guidance/index.js"
     },
+    "./local": {
+      "types": "./dist/local/index.d.ts",
+      "import": "./dist/local/index.js"
+    },
     "./pi": {
       "types": "./dist/pi/index.d.ts",
       "import": "./dist/pi/index.js"
