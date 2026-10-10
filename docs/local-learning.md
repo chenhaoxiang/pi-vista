@@ -8,9 +8,9 @@ created: 2026-10-10
 verified: 2026-10-10
 ---
 
-# 显式 LOCAL 经验闭环（源码候选）
+# 显式 LOCAL 经验闭环（源码已交付）
 
-`@pi-vista/learning/local` 是独立、按需启用的本机入口，串起候选、当前验证、精确预览、确认、guidance 持久化、检索和进程内生命周期。原 `@pi-vista/learning` 继续只接受原签名 verifier；新入口不修改签名 API、Pi 观察器、CLI、gate/guard、模型、日常配置或默认路径。当前是源码/合成验收切片，不是实际产品记忆接线或 Stage5 全部运营验收。
+`@pi-vista/learning/local` 是独立、按需启用的本机入口，串起候选、当前验证、精确预览、确认、guidance 持久化、检索和进程内生命周期。原 `@pi-vista/learning` 继续只接受原签名 verifier；新入口不修改签名 API、Pi 观察器、CLI、gate/guard、模型、日常配置或默认路径。源码已由 PR28 普通合入 main022afd6，精确 head/main CI、1265-case/23-export/实际 Node20/26 和 post-main 复验通过；原完整 BLOCK 与两项纠正复审保留，详见[源码收口](handoff/2026-10-10-local-learning-source-closeout.md)。当前是源码/合成验收交付，不是实际产品记忆接线或 Stage5 全部运营验收；本后继交接文档自身仍待独立 PR 纳入。
 
 ## 宿主显式接线
 
