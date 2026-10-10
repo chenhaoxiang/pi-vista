@@ -283,6 +283,19 @@ No actual bank sample, daily activation, model or owner policy change occurs. Th
 Stage5 operational workflow and Stage6 paired effectiveness/cost/release remain pending.
 [Design](../openspec/changes/pi-operational-rollout/stage5-local-learning-design.md).
 
+The later [explicit single-sample operator](local-learning-workflow.md) is now a
+corrected source candidate846b9a0 (1282nativecases/23exports/actualNode20+26/exacthead
+CI38054215512 PASS; originalfull9BLOCK0/2/0 + parentred + retainedcomplete7closure
+preserved, notfreshfull11). The one explicitly approved namespace/doc actualtrial
+passed PID14348writeONEretain200/currentcontext/deprecate and independentPID52511
+readretain0/read503→readonlyrecovery/ownref1/importobserved/freshproof/context/reject,
+matching source/artifact/policy/config/docdigests. Guardscope only6fixedhostcommand
+events perphase; historicalnone/notchecked/false andno defaultactivation remains.
+[Scoped runtime handoff](handoff/2026-10-10-local-workflow-scoped-runtime.md) records
+parentactualevidence; PR30/runtime-doc/main/sharedclosure is stillpending andStage6
+pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
+above are the source-library closeout's boundary, not a denial of this later scopedtrial.
+
 ## Delivery: Repeatable engineering gates (#17)
 
 **Implemented source**: dependency-ordered root gates for all 11 packages,

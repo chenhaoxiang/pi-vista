@@ -54,7 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [docs/local-learning-workflow.md](docs/local-learning-workflow.md): explicitly approved one-new-sample Stage5 actual operator candidate, fixed host command scope/fresh source/current proof/read-only recovery; no new actual execution claimed yet
+- [docs/handoff/2026-10-10-local-workflow-scoped-runtime.md](docs/handoff/2026-10-10-local-workflow-scoped-runtime.md): one approved actual LOCAL sample/write14348/read52511/retain1→0/ownref1/read503-only recovery and exact artifact/policy/config/source evidence; source/PR/main/Stage6 remain separate
+- [docs/local-learning-workflow.md](docs/local-learning-workflow.md): explicitly approved Stage5 operator source candidate, fixed host scope/fresh source/current proof/read-only recovery; actual one-sample scoped runtime passed, PR/main closure pending
 - [openspec/changes/pi-operational-rollout/stage5-operational-design.md](openspec/changes/pi-operational-rollout/stage5-operational-design.md): same dedicated bank/one namespace/one synthetic document scope, independent read/client-only fault/counter/source/policy acceptance plan
 - [docs/handoff/2026-10-10-local-learning-source-closeout.md](docs/handoff/2026-10-10-local-learning-source-closeout.md): PR28/main022afd6 source/CI/canonical/post-main delivery, preserved full15 BLOCK and complete6 F1/F2 closure,1265-case/23-export pins; larger actual Stage5/Stage6 remain separate
 - [docs/local-learning.md](docs/local-learning.md): Stage5 opt-in LOCAL source delivered, exact host proof/preview/confirmation/guidance/recall/lifecycle; original signed/root APIs unchanged, no default activation or new real-bank sample

@@ -10,9 +10,9 @@ created: 2026-10-10
 verified: 2026-10-10
 ---
 
-# 单样本真实 LOCAL 工作流（显式操作入口候选）
+# 单样本真实 LOCAL 工作流（源码候选／限定运行通过）
 
-LOCAL library 源码由 PR28/29 交付；用户已明确选择在现有 `pi-vista-local-test-01a114ab` 仅新增一个 namespace / 一份合成文档，进行 Stage5 实际闭环。已有资源风险告知包括现有 embedding/reranker 用量。**当前仅完成新 operator 候选和合成测试，尚未执行这个新真实样本**；不从源码或 mock PASS 推导实际验收。
+LOCAL library 源码由 PR28/29 交付；用户已明确选择在现有 `pi-vista-local-test-01a114ab` 仅新增一个 namespace / 一份合成文档，进行 Stage5 实际闭环。已有资源风险告知包括现有 embedding/reranker 用量。**精确846b9a0的operator源码/纠正复审、1282-case/实际Node20+26/23export/exacthostedCI通过；新namespace workflow-01a11fcc-actual 已实际完成一次retain200/精确原文/独立read进程retain0/ownref1/client读503只读恢复/current重验证与终态失效**。这是明确合成/LOCAL/固定host scope运行PASS；PR30/后继运行文档/main共享收口仍pending，Stage6未完成。原审查BLOCK、红回归和CI失败保留，不由源码或mock推导运行PASS。详见[限定运行记录](handoff/2026-10-10-local-workflow-scoped-runtime.md)。
 
 ## 显式命令和既有合同
 
@@ -51,6 +51,6 @@ node scripts/local-learning-workflow.mjs --phase=read \
 
 初次重型fixture三次尝试在旧Pi observer `checkpoints reject preserves synchronous notifications and consumes late failure` 短预算测试失败；日志和失败报告保留，未修改或放宽旧断言。新fixture仅收窄自身目的后通过，不宣称修复那项负载下失败。外层完整门禁仍必须真实通过；重复失败就保留具体技术阻塞，不继续无效重试或触发真实POST。
 
-实际资源调用、API fingerprint/config/source admission、write/restart/recall/current vs history、故障对账和共享收口后另行记录。Stage6 paired成功率/返工/人工介入/耗时/token成本/发行账户与回滚仍待独立实际数据，不由此改模型/guard/gate或发布。
+实际资源调用、API fingerprint/config/source admission、write/restart/recall/current vs history、读故障只读恢复已在上述限定运行记录实证；仍需最新文档审查/普通PR/main共享收口，不称父级证据是审查者独立重放。Stage6 paired成功率/返工/人工介入/耗时/token成本/发行账户与回滚仍待独立实际数据，不由此改模型/guard/gate或发布。
 
 设计：[Stage5 operational](../openspec/changes/pi-operational-rollout/stage5-operational-design.md)；前置：[LOCAL library](local-learning.md)、[source closeout](handoff/2026-10-10-local-learning-source-closeout.md)、[guidance](hindsight-guidance.md)。
