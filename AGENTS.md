@@ -54,7 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [docs/local-learning.md](docs/local-learning.md): Stage5 opt-in LOCAL source candidate, exact host proof/preview/confirmation/guidance/recall/lifecycle; original signed/root APIs unchanged, no default activation or new real-bank sample
+- [docs/handoff/2026-10-10-local-learning-source-closeout.md](docs/handoff/2026-10-10-local-learning-source-closeout.md): PR28/main022afd6 source/CI/canonical/post-main delivery, preserved full15 BLOCK and complete6 F1/F2 closure,1265-case/23-export pins; larger actual Stage5/Stage6 remain separate
+- [docs/local-learning.md](docs/local-learning.md): Stage5 opt-in LOCAL source delivered, exact host proof/preview/confirmation/guidance/recall/lifecycle; original signed/root APIs unchanged, no default activation or new real-bank sample
 - [openspec/changes/pi-operational-rollout/stage5-local-learning-design.md](openspec/changes/pi-operational-rollout/stage5-local-learning-design.md): bounded LOCAL workflow/API/cancellation/restart plan; source and larger operational acceptance remain distinct
 - [docs/handoff/2026-10-09-stage4-shared-main-closeout.md](docs/handoff/2026-10-09-stage4-shared-main-closeout.md): merged PR26/75a2741, exact main CI/post-main Node20 verification, scoped chunks runtime PASS and remaining Stage5/6 boundaries
 - [docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md](docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md): exact readonly Qwen empty-facts/256s diagnosis, explicitly approved one-bank chunks mode change, no reprocessing of old failures, operator mode/digest admission, scoped new chunks runtime PASS/1worldunit, PR26 source/main and PR27 supplementary documentary closure

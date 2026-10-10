@@ -253,8 +253,8 @@ operator mode/digest admission plus exact-byte policy corrections have1203cases,
 `guidance-01a11fcc-chunks` then passed one retain/lost-ack readonly reconcile,
 independent restart/original read and own-reference recall; readonly DB count1worldunit.
 This is synthetic/chunks-scoped operational evidence, not product authority or main
-inclusion. Old failures remain preserved/unprocessed. Stage5 is now a separate source
-candidate below; its larger operational acceptance and Stage6 remain pending. See
+inclusion. Old failures remain preserved/unprocessed. Stage5's separate source slice
+is delivered below; its larger operational acceptance and Stage6 remain pending. See
 [chunks amendment](handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md).
 Actual installed0.10.2
 HTTP/engine/config/main file fingerprints differ from originalea5 source; user
@@ -263,7 +263,7 @@ client contract, not an in-memory/whole-service/source-equivalence claim. No mai
 acceptance data or shared service/global/model settings are changed, no bank deletion
 or original signed-store/rootLearning downgrade is introduced. Stage5/6 still later.
 
-## Stage5 explicit LOCAL lifecycle: source candidate
+## Stage5 explicit LOCAL lifecycle: source delivered
 
 The separate [`@pi-vista/learning/local`](local-learning.md) factory composes the
 existing local-host verifier and canonical guidance store: explicit safe observation,
@@ -272,8 +272,13 @@ readonly reconciliation, history-only recall/import and process-local terminal/c
 lifecycle. Native promise/one-total-deadline/retirement checks do not undo host effects;
 uncertain writes are not retried. History and saved flags cannot restore live handles.
 Root/signed APIs, observer/CLI/gates/locks/dependencies/original assertions are unchanged.
-Additive synthetic/native process and public HTTP/journal tests are passing locally;
-full source/packed-consumer/independent review/PR/main delivery is still in progress.
+Additive synthetic/native process and public HTTP/journal tests plus full source/
+packed-consumer passed1265nativecases/11tarballs23exports/actualNode20+26. Freshfull15
+BLOCK0/2/0 was corrected via fourredregressions/minimalF1F2fix; retainedcomplete6review
+closesboth0/0/0 (notfreshfull16). OrdinaryPR28/main022afd6, exactheadCI38016756178/
+mainCI38017408152, canonical0/0clean and isolatedpostmainNode20 passed. The later
+[source closeout](handoff/2026-10-10-local-learning-source-closeout.md) has its own
+pending documentary inclusion; it does not supply actualbank/currentauthority.
 No actual bank sample, daily activation, model or owner policy change occurs. The larger
 Stage5 operational workflow and Stage6 paired effectiveness/cost/release remain pending.
 [Design](../openspec/changes/pi-operational-rollout/stage5-local-learning-design.md).
