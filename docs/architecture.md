@@ -5,11 +5,20 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-05
-verified: 2026-10-07
+verified: 2026-10-10
 ssot: true
 ---
 
 # pi-vista Architecture
+
+## Pi-Continuum integration boundary
+
+The unified native-first Policy/Execution/Evidence/Evaluation design and ordered
+implementation plan are maintained in [Pi-Continuum](pi-continuum.md) and the single
+`openspec/changes/pi-operational-rollout/` Change. Vista remains the fail-open
+observation/check/LOCAL/history side plane; it never becomes a policy writer,
+permission or merge authority, or a mandatory model-voting/execution prerequisite.
+The native-first contract is measurable, not a promise of absolute zero regression.
 
 ## Overview
 
