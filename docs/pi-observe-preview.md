@@ -64,8 +64,8 @@ results cannot claim an observed binding. Session replacement/shutdown invalidat
 outstanding binding work; timeout bounds asynchronous observation, not synchronous
 host callback CPU work.
 
-The Pi-Continuum rollout Change (tracked separately) records the scope and
-acceptance. The source unit regressions preserve the initial
+The [Pi-Continuum rollout Change](../openspec/changes/pi-operational-rollout/pi-continuum-architecture.md)
+records the scope and acceptance. The source unit regressions preserve the initial
 3 failures (hanging reader, invalid HEAD, command introspection) and the fixed
 counter-drained cases. Explicit installed SDK acceptance is:
 
