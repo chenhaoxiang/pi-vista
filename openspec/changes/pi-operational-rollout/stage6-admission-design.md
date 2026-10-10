@@ -31,10 +31,20 @@ is real runtime evidence. Its status is `verification: metadata-only`,
 for this evaluation slice only; it does not block the user's primary task.
 
 The budget accepts only a genuine in-process admitted object from this module,
-not a copied/serialized boolean. It bounds future attempts to at most16, but
-remains a counter, not an executor or a claim of network interception. A future
-actual host must bind this budget BEFORE its selected transport call and collect
-fresh profile/source/SDK/broker/history facts. That wiring is still pending.
+not a copied/serialized boolean. Repeated requests for the same admitted object
+return the same counter, so a second wrapper cannot reset its maximum. It bounds
+future attempts to at most16, but remains a counter, not an executor or network
+interception. A future actual host must bind it BEFORE the selected transport
+call and collect fresh profile/source/SDK/broker/history facts; this is pending.
+
+Admission carries `arm`/`guidance_mode`: baseline is explicitly `none` with null
+`guidance_digest`, guided is `historical-observed` with a compiled-context digest.
+`subject_history_digest` is the separate fixed subject/history anchor shared by
+both arms, not the per-arm guidance digest. The future host owns protected-map
+membership (stable SDK/broker/harness/subject/task/config identity) and volatile-map
+membership (concurrent root/cache/session metadata). Both are explicit; any
+changed member refuses this evaluation with a distinct classification. This
+module supplies no implicit member selection or actor attribution.
 
 ## Structured decision and reference oracle
 
@@ -46,11 +56,22 @@ invocation; free-form text or JSON strings cannot be a decision. It keeps
 `semantic-mismatch` separate from `decision-valid`.
 
 The deterministic reference solver evaluates the existing synthetic metadata
-fixture against its host-owned source/environment/required-metadata context.
-The mock provider emits only this fixed tool call; it does not call a model or
-judge. These outcomes are fixture correctness, not guard/gate/financial permission
-or measured model capability. No default tool, prompt, model or thinking change
-is made by importing this module.
+fixture against its caller-pinned source/environment/required-metadata context;
+validated `required_fields` drive missing/invalid metadata detection (including an
+unexpected format version). Tests independently compare all four results with
+the ancestor fixture truth table. The mock emits only the fixed tool call; it
+never calls a model/judge. Outcomes are fixture correctness, not guard/gate/
+financial permission or measured capability; importing changes no default tools,
+prompt, model or thinking.
+
+The structured `stage6_decision.arguments` object is the canonical new decision
+source. The ancestor `strictPairedDecision` JSON-text helper is retained for old
+metric/source compatibility, not as a way to satisfy the new decision contract.
+The envelope is exactly `case_id/status/call/metadata/expected`; completed/refusal/
+provider-error and cancellation/timeout/deadline/stream-disconnected preserve
+separate non-success outcomes. An unsupported status grades schema-invalid.
+Malformed envelope/case/pin raises a fixed contract error before grading and
+remains the future host's invalid-trial path, not a primary-task failure.
 
 ## Current validation and remaining work
 

@@ -7,9 +7,10 @@ export const STAGE6_ADMISSION_SCHEMA = 1;
 const HEX64 = /^[a-f0-9]{64}$/u;
 const SOURCE_SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const LABEL = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
-const CONTEXT_KEYS = ["provider", "model", "thinking", "sdk", "harness_source_sha", "subject_source_sha", "subject_history_digest", "broker_digest"];
+const CONTEXT_KEYS = ["provider", "model", "thinking", "sdk", "arm", "guidance_mode", "guidance_digest", "harness_source_sha", "subject_source_sha", "subject_history_digest", "broker_digest"];
 const INPUT_KEYS = [...CONTEXT_KEYS, "profile_before", "profile_after", "model_calls"];
 const issued = new WeakSet();
+const budgets = new WeakMap();
 const refuse = () => { throw new Error("stage6-admission-refused"); };
 function own(value, keys) {
   if (value === null || typeof value !== "object" || Array.isArray(value) || types.isProxy(value) ||
@@ -24,8 +25,11 @@ function own(value, keys) {
 }
 function context(input) {
   const value = own(input, CONTEXT_KEYS);
-  for (const key of ["provider", "model", "sdk"]) if (typeof value[key] !== "string" || !LABEL.test(value[key])) refuse();
+  for (const key of ["provider", "model", "sdk", "arm", "guidance_mode"]) if (typeof value[key] !== "string" || !LABEL.test(value[key])) refuse();
   if (!["off", "minimal", "low", "medium", "high", "xhigh", "max"].includes(value.thinking)) refuse();
+  if (!["baseline", "guided"].includes(value.arm)) refuse();
+  if (value.arm === "baseline" && (value.guidance_mode !== "none" || value.guidance_digest !== null)) refuse();
+  if (value.arm === "guided" && (value.guidance_mode !== "historical-observed" || typeof value.guidance_digest !== "string" || !HEX64.test(value.guidance_digest))) refuse();
   for (const key of ["harness_source_sha", "subject_source_sha"]) if (typeof value[key] !== "string" || !SOURCE_SHA.test(value[key])) refuse();
   if (typeof value.subject_history_digest !== "string" || !HEX64.test(value.subject_history_digest)) refuse();
   if (value.broker_digest !== null && (typeof value.broker_digest !== "string" || !HEX64.test(value.broker_digest))) refuse();
@@ -66,7 +70,7 @@ export function classifyProfileDrift(beforeInput, afterInput) {
 function result(reason_code, model_calls, details = {}) {
   const value = Object.freeze({ schema: STAGE6_ADMISSION_SCHEMA, status: reason_code === null ? "admitted" : "refused",
     admitted: reason_code === null, reason_code, model_calls, started_model_calls: 0,
-    verification: "metadata-only", authorization: "none", executable: false, ...details });
+    verification: "metadata-only", ...details, authorization: "none", executable: false });
   if (reason_code === null) issued.add(value);
   return value;
 }
@@ -87,8 +91,11 @@ export function admitStage6Run(input, expectedInput) {
 }
 export function createAdmissionRequestBudget(admission, maxRequests = 16) {
   if (!issued.has(admission) || !Number.isSafeInteger(maxRequests) || maxRequests < 1 || maxRequests > 16) throw new Error("admission-required");
+  const existing = budgets.get(admission);
+  if (existing) { if (existing.max_requests !== maxRequests) throw new Error("admission-budget-mismatch"); return existing; }
   let requests = 0;
-  return Object.freeze({ get requests() { return requests; }, max_requests: maxRequests,
+  const budget = Object.freeze({ get requests() { return requests; }, max_requests: maxRequests,
     take() { if (requests >= maxRequests) throw new Error("request-budget-exhausted"); return ++requests; },
     status() { return Object.freeze({ verification: "metadata-only", authorization: "none", model_calls: requests, max_requests: maxRequests }); } });
+  budgets.set(admission, budget); return budget;
 }

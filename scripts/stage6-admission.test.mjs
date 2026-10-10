@@ -5,7 +5,7 @@ import { admitStage6Run, classifyProfileDrift, createAdmissionRequestBudget, pro
 
 const d = value => createHash("sha256").update(value).digest("hex");
 const profile = (volatile = d("v"), protectedValue = d("p")) => ({ protected: { auth: protectedValue, settings: d("s") }, volatile: { cache: volatile, root: d("r") } });
-const context = { provider: "codex-local-8319", model: "gpt-6.1-sol", thinking: "max", sdk: "1.0.4", harness_source_sha: d("h"), subject_source_sha: d("u"), subject_history_digest: d("i"), broker_digest: null };
+const context = { provider: "codex-local-8319", model: "gpt-6.1-sol", thinking: "max", sdk: "1.0.4", arm: "baseline", guidance_mode: "none", guidance_digest: null, harness_source_sha: d("h"), subject_source_sha: d("u"), subject_history_digest: d("i"), broker_digest: null };
 const input = (overrides = {}) => ({ ...context, profile_before: profile(), profile_after: profile(), model_calls: 0, ...overrides });
 
 test("profile snapshots are closed, canonical and digestable without filesystem reads", () => {
@@ -22,13 +22,15 @@ test("profile drift separates protected changes from volatile unknown attributio
 test("admission success binds exact context and budget without starting model calls", () => {
   const result = admitStage6Run(input(), context); assert.equal(result.status, "admitted"); assert.equal(result.model_calls, 0);
   assert.equal(result.authorization, "none"); assert.equal(result.profile_before_digest, result.profile_after_digest); assert.equal(result.drift.classification, "unchanged");
-  const budget = createAdmissionRequestBudget(result, 2); assert.equal(budget.take(), 1); assert.equal(budget.take(), 2); assert.throws(() => budget.take(), /request-budget-exhausted/); assert.deepEqual(budget.status(), { verification: "metadata-only", authorization: "none", model_calls: 2, max_requests: 2 });
+  const budget = createAdmissionRequestBudget(result, 2); assert.equal(createAdmissionRequestBudget(result, 2), budget); assert.equal(budget.take(), 1); assert.equal(budget.take(), 2); assert.throws(() => budget.take(), /request-budget-exhausted/); assert.throws(() => createAdmissionRequestBudget(result, 3), /admission-budget-mismatch/); assert.deepEqual(budget.status(), { verification: "metadata-only", authorization: "none", model_calls: 2, max_requests: 2 });
 });
 test("protected/volatile drift and context mismatch refuse before any model request", () => {
   const protectedAfter = profile(); protectedAfter.protected.auth = d("x"); const p = admitStage6Run(input({ profile_after: protectedAfter }), context);
   assert.equal(p.reason_code, "protected-profile-drift"); assert.equal(p.model_calls, 0); assert.throws(() => createAdmissionRequestBudget(p), /admission-required/);
   const v = admitStage6Run(input({ profile_after: profile(d("x")) }), context); assert.equal(v.reason_code, "volatile-profile-drift-unknown-attribution");
   const mismatch = admitStage6Run(input({ model: "other-model" }), context); assert.equal(mismatch.reason_code, "model-mismatch");
+  const guided = { ...context, arm: "guided", guidance_mode: "historical-observed", guidance_digest: d("g") };
+  assert.equal(admitStage6Run(input(guided), guided).status, "admitted");
 });
 test("invalid provenance and pre-admission calls preserve refusal without fallback", () => {
   for (const bad of [input({ subject_source_sha: "not-a-digest" }), input({ broker_digest: "not-a-digest" }), input({ profile_before: undefined })]) {

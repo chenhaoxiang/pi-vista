@@ -2,6 +2,7 @@ import { types } from "node:util";
 import { PAIR_CASES } from "./paired-evaluation-data.mjs";
 
 const DECISIONS = Object.freeze(["accept", "reject"]);
+const TECHNICAL_FAILURES = Object.freeze(["cancelled", "timeout", "deadline", "stream-disconnected"]);
 const REASONS = Object.freeze(["metadata-current", "source-mismatch", "environment-mismatch", "metadata-missing"]);
 export const STRICT_DECISION_SCHEMA = Object.freeze({ type: "object", additionalProperties: false,
   properties: Object.freeze({
@@ -37,12 +38,20 @@ export function referenceDecision(case_id, metadata, expected) {
   decisionToolContract(case_id);
   const observed = fixture(metadata);
   const pin = own(expected, ["source_sha", "env_fingerprint", "required_fields", "format_version"]);
+  if (!Array.isArray(pin.required_fields) || types.isProxy(pin.required_fields) || Object.getPrototypeOf(pin.required_fields) !== Array.prototype ||
+      pin.required_fields.length < 1 || pin.required_fields.length > 2 || Reflect.ownKeys(pin.required_fields).length !== pin.required_fields.length + 1) throw new Error("decision-schema-invalid");
+  const required = [];
+  for (let index = 0; index < pin.required_fields.length; index++) {
+    const p = Object.getOwnPropertyDescriptor(pin.required_fields, String(index));
+    if (!p || !Object.hasOwn(p, "value") || !["title", "format_version"].includes(p.value) || required.includes(p.value)) throw new Error("decision-schema-invalid");
+    required.push(p.value);
+  }
   if (observed.case_id !== case_id || typeof observed.source_sha !== "string" || typeof observed.env_fingerprint !== "string" ||
       typeof pin.source_sha !== "string" || typeof pin.env_fingerprint !== "string" || !Number.isSafeInteger(pin.format_version)) throw new Error("decision-schema-invalid");
   // These are explicitly trusted synthetic fixture records, not raw tool/model bodies.
   const reason_code = observed.source_sha !== pin.source_sha ? "source-mismatch" :
     observed.env_fingerprint !== pin.env_fingerprint ? "environment-mismatch" :
-    typeof observed.title !== "string" || observed.title.length === 0 || observed.format_version !== pin.format_version ? "metadata-missing" : "metadata-current";
+    required.some(field => field === "title" ? typeof observed.title !== "string" || observed.title.length === 0 : observed.format_version !== pin.format_version) ? "metadata-missing" : "metadata-current";
   return Object.freeze({ case_id, decision: reason_code === "metadata-current" ? "accept" : "reject", reason_code });
 }
 export function createReferenceMockProvider() {
@@ -63,7 +72,8 @@ export function classifyDecisionOutcome(input) {
   decisionToolContract(case_id);
   if (status === "provider-error") return result("provider-error", case_id);
   if (status === "refusal") return result("refusal", case_id);
-  if (status !== "completed") throw new Error("decision-schema-invalid");
+  if (TECHNICAL_FAILURES.includes(status)) return result(status, case_id);
+  if (status !== "completed") return result("schema-invalid", case_id);
   if (call === null) return result("tool-not-called", case_id);
   let parsed;
   try {
