@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-10
+verified: 2026-10-11
 ---
 
 # Repository-local contributor contract
@@ -54,6 +54,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md](openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md): four-pair pilot design/closed non-authorizing metrics; initial eight-path BLOCK/parent red fixes and private16-call INVALID draft trial preserved; accepted runtime/quality measures and release remain pending, no automatic/ROI claim
 - [docs/handoff/2026-10-10-local-workflow-main-closeout.md](docs/handoff/2026-10-10-local-workflow-main-closeout.md): PR30/mainb245d7f scoped runtime+source/shared delivery, exacthead/mainCI/canonical/postmain evidence, preserved layered BLOCK/red/runtime limits; Stage6 still separate
 - [docs/handoff/2026-10-10-local-workflow-scoped-runtime.md](docs/handoff/2026-10-10-local-workflow-scoped-runtime.md): one approved actual LOCAL sample/write14348/read52511/retain1→0/ownref1/read503-only recovery and exact artifact/policy/config/source evidence; PR30/main delivery and Stage6 remain separately proved; this runtime snapshot retains preparation-time pending
 - [docs/local-learning-workflow.md](docs/local-learning-workflow.md): explicitly approved Stage5 operator source candidate, fixed host scope/fresh source/current proof/read-only recovery; actual one-sample scoped runtime passed and PR30/mainb245 delivery verified; new main-closeout document itself separately pending
