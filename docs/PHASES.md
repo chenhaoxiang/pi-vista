@@ -292,8 +292,10 @@ readretain0/read503→readonlyrecovery/ownref1/importobserved/freshproof/context
 matching source/artifact/policy/config/docdigests. Guardscope only6fixedhostcommand
 events perphase; historicalnone/notchecked/false andno defaultactivation remains.
 [Scoped runtime handoff](handoff/2026-10-10-local-workflow-scoped-runtime.md) records
-parentactualevidence; PR30/runtime-doc/main/sharedclosure is stillpending andStage6
-pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
+parentactualevidence. PR30/source/runtimedocs nowordinarymergedmainb245d7f,
+exactdocheadCI38055998963/mainCI38056567710PASS, canonical0-0clean andisolated
+postmainNode20source/consumer1282cases/23exportsPASS. Later [main closeout](handoff/2026-10-10-local-workflow-main-closeout.md)
+has its own pendinginclusion; Stage6pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
 above are the source-library closeout's boundary, not a denial of this later scopedtrial.
 
 ## Delivery: Repeatable engineering gates (#17)
