@@ -49,6 +49,9 @@ and tool execution outcomes to the existing `@pi-vista/core` event contract.
   `/vista-preview`, `/vista-adopt`, and `/vista-verify` commands. Preview/history
   and current verification remain explicit; they are not injected into model
   context or execution.
+- `hostStatus().persistence` is `default-local-event-store` when `store` is
+  `null`/`undefined`, and `host-supplied-append-port` otherwise. This status is
+  descriptive only; it never implies current permission or durable proof.
 
 The entry is source/contract delivery, not a global installation or proof that a
 running session has loaded it. Loading it in an actual Pi session is a separate
@@ -66,8 +69,11 @@ results cannot claim an observed binding. Session replacement/shutdown invalidat
 outstanding binding work; timeout bounds asynchronous observation, not synchronous
 host callback CPU work.
 
-The [Pi-Continuum rollout Change](../openspec/changes/pi-operational-rollout/pi-continuum-architecture.md)
-records the scope and acceptance. Source regressions cover hanging/invalid/failed
+The Pi-Continuum boundary is maintained in this document and the
+[PHASES roadmap](PHASES.md#explicit-optional-pi-observation-and-preview-source-delivered);
+the separate [rollout Change](../openspec/changes/pi-operational-rollout/pi-continuum-architecture.md)
+records the broader ordered architecture, not a runtime requirement for this
+source slice. Source regressions cover hanging/invalid/failed
 HEAD readers, stale contexts, late generation results, command introspection and
 registration cleanup, with pending-work counters drained before assertions.
 After building the existing packages, explicit installed SDK acceptance is:
@@ -83,8 +89,10 @@ model/thinking/tools/prompt remain unchanged. It records the entry byte digest,
 installed Pi SDK version and actual context shape. The latest local Node26
 acceptance bound the entry digest to
 `02a6f2d79b19e8455d1efdc29369364d9b1917e3d8b84526d34e5225ce1ad145`;
-re-run after any entry change. Its intercepted ModelRuntime-call counter is not
-a network-layer audit. It is not a global install, a real model-quality trial,
+re-run after any entry change. This local record was produced with installed
+Pi SDK `1.1.0-fork.1` on Node26; it is not a portable full-SDK compatibility claim.
+Its intercepted ModelRuntime-call counter is not a network-layer audit. It is not
+a global install, a real model-quality trial,
 full SDK declaration validation, or an active-session reload.
 
 ```ts
