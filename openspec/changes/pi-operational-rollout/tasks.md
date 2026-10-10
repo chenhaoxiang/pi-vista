@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-09
+verified: 2026-10-10
 ---
 
 # Sequential tasks
@@ -39,7 +39,8 @@ verified: 2026-10-09
 - [x] Later explicit owner amendment permits only dedicatedbank retain_extraction_mode chunks, newnamespaceone synthetictrial/mode-bound preflight. OnePATCH200/GET confirms otherpubliccfg/overrides/old2docsunchanged; noembedding/model/main/reprocess/globalwrite.
 - [x] New chunks operator mode/configdigest+private cross-phase trial-policy admission, one-stream exact-byte response guard, BOM byte equality/digest correction: exactsourcea08b159 local1203/source/Node20/11tarball22exports passed, layered correction review0/0/0, exactUbuntu20/22/26CI37990954332/GGsuccess; priorF3/F4BLOCK/F5P2 retained.
 - [x] One newnamespaceguidance-01a11fcc-chunks actual retain200/injected503/read-onlyreconcile/exactoriginal; independentPID9162→10841/readretain0/recallownref1, matchingpolicy/sourceartifact/configdigests, readonlyDB1worldunit. Old2concise failures/doc/journal retained, no reprocessing or replay, originalsigned/root store notrelaxed. Scopeonlysynthetic/chunks, no currentproof/authority/productbank defaultactivation.
-- [ ] Stage4 normalPR/mainCI/sharedcloseout: scoped actualruntime passed, PR26/latestdocument/main inclusion stillpending; Stage5/6 notstarted.
+- [x] Stage4 normalPR/mainCI/sharedsource closure: PR26 ordinarymerge75a2741 includes reviewedhead4d64877/source/runtimedocs, ancestry/treeequal/remote readback; exactmainCI38002400266Ubuntu20/22/26success, canonicalff-only75a2741/0-0clean, isolatedpost-mainactualNode20 source/consumer1203cases/22exports passed. Source/syntheticchunks runtime !=currentauthority/defaultactivation/publication, Stage5/6notstarted.
+- [ ] This later supplemental exact-main closeout document's ownPR/main inclusion remainspending at preparation; do notusePR26asproofitwasalreadymerged.
 - [ ] Stage5: explicit LOCAL candidate→fresh host verification→preview→confirmation→guidance persistence→recall and lifecycle/reconciliation workflow; restart/history reverify, separate signed key rotation remains unresolved when used.
 - [ ] Stage6: actual paired effectiveness/cost evaluation then confirmed release/rollback scope.
 

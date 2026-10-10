@@ -54,6 +54,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/handoff/2026-10-09-stage4-shared-main-closeout.md](docs/handoff/2026-10-09-stage4-shared-main-closeout.md): merged PR26/75a2741, exact main CI/post-main Node20 verification, scoped chunks runtime PASS and remaining Stage5/6 boundaries
 - [docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md](docs/handoff/2026-10-09-stage4-extraction-diagnosis-and-chunks-trial.md): exact readonly Qwen empty-facts/256s diagnosis, explicitly approved one-bank chunks mode change, no reprocessing of old failures, operator mode/digest admission, scoped new chunks runtime PASS/1worldunit and still-pending PR/main shared closure
 - [docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md](docs/handoff/2026-10-09-stage4-guidance-source-and-operational-block.md): historical completed/snapshot source candidate/1181-case/layered review/exact CI pins and retained zero-fact/timeout trials; original concise Stage4 BLOCK remains history, newer authorized chunks scope routed above, no retroactive PASS
 - [docs/hindsight-guidance.md](docs/hindsight-guidance.md): Stage4 explicit guidance-only candidate; approved isolated bank/actual0.10.2 deployment fingerprint, no signed/root Learning fallback or current-proof restoration
