@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { admitK1, snapshotHistoryContext } from "./stage6-k1-admission.mjs";
+import { createAdmissionRequestBudget } from "./stage6-admission.mjs";
 import { matchSdkContract, bindStage6Provenance } from "./stage6-sdk-provenance.mjs";
 
 const h = x => createHash("sha256").update(x).digest("hex"), source = "a".repeat(40);
@@ -54,8 +55,13 @@ test("copied provenance remains metadata and does not require an opaque proof ha
 });
 test("K1 preserves consumed pre-admission counts and accepts only K1 budget declarations", () => {
   assert.equal(admitK1(input({ model_calls: 1 })).reason_code, "model-calls-before-admission"); assert.equal(admitK1(input({ model_calls: 1 })).model_calls, 1);
-  for (const changes of [{ k: 3 }, { max_requests: 17 }, { max_per_session: 3 }, { deadline_ms: 1_200_001 }])
+  assert.equal(admitK1(input({ model_calls: 1, context: { ...context, model: "other-model" } })).reason_code, "model-calls-before-admission");
+  for (const changes of [{ k: 3 }, { max_requests: 17 }, { max_per_session: 3 }, { deadline_ms: 1_200_001 }, { deadline_ms: 999 }])
     assert.equal(admitK1(input({ budget: { ...budget, ...changes } })).reason_code, "invalid-input");
+});
+test("K1 metadata cannot become an execution-budget token", () => {
+  const admitted = admitK1(input()); assert.equal(admitted.status, "metadata-admitted");
+  assert.throws(() => createAdmissionRequestBudget(admitted), /admission-required/);
 });
 test("history/option getters/proxies reject without traps", () => {
   let calls = 0; const history = new Proxy({}, { get() { calls++; throw Error(); }, ownKeys() { calls++; throw Error(); } });

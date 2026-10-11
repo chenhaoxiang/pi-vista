@@ -28,15 +28,25 @@ digests. The DTO is detached metadata, not a verifier handle or current proof.
 `context.subject_history_digest`; it is not evidence of a current LOCAL/Hindsight
 readback. `context_digest` binds the guided block separately. The retained
 `provenance_digests` are validated only as bounded digest labels, not authenticated
-sources. This module does not read LOCAL/Hindsight, restore old permission or
-establish ROI.
+sources. The host/measurement layer remains responsible for selecting the accepted
+subject-history anchor and assigning the window-common versus arm-specific labels;
+this source slice checks equality and shape only. It does not require those two
+context labels to differ. This module does not read LOCAL/Hindsight, restore old
+permission or establish ROI.
 
 The K1 budget is a closed declaration: `k=1`, total max requests <=16, max per
-session=2 and bounded deadline. It creates no counter and enforces no transport
-limit; the delivered whole-window coordinator remains the one pilot budget owner.
-Observed pre-admission model calls must be zero;
-nonzero counts are preserved as `model-calls-before-admission`, not rewritten to
-zero. `started_model_calls` stays zero because this module never starts a model.
+session=2 and a deliberate `deadline_ms` range of 1000–1,200,000ms. Historical
+context is deliberately bounded to 8192 characters, even though the lower-level
+coordinator/learning seams accept some broader ranges. These are K1 data-contract
+bounds, not a new primary-task gate. The declaration creates no counter and
+enforces no transport limit; the delivered whole-window coordinator remains the
+one pilot budget owner.
+Observed pre-admission model calls must be zero. After closed-input and count
+validation, a nonzero count is returned immediately as `model-calls-before-admission`
+before nested context/provenance/history inspection; it is not rewritten to zero.
+Malformed outer/count data returns `invalid-input` with `model_calls: null` rather
+than claiming a count was observed. `started_model_calls` stays zero because this
+module never starts a model.
 
 ## Provenance and refusal semantics
 
@@ -63,8 +73,16 @@ exhausted and not reused.
 - [x] Closed source DTO and synthetic admission tests in this candidate:
   baseline/guided history boundary, subject/context/provenance cross-checks,
   nonzero prior call, invalid budget, getters/proxies and non-authorizing outputs.
-  A broker/provider/harness mismatch regression was red against initial
-  `9c96564`, then green after the source correction; original logs are retained.
+  A broker/provider/harness mismatch regression was reproduced red before the
+  source correction, then green after it. The local self-reported logs are retained
+  at `tmp/k1-admission/provenance-before.log` and
+  `tmp/k1-admission/provenance-after.log`; they are not independent review or CI
+  evidence. The retained initial `9fd67af` source received independent
+  `OK with notes` (0 P0/P1, four report-only P2s). This follow-up documents K1
+  bounds and host responsibility, prioritizes prior calls, and adds a non-token
+  assertion. `tmp/k1-admission/priority-before.log` records 7/8 against the original
+  `9fd67af` source; `priority-after.log` is 8/8 on the corrected source. These are
+  parent-executed local regressions, not the reviewer's execution.
 - [ ] Fresh independent source review, exact-head source/consumer/Node20 CI,
   ordinary PR43/main inclusion and readback remain pending at preparation.
 - [ ] Integrate with a fresh real SDK host window after source delivery. The

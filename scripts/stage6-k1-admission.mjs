@@ -35,9 +35,11 @@ export function snapshotHistoryContext(input) { return historical(input); }
 export function admitK1(input) {
   let value, context, expected, provenance, history, max;
   try {
-    value = own(input, KEYS); context = snapshotStage6Context(value.context); expected = snapshotStage6Context(value.expected);
-    provenance = validateStage6Provenance(value.provenance); history = historical(value.history); max = budget(value.budget);
+    value = own(input, KEYS);
     if (!Number.isSafeInteger(value.model_calls) || value.model_calls < 0) refuse();
+    if (value.model_calls !== 0) return result("model-calls-before-admission", value.model_calls);
+    context = snapshotStage6Context(value.context); expected = snapshotStage6Context(value.expected);
+    provenance = validateStage6Provenance(value.provenance); history = historical(value.history); max = budget(value.budget);
     if (Object.keys(context).some(key => context[key] !== expected[key])) return result("context-mismatch", value.model_calls);
     if (!provenance.sdk.matched || !provenance.broker.matched ||
         provenance.broker.provider !== context.provider || provenance.broker.command_sha256 !== context.broker_digest ||
@@ -45,7 +47,6 @@ export function admitK1(input) {
         provenance.bindings.harness_source_sha !== context.harness_source_sha || provenance.sdk.observed.version !== context.sdk) return result("provenance-mismatch", value.model_calls);
     if (context.arm === "guided" && (!history || history.subject_source_sha !== context.subject_source_sha || history.content_digest !== context.subject_history_digest || history.context_digest !== context.guidance_digest)) return result("history-mismatch", value.model_calls);
     if (context.arm === "baseline" && history !== null) return result("baseline-history-unexpected", value.model_calls);
-    if (value.model_calls !== 0) return result("model-calls-before-admission", value.model_calls);
     return Object.freeze({ ...result(null, value.model_calls), context, provenance, history, budget: max, history_status: history === null ? "none" : "historical-only", context_digest: history?.context_digest ?? null });
   } catch { return result("invalid-input", null); }
 }
