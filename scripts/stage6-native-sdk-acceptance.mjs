@@ -60,9 +60,12 @@ export function parseStage6NativeAcceptanceOptions(args) {
 
 function sessionSnapshot(session) {
   const model = session.model;
-  return { model: { provider: model.provider, id: model.id, api: model.api, baseUrl: model.baseUrl,
+  return { model: { provider: model.provider, id: model.id, name: model.name, api: model.api, baseUrl: model.baseUrl,
     reasoning: model.reasoning, contextWindow: model.contextWindow, maxTokens: model.maxTokens,
-    input: [...model.input], cost: { ...model.cost } }, thinking: session.thinkingLevel,
+    input: [...model.input], cost: { ...model.cost }, thinkingLevelMap: structuredClone(model.thinkingLevelMap),
+    headers: structuredClone(model.headers), compat: structuredClone(model.compat),
+    samplingParams: structuredClone(model.samplingParams), samplingParamsByThinkingLevel: structuredClone(model.samplingParamsByThinkingLevel),
+    promptCache: structuredClone(model.promptCache), inputLimits: structuredClone(model.inputLimits) }, thinking: session.thinkingLevel,
     tools: [...session.getActiveToolNames()], prompt: session.systemPrompt };
 }
 
