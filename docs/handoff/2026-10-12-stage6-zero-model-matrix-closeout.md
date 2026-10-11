@@ -52,19 +52,25 @@ Guided arm 是 synthetic context，明确 `synthetic-guided-arm-not-LOCAL-readba
 本地 coordinator rejection 使用独立 `failure_origin` 与 outcome，不伪装为
 provider-error；cancel/deadline 保留 AbortSignal 后注入合法 late SSE，确认无
 decision execution；timeout、deadline 和断流分别保留技术类别；profile drift
-receipt 为 unknown；所有非 drift 窗口确认 integrity unchanged、event counters 和
-stream restoration；`finish()` 为幂等缓存，失败不会被第二次 cleanup 覆盖。
+receipt 为 unknown，deadline 窗口因 bounded window 过期为
+`unknown/stage6-window-deadline`；除 drift/deadline 外，其余窗口确认
+integrity unchanged、event counters 和 stream restoration；`finish()` 为幂等缓存，
+失败不会被第二次 cleanup 覆盖。
 
 ## 证据边界
 
 - 精确 release-contract **240/240**；source/consumer/实际 Node20 library gates
   通过；matrix/faults actual Node26 运行摘要保留在 test-owned ignored `tmp/`。
 - 公开摘要 `docs/handoff/evidence/2026-10-11-stage6-zero-model/` 只保留 safe
-  matrix/fault/readback 和 head/main CI；不保留 raw prompt/model/credential/path。
+  matrix/fault JSON projection 与 head/main CI JSON projection；不保留 raw
+  prompt/model/credential/path。
 - 这是 native SDK harness 的 zero-model candidate，不是 full paired quality、真实
   provider、billing、current permission、发布、默认 Pi 或 Stage6 ROI 证明。
 - 原 16-call INVALID 窗口不重用；后续真实 `k=1` 仍需另立窗口、重新绑定 SDK/
   source/history/model/budget 并独立验收。
+- 公开 matrix/fault projection 绑定精确 `c5c84e0`；design 的 `d525644` 是更早
+  的准备期运行。父级已核验 `d33636c…d525644…c5c84e0` 原生 harness bytes
+  相同，当前证据不会把更早运行改标为新的 HEAD。
 
 ## 未完成
 
