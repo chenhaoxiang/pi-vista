@@ -32,10 +32,12 @@ for this evaluation slice only; it does not block the user's primary task.
 
 The budget accepts only a genuine in-process admitted object from this module,
 not a copied/serialized boolean. Repeated requests for the same admitted object
-return the same counter, so a second wrapper cannot reset its maximum. It bounds
-future attempts to at most16, but remains a counter, not an executor or network
-interception. A future actual host must bind it BEFORE the selected transport
-call and collect fresh profile/source/SDK/broker/history facts; this is pending.
+return the same counter, so a second wrapper cannot reset its maximum. The limit
+is per admitted object; a future host/planner must bind one object to the entire
+pilot window and the existing aggregate parser separately rejects a total above
+16. The counter remains non-executing and is not network interception. A future
+actual host must bind it BEFORE the selected transport call and collect fresh
+profile/source/SDK/broker/history facts; this is pending.
 
 Admission carries `arm`/`guidance_mode`: baseline is explicitly `none` with null
 `guidance_digest`, guided is `historical-observed` with a compiled-context digest.
@@ -73,13 +75,28 @@ separate non-success outcomes. An unsupported status grades schema-invalid.
 Malformed envelope/case/pin raises a fixed contract error before grading and
 remains the future host's invalid-trial path, not a primary-task failure.
 
+## Trusted-host seam (source candidate only)
+
+`scripts/stage6-host-admission.mjs` is an explicit caller-owned seam. It can
+read only bounded file metadata through the already audited readonly canary
+helpers, hash the metadata, collect two snapshots and pass them to the offline
+admission contract. It does not read credential bytes, write profile files,
+start a model, select a provider or install a Pi hook. Its stream binding wraps
+the existing pretransport `streamFunction` boundary only when the caller supplies
+a genuine admitted object and a single pilot-wide budget; it refuses copied
+admissions, model/thinking drift, per-session over-budget calls and shutdown.
+No current Stage6 planner or default Pi path imports this seam. Actual SDK,
+broker, source-subject and history collection remain a separate acceptance task.
+
 ## Current validation and remaining work
 
 - [ ] Offline initial nine new contract/fixture cases pass locally; prior paired
   metric/planner cases also pass (25 combined). This is local candidate evidence,
   not independent review/CI/main delivery.
 - [ ] Add adversarial copied-budget/getter/proxy/missing-fact/source drift cases
-  and bind the actual trusted-host readonly collection/pretransport seam.
+  and bind the actual trusted-host readonly collection/pretransport seam. The
+  current `invalid-input` reason is intentionally coarse for this source slice;
+  later host diagnostics may split field-level reasons without changing refusal.
 - [ ] Full source/consumer/Node20 gates, independent review, exact-head CI and
   ordinary PR/main delivery of this slice.
 - [ ] Only after offline admission/reference/harness acceptance, define a fresh

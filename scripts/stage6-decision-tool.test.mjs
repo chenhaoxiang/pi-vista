@@ -23,6 +23,7 @@ test("reference mock solver passes all fixed cases without model transport", () 
   assert.equal(provider.calls, 4);
   assert.throws(() => referenceDecision(cases[0], metadata(cases[0]), { ...expected, required_fields: ["unknown"] }), /decision-schema-invalid/);
   assert.throws(() => referenceDecision(cases[0], metadata(cases[0]), { ...expected, required_fields: "title" }), /decision-schema-invalid/);
+  assert.equal(referenceDecision(cases[0], { ...metadata(cases[0]), format_version: 2 }, expected).reason_code, "metadata-missing");
 });
 test("decision outcome distinguishes non-call, schema, refusal, provider and semantic failures", () => {
   const id = cases[0];

@@ -23,7 +23,7 @@ function own(value, keys) {
   }
   return result;
 }
-function context(input) {
+export function snapshotStage6Context(input) {
   const value = own(input, CONTEXT_KEYS);
   for (const key of ["provider", "model", "sdk", "arm", "guidance_mode"]) if (typeof value[key] !== "string" || !LABEL.test(value[key])) refuse();
   if (!["off", "minimal", "low", "medium", "high", "xhigh", "max"].includes(value.thinking)) refuse();
@@ -78,8 +78,8 @@ export function admitStage6Run(input, expectedInput) {
   let value, observed, expected, before, after;
   try {
     value = own(input, INPUT_KEYS);
-    observed = context(Object.fromEntries(CONTEXT_KEYS.map(key => [key, value[key]])));
-    expected = context(expectedInput);
+    observed = snapshotStage6Context(Object.fromEntries(CONTEXT_KEYS.map(key => [key, value[key]])));
+    expected = snapshotStage6Context(expectedInput);
     if (!Number.isSafeInteger(value.model_calls) || value.model_calls < 0) refuse();
     before = profileSnapshot(value.profile_before); after = profileSnapshot(value.profile_after);
   } catch { return result("invalid-input", null); }

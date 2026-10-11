@@ -1,12 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import { admitStage6Run, classifyProfileDrift, createAdmissionRequestBudget, profileDigest, profileSnapshot } from "./stage6-admission.mjs";
 
 const d = value => createHash("sha256").update(value).digest("hex");
 const profile = (volatile = d("v"), protectedValue = d("p")) => ({ protected: { auth: protectedValue, settings: d("s") }, volatile: { cache: volatile, root: d("r") } });
 const context = { provider: "codex-local-8319", model: "gpt-6.1-sol", thinking: "max", sdk: "1.0.4", arm: "baseline", guidance_mode: "none", guidance_digest: null, harness_source_sha: d("h"), subject_source_sha: d("u"), subject_history_digest: d("i"), broker_digest: null };
 const input = (overrides = {}) => ({ ...context, profile_before: profile(), profile_after: profile(), model_calls: 0, ...overrides });
+
+test("offline modules import without filesystem/network/model side effects", async () => {
+  const source = await readFile(new URL("./stage6-admission.mjs", import.meta.url), "utf8");
+  const decision = await readFile(new URL("./stage6-decision-tool.mjs", import.meta.url), "utf8");
+  for (const body of [source, decision]) assert.doesNotMatch(body, /node:fs|node:child_process|https?:|fetch\s*\(/u);
+  const run = promisify(execFile);
+  const code = `globalThis.fetch=()=>{throw Error("fetch");}; await import(${JSON.stringify(new URL("./stage6-admission.mjs", import.meta.url).href)}); await import(${JSON.stringify(new URL("./stage6-decision-tool.mjs", import.meta.url).href)}); console.log("imported");`;
+  const result = await run(process.execPath, ["--input-type=module", "-e", code], { env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent", TMPDIR: "/nonexistent" }, shell: false });
+  assert.equal(result.stdout.trim(), "imported"); assert.equal(result.stderr, "");
+});
 
 test("profile snapshots are closed, canonical and digestable without filesystem reads", () => {
   const value = profileSnapshot(profile()); assert.equal(Object.isFrozen(value), true); assert.equal(profileDigest(value).length, 64);

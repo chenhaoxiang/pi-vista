@@ -4,6 +4,8 @@ import { PAIR_CASES } from "./paired-evaluation-data.mjs";
 const DECISIONS = Object.freeze(["accept", "reject"]);
 const TECHNICAL_FAILURES = Object.freeze(["cancelled", "timeout", "deadline", "stream-disconnected"]);
 const REASONS = Object.freeze(["metadata-current", "source-mismatch", "environment-mismatch", "metadata-missing"]);
+const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
+const SHA64 = /^[a-f0-9]{64}$/u;
 export const STRICT_DECISION_SCHEMA = Object.freeze({ type: "object", additionalProperties: false,
   properties: Object.freeze({
     case_id: Object.freeze({ type: "string", enum: PAIR_CASES }),
@@ -46,8 +48,9 @@ export function referenceDecision(case_id, metadata, expected) {
     if (!p || !Object.hasOwn(p, "value") || !["title", "format_version"].includes(p.value) || required.includes(p.value)) throw new Error("decision-schema-invalid");
     required.push(p.value);
   }
-  if (observed.case_id !== case_id || typeof observed.source_sha !== "string" || typeof observed.env_fingerprint !== "string" ||
-      typeof pin.source_sha !== "string" || typeof pin.env_fingerprint !== "string" || !Number.isSafeInteger(pin.format_version)) throw new Error("decision-schema-invalid");
+  if (observed.case_id !== case_id || typeof observed.source_sha !== "string" || !SHA.test(observed.source_sha) ||
+      typeof observed.env_fingerprint !== "string" || !SHA64.test(observed.env_fingerprint) || typeof pin.source_sha !== "string" ||
+      !SHA.test(pin.source_sha) || typeof pin.env_fingerprint !== "string" || !SHA64.test(pin.env_fingerprint) || !Number.isSafeInteger(pin.format_version)) throw new Error("decision-schema-invalid");
   // These are explicitly trusted synthetic fixture records, not raw tool/model bodies.
   const reason_code = observed.source_sha !== pin.source_sha ? "source-mismatch" :
     observed.env_fingerprint !== pin.env_fingerprint ? "environment-mismatch" :
