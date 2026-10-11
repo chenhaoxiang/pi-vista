@@ -43,6 +43,15 @@ test("host admission adapter does not run at import and binds a shared pretransp
   assert.throws(() => oldWrapper({ provider: "fixture-provider", id: "fixture-model" }, {}, { reasoning: "max" }), /stage6-stream-withdrawn/);
 });
 
+test("host collection refuses malformed context before any profile access or getter", async () => {
+  let reads = 0;
+  const input = { profileDirectory: "/nonexistent", context, expected: context };
+  Object.defineProperty(input, "context", { get() { reads++; throw Error("private getter"); } });
+  await assert.rejects(collectStage6Admission(input), /stage6-collection-refused/);
+  await assert.rejects(collectStage6Admission({ profileDirectory: "/nonexistent", context: {}, expected: context }), /stage6-admission-refused/);
+  assert.equal(reads, 0);
+});
+
 test("host binding refuses copied admission and non-native sessions", () => {
   const admission = admitStage6Run({ ...context, profile_before: profile(), profile_after: profile(), model_calls: 0 }, context);
   const copy = { ...admission };

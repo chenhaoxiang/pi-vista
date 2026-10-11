@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { isAbsolute, normalize } from "node:path";
 import { types } from "node:util";
 import { profileSnapshot as captureCanaryProfile, constrainStream } from "./pi-agent-canary-support.mjs";
-import { admitStage6Run, createAdmissionRequestBudget, profileSnapshot } from "./stage6-admission.mjs";
+import { admitStage6Run, createAdmissionRequestBudget, profileSnapshot, snapshotStage6Context } from "./stage6-admission.mjs";
 
 const digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
@@ -24,9 +24,18 @@ export async function captureStage6Profile(directory) {
 /** Capture both sides in one explicit host call, then return metadata-only admission.
  * This is intentionally not called by the planner or by a Pi extension.
  */
-export async function collectStage6Admission({ profileDirectory, context, expected }) {
-  const before = await captureStage6Profile(profileDirectory);
-  const after = await captureStage6Profile(profileDirectory);
+export async function collectStage6Admission(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(input)) || Reflect.ownKeys(input).length !== 3) throw new Error("stage6-collection-refused");
+  const values = {};
+  for (const key of ["profileDirectory", "context", "expected"]) {
+    const p = Object.getOwnPropertyDescriptor(input, key);
+    if (!p || !Object.hasOwn(p, "value") || p.value === undefined) throw new Error("stage6-collection-refused");
+    values[key] = p.value;
+  }
+  const context = snapshotStage6Context(values.context), expected = snapshotStage6Context(values.expected);
+  const before = await captureStage6Profile(values.profileDirectory);
+  const after = await captureStage6Profile(values.profileDirectory);
   return admitStage6Run({ ...context, profile_before: before, profile_after: after, model_calls: 0 }, expected);
 }
 
