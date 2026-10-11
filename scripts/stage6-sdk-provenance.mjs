@@ -61,6 +61,10 @@ function label(value) {
       ["__proto__", "constructor", "prototype"].includes(value)) refused();
   return value;
 }
+function version(value) {
+  if (typeof value !== "string" || !VERSION.test(value) || hasKnownCredential(value)) refused();
+  return value;
+}
 function hash(value, source = false) { if (typeof value !== "string" || !(source ? SOURCE_SHA : HEX).test(value)) refused(); return value; }
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -100,8 +104,8 @@ async function publicBytes(file, max) {
   } finally { await fd.close(); }
 }
 function contract(input) {
-  const v = own(input, CONTRACT_KEYS); label(v.contract_id);
-  if (v.package_name !== PACKAGE_NAME || typeof v.version !== "string" || !VERSION.test(v.version) ||
+  const v = own(input, CONTRACT_KEYS); label(v.contract_id); version(v.version);
+  if (v.package_name !== PACKAGE_NAME ||
       v.export_entry !== ENTRY || v.node_engine !== ENGINE) refused();
   hash(v.manifest_sha256); hash(v.entry_sha256); return Object.freeze({ ...v });
 }
@@ -121,8 +125,8 @@ export const STAGE6_SDK_CONTRACT_MATRIX = Object.freeze({ public_1_0_4: PUBLIC_1
   historical_fork_1_0_4_fork_1: HISTORICAL_FORK_1_0_4_FORK_1_CONTRACT,
   observed_installed_fork_1_1_0_fork_1: OBSERVED_INSTALLED_FORK_1_1_0_FORK_1_CONTRACT });
 function sdkSnapshot(input) {
-  const v = own(input, SDK_KEYS); common(v);
-  if (v.schema !== STAGE6_SDK_PROVENANCE_SCHEMA || v.package_name !== PACKAGE_NAME || typeof v.version !== "string" || !VERSION.test(v.version) ||
+  const v = own(input, SDK_KEYS); common(v); version(v.version);
+  if (v.schema !== STAGE6_SDK_PROVENANCE_SCHEMA || v.package_name !== PACKAGE_NAME ||
       v.export_entry !== ENTRY || v.node_engine !== ENGINE || v.coverage !== "manifest-and-public-entry" || v.dependency_closure !== "not-observed") refused();
   hash(v.manifest_sha256); hash(v.entry_sha256); hash(v.identity_sha256);
   const { identity_sha256, ...rest } = v;
@@ -138,7 +142,8 @@ export async function observeSdkInstallation(rootInput) {
     const entryBytes = await publicBytes(join(root, "dist", "index.js"), 1_048_576);
     const manifest = fields(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes)), ["name", "version", "exports", "engines"]);
     const engines = fields(manifest.engines, ["node"]), exported = fields(fields(manifest.exports, ["."])["."], ["import"]);
-    if (manifest.name !== PACKAGE_NAME || typeof manifest.version !== "string" || !VERSION.test(manifest.version) || exported.import !== ENTRY || engines.node !== ENGINE) refused();
+    version(manifest.version);
+    if (manifest.name !== PACKAGE_NAME || exported.import !== ENTRY || engines.node !== ENGINE) refused();
     const after = await directories(root), distAfter = await directories(join(root, "dist"));
     if (before.dev !== after.dev || before.ino !== after.ino || before.mode !== after.mode || before.uid !== after.uid ||
         distBefore.dev !== distAfter.dev || distBefore.ino !== distAfter.ino || distBefore.mode !== distAfter.mode || distBefore.uid !== distAfter.uid) refused();

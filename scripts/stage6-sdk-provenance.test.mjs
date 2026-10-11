@@ -76,6 +76,21 @@ test("public SDK contract matrix keeps public, historical fork, and installed fo
   assert.ok(STAGE6_SDK_PROVENANCE_ERROR_CODES.includes("stage6-sdk-broker-refused"));
 });
 
+test("SDK version metadata rejects embedded credential signatures before observation or contract emission", async () => {
+  const root = await fixtureRoot("1.0.4-sk-12345678");
+  try {
+    await assert.rejects(observeSdkInstallation(root), /stage6-sdk-installation-refused/);
+    const f = await pairedFixture();
+    try {
+      assert.throws(() => matchSdkContract(f.observed, { ...fixtureContract(f.observed), version: "1.0.4-sk-12345678" }), /stage6-sdk-contract-refused/);
+      const { identity_sha256: originalDigest, ...unsafeCore } = { ...f.observed, version: "1.0.4-sk-12345678" };
+      const bytes = `{${Object.keys(unsafeCore).sort().map(key => `${JSON.stringify(key)}:${JSON.stringify(unsafeCore[key])}`).join(",")}}`;
+      assert.throws(() => matchSdkContract({ ...unsafeCore, identity_sha256: sha(bytes) }, fixtureContract(f.observed)), /stage6-sdk-contract-refused/);
+      assert.equal(originalDigest, f.observed.identity_sha256);
+    } finally { await f.close(); }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("fixture installation observation reads only fixed manifest and public entry metadata", async () => {
   const root = await fixtureRoot();
   try {
