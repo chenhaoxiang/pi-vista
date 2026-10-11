@@ -13,10 +13,10 @@ export async function runNativeFaults(input) {
       const report = await host.finish(); finished = true;
       assert.equal(report.fresh_agents, 1); assert.ok(report.receipt.pretransport_attempts <= 2);
       if (fault === "profile-drift") { assert.equal(report.receipt.integrity_status, "unknown"); assert.equal(report.receipt.reason_code, "protected-profile-drift"); }
-      else assert.notEqual(row.outcome, "decision-valid");
+      else { assert.notEqual(row.outcome, "decision-valid"); assert.equal(report.receipt.integrity_status, "unchanged"); assert.equal(report.receipt.reason_code, null); }
       if (fault === "request-guard") { assert.equal(row.pretransport_attempts, 1); assert.equal(row.intercepted_fetch, 0); }
       if (fault === "window-budget") { assert.equal(row.pretransport_attempts, 1); assert.equal(row.intercepted_fetch, 1); }
-      if (fault === "cancelled") { assert.equal(row.abort_signal_observed, true); assert.equal(row.decision_executions, 0); }
+      if (["cancelled", "timeout", "deadline"].includes(fault)) { assert.equal(row.abort_signal_observed, true); assert.equal(row.late_sse_body_sent, true); assert.equal(row.decision_executions, 0); }
       results.push({ fault, row, receipt: report.receipt, intercepted_fetch: report.intercepted_fetch, synthetic_responses: report.synthetic_responses });
     } finally { if (!finished) await host.finish(); }
   }
