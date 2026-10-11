@@ -64,7 +64,11 @@ export async function createSyntheticSdkHost(input) {
     fetchCount++; active.fetches++; const payload = JSON.parse(init.body); assert.equal(payload.model, context.model); assert.deepEqual(payload.tools.map(tool => tool.function.name).sort(), ["paired_inspect_metadata", "stage6_decision"]);
     if (["cancelled", "timeout", "deadline"].includes(active.fault)) {
       assert.ok(init.signal); active.fetchSignal = init.signal;
-      return new Response(new ReadableStream({ start(controller) { active.streamController = controller; init.signal.addEventListener("abort", () => { active.abortObserved = true; active.abortBarrier.resolve(); }, { once: true }); active.started.resolve(); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+      return new Promise(resolve => {
+        init.signal.addEventListener("abort", () => { active.abortObserved = true; active.abortBarrier.resolve(); }, { once: true });
+        active.abortResponseResolve = () => resolve(new Response(sseText(context.model, "stage6_decision", { case_id: active.case_id, ...caseTruth(active.case_id) }, 999), { status: 200, headers: { "Content-Type": "text/event-stream" } }));
+        active.started.resolve();
+      });
     }
     if (active.fault === "stream-disconnected") { responses++; return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("data: {\\\"partial\\\":true}\\n\\n")); controller.error(new Error("synthetic stream disconnected")); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } }); }
     if (active.fault === "provider-error") { responses++; return new Response('{"error":{"message":"synthetic provider error","type":"invalid_request_error"}}', { status: 400, headers: { "Content-Type": "application/json" } }); }
@@ -79,7 +83,7 @@ export async function createSyntheticSdkHost(input) {
     async runRow(case_id, arm, fault = null) {
       if (closed || !PAIR_CASES.includes(case_id) || !["baseline", "guided"].includes(arm) || fault !== null && ![...SYNTHETIC_FAULTS, "window-budget"].includes(fault)) refuse();
       const metadata = pairedFixture(case_id, PAIR_SOURCE_SHA, bindings.env_fingerprint), expected = expectedFixtureContract(PAIR_SOURCE_SHA, bindings.env_fingerprint), metadataFile = join(output, `row-${rows.length}.json`); await writeFile(metadataFile, JSON.stringify(metadata));
-      active = { case_id, fault, expected, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), abortBarrier: deferred(), messageEnds: 0, toolEnds: 0 };
+      active = { case_id, fault, expected, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), abortBarrier: deferred(), abortResponseResolve: null, messageEnds: 0, toolEnds: 0 };
       const row = active, attemptsBefore = window.statusSnapshot().pretransport_attempts;
       const runtime = await sdk.ModelRuntime.create({ modelsPath: null, allowModelNetwork: false, refreshOnCreate: false, credentials: { async read() { credentialReads++; return undefined; }, async list() { return []; }, async modify() { assert.fail("credential write"); }, async delete() { assert.fail("credential delete"); } }, modelsStore: { async read() { return undefined; }, async write() {}, async delete() {} } });
       runtime.registerProvider(context.provider, { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic-no-network", models: [{ id: context.model, name: context.model, reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
@@ -96,8 +100,7 @@ export async function createSyntheticSdkHost(input) {
         await row.started.promise;
         if (fault !== "cancelled") await new Promise(done => setTimeout(done, fault === "deadline" ? 30 : 10));
         const abort = session.abort(); await row.abortBarrier.promise;
-        try { row.streamController.enqueue(new TextEncoder().encode(sseText(context.model, "stage6_decision", { case_id, ...caseTruth(case_id) }, 999))); row.streamController.close(); row.lateBodySent = true; } catch { row.lateBodySent = false; }
-        await abort;
+        await abort; row.abortResponseResolve(); row.lateBodySent = true;
       }
       await prompt; await session.waitForIdle();
       const last = session.messages.filter(message => message.role === "assistant").at(-1), stopped = last?.stopReason;
