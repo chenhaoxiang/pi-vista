@@ -60,7 +60,7 @@ export async function createSyntheticSdkHost(input) {
   const expectedProvenance = await provenance();
   const window = await openStage6Pilot({ profileDirectory, context, expected: context, bindings, expectedProvenance, model_calls: 0, max_requests: options.max_requests, deadline_ms: options.deadline_ms ?? 120_000 }, { captureProfile: null, collectProvenance: provenance }); assert.equal(window.status, "admitted");
   const sdk = await import(pathToFileURL(join(options.sdk, "dist/index.js")).href), nativeRead = sdk.createReadTool(output);
-  let fetchCount = 0, responses = 0, credentialReads = 0, active, closed = false;
+  let fetchCount = 0, responses = 0, credentialReads = 0, active, closed = false, finishPromise;
   const sessions = [], rows = [], nativeAgents = new Set(), streams = [], savedFetch = globalThis.fetch;
   let rowRunning = false;
   globalThis.fetch = async (url, init) => {
@@ -76,7 +76,7 @@ export async function createSyntheticSdkHost(input) {
         row.started.resolve();
       });
     }
-    if (active.fault === "stream-disconnected") { responses++; return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("data: {\\\"partial\\\":true}\\n\\n")); controller.error(new Error("synthetic stream disconnected")); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } }); }
+    if (active.fault === "stream-disconnected") { responses++; return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("data: {\"partial\":true}\n\n")); controller.error(new Error("synthetic stream disconnected")); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } }); }
     if (active.fault === "provider-error") { responses++; return new Response('{"error":{"message":"synthetic provider error","type":"invalid_request_error"}}', { status: 400, headers: { "Content-Type": "application/json" } }); }
     const first = active.fetches === 1 || active.fault === "session-budget", name = first ? "paired_inspect_metadata" : "stage6_decision";
     let args = first ? { case_id: active.case_id } : referenceDecision(active.case_id, active.inspected, active.expected);
@@ -133,13 +133,17 @@ export async function createSyntheticSdkHost(input) {
       if (fault === "profile-drift") await writeFile(join(profileDirectory, "auth.json"), '{"synthetic_drift":true}', { mode: 0o600 });
       if (fault === null || fault === "profile-drift") { assert.ok(row.messageEnds >= 2); assert.equal(row.toolEnds, 2); }
       const failureOrigin = ["request-guard", "session-budget", "window-budget"].includes(fault) ? "local-coordinator-rejection" : fault === "stream-disconnected" ? "provider-stream-disconnected" : fault === "provider-error" ? "provider-error" : fault;
-      const result = Object.freeze({ case_id, arm, fault, failure_origin: failureOrigin, outcome: fault === "request-guard" ? "request-guard-rejected" : fault === "session-budget" ? "session-budget-exhausted" : fault === "window-budget" ? "window-budget-exhausted" : decision.outcome, decision_outcome: decision.outcome, decision_parsed: decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, late_sse_body_sent: row.lateBodySent === true, task_digest: hash(task), guidance_scope: arm === "guided" ? "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? historyDigest : null });
+      const result = Object.freeze({ case_id, arm, fault, failure_origin: failureOrigin, outcome: fault === "request-guard" ? "request-guard-rejected" : fault === "session-budget" ? "session-budget-exhausted" : fault === "window-budget" ? "window-budget-exhausted" : decision.outcome, decision_outcome: failureOrigin === "local-coordinator-rejection" ? null : decision.outcome, decision_parsed: failureOrigin === "local-coordinator-rejection" ? false : decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, late_sse_body_sent: row.lateBodySent === true, task_digest: hash(task), guidance_scope: arm === "guided" ? "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? historyDigest : null });
       rows.push(result); rowRunning = false; return result;
     },
-    async finish() {
-      if (closed) refuse(); closed = true; globalThis.fetch = savedFetch;
-      try { const receipt = await window.finalize(); for (const entry of streams) assert.equal(entry.session.agent.streamFunction, entry.original); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
-      finally { for (const session of sessions) { try { if (!session.isIdle) await session.abort(); } finally { session.dispose(); } } }
+    finish() {
+      if (finishPromise) return finishPromise;
+      closed = true; globalThis.fetch = savedFetch;
+      finishPromise = (async () => {
+        try { const receipt = await window.finalize(); for (const entry of streams) assert.equal(entry.session.agent.streamFunction, entry.original); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
+        finally { for (const session of sessions) { try { if (!session.isIdle) await session.abort(); } finally { session.dispose(); } } }
+      })();
+      return finishPromise;
     },
   });
 }
