@@ -32,15 +32,20 @@ A later runtime using a new SDK needs an explicit measurement-contract update;
 this source slice does not make that decision implicitly.
 
 Only explicit public package metadata/entry bytes may be collected for SDK
-identity. Broker observation accepts only a closed explicit readonly command-pin
-input, hashes that command internally and stats its target; no credential bytes,
-command execution or complete profile traversal is permitted. Output omits paths,
-commands, credential contents, raw prompts, model outputs and reasoning.
+identity. The coordinator reuses the paired collector's
+`validateSdkContractMatch`/`validateReadonlyBrokerMetadata`/`validateStage6Provenance`
+outputs; it does not duplicate SDK or broker schemas. SDK match metadata keeps the
+observed version/digests separate from the host-pinned expected contract. Broker
+observation accepts only a closed explicit readonly command-pin input, hashes that
+command internally and stats its target; no credential bytes, command execution or
+complete profile traversal is permitted. Output omits paths, commands, credential
+contents, raw prompts, model outputs and reasoning.
 
 ## Closed bindings, distinct identities
 
-The public provenance DTO is `stage6-provenance/1`, with independent `sdk`,
-`broker`, `subject_source_sha`, `history_digest` and eight-key `bindings`:
+The public provenance DTO is `stage6-provenance/1`, with independent SDK match
+and broker metadata, `subject_source_sha`, `history_digest` and eight-key
+`bindings`:
 
 - the existing LOCAL/evidence five bindings: `run_id`, `repo`, `source_sha`,
   `policy_version`, `env_fingerprint`;
@@ -97,12 +102,17 @@ wire the plan-only CLI or default Pi and does not call the old private runtime.
 
 ## Acceptance and pending work
 
-- [ ] Closed collector fixtures: distinct public/fork contracts, missing/changed
-  public files, readonly broker pin/metadata, no credential/shell access.
-- [ ] Coordinator fixtures: pre-admission zero forwarding, setup and final
+- [x] Closed collector fixtures: distinct public/fork contracts, missing/changed
+  public files, readonly broker pin/metadata, no credential/shell access. The
+  paired SDK lane supplies 29/29 Node26 and 29/29 actual Node20 targeted cases;
+  its 1.1.0 observer/native-read acceptance is separately scoped and not a full
+  provenance/current-proof or model acceptance.
+- [x] Coordinator fixtures: pre-admission zero forwarding, setup and final
   protected/volatile drift, provenance drift, copyable metadata vs genuine
   admission, per-session and whole-window budgets, concurrent finalization,
-  refusal without raw diagnostics, bounded waits and explicit lifecycle.
+  refusal without raw diagnostics, bounded waits and explicit lifecycle. The
+  integrated source release-contract is 219/219, with source/consumer and actual
+  Node20 gates passing in this candidate worktree.
 - [ ] Existing source/packed-consumer/actual Node20 gates, fresh independent
   review, exact head CI, ordinary PR and main readback for this source candidate.
 - [ ] Actual loaded-SDK/session/source/history/decision/transport acceptance in a
