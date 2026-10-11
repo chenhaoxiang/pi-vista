@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-10
-verified: 2026-10-10
+verified: 2026-10-11
 ssot: true
 ---
 
@@ -78,7 +78,7 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 
 ### P0：先修 harness，再调用模型
 
-1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。当前有未合入的离线 admission/decision source candidate（`scripts/stage6-admission.mjs`、`scripts/stage6-decision-tool.mjs`）及只读 host seam（`scripts/stage6-host-admission.mjs`）；只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。
+1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。Stage6 P0 admission/decision/planner source 已通过 PR35 合入 main `d2abf0c1`（包含 PR32 `a42ff57` 的 source-only 祖先）；旧16-call draft仍 INVALID。另有只读 host seam（`scripts/stage6-host-admission.mjs`），只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。
 2. Strict decision：使用固定 decision tool（case_id、decision、reason enum，additionalProperties=false），区分 tool-not-called/schema-invalid/refusal/provider-error/semantic-mismatch；不把自由文本JSON或 aggregation-completed当有效semantic结果。当前 source candidate 通过固定 synthetic reference/mock，不代表实际模型决策。
 
 ### P1：逐步测效益
@@ -95,7 +95,7 @@ Timeline/trace assertions、run→regression promotion、pass^k、observability�
 
 - Meta 已交付 PR548正常执行减阻、PR549分层producer、PR551严格只读reconcile、PR552有效目标分支完整门禁、PR553共享handoff；当前Meta owner入口见其 `owner-configurable-automation-policy` Change 和 `docs/handoff/2026-10-10-reconcile-target-base-current-handoff.md`。
 - Vista Stage1–5源码/明确scoped运行已交付；不是默认日常Pi或生产bank验收。
-- Stage6 source-only PR32/a42ff57 仍draft/unmerged；旧私有runtime草稿16调用/8session/0bank为 **INVALID**：严格决定未满足、profile drift未归因。原报告和INVALID assessment都保留，不借为质量、ROI、成本、current proof或发布。
+- Stage6 source-only P0 admission/decision/planner 已由 PR35 合入 main `d2abf0c1`，并包含 PR32/a42ff57 的 source-only 祖先；旧私有runtime草稿16调用/8session/0bank为 **INVALID**：严格决定未满足、profile drift未归因。原报告和INVALID assessment都保留，不借为质量、ROI、成本、current proof或发布。
 - Meta PR551样本Node20/26 closed-row相容只证明样本消费，gate仍unknown/not-evaluated；不是Stage6/default activation/current permission。
 - Meta独立build/typecheck仍是真实缺口，不把governance/inventory冒称构建或完整语义检查。原signed route/key来源、完整SDK declaration health与Mac个人认证broker只在相应路线使用时独立核验，不变成LOCAL当前前置。
 - 发布须落定account/channel/version/启用与rollback范围，并遵循真实授权、资金/平台/生产边界；本架构不自行发布。

@@ -8,7 +8,10 @@ created: 2026-10-11
 verified: 2026-10-11
 ---
 
-# Stage6 P0 admission and strict decision — source candidate
+# Stage6 P0 admission and strict decision — source delivered
+
+The source slice is delivered through ordinary PR35/main `d2abf0c1` with exact
+head/main Node20/22/26 CI; actual host/model/default-Pi acceptance remains pending.
 
 This slice is an offline metadata/fixture contract, not a default Pi entry, model
 runtime, current proof, permission system, or a completed Stage6 pilot. It reuses
@@ -97,8 +100,9 @@ broker, source-subject and history collection remain a separate acceptance task.
   pretransport seam. The current `invalid-input` reason is intentionally coarse
   for this source slice; later host diagnostics may split field-level reasons
   without changing refusal.
-- [ ] Full source/consumer/Node20 gates, independent review, exact-head CI and
-  ordinary PR/main delivery of this slice.
+- [x] Full source/consumer/Node20 gates, independent source review, exact headCI
+  38098891376 and mainCI38099439850, ordinary PR35/main `d2abf0c1` delivery of this
+  source slice. This does not close the remaining actual-host/pilot items.
 - [ ] Only after offline admission/reference/harness acceptance, define a fresh
   bounded actual pilot; no new model calls in this source slice.
 
