@@ -33,7 +33,7 @@ async function sourceBinding(expected) {
   return hash(await readFile(new URL(import.meta.url)));
 }
 const emptyResources = sdk => ({ getExtensions: () => ({ extensions: [], errors: [], runtime: sdk.createExtensionRuntime() }), getSkills: () => ({ skills: [], diagnostics: [] }), getPrompts: () => ({ prompts: [], diagnostics: [] }), getThemes: () => ({ themes: [], diagnostics: [] }), getAgentsFiles: () => ({ agentsFiles: [] }), getSystemPrompt: () => "Stage6 synthetic SDK harness only", getSystemPromptSource: () => undefined, getAppendSystemPrompt: () => [], getAppendSystemPromptSources: () => [], extendResources() {}, async reload() {} });
-const projection = session => ({ model: structuredClone(session.model), thinking: session.thinkingLevel, tools: [...session.getActiveToolNames()], prompt: session.systemPrompt });
+const projection = session => ({ model: JSON.parse(JSON.stringify(session.model)), thinking: session.thinkingLevel, tools: [...session.getActiveToolNames()], prompt: session.systemPrompt });
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 function sse(model, name, args, sequence) {
   const chunk = { id: "synthetic-stage6", object: "chat.completion.chunk", created: 1, model, choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{ index: 0, id: `synthetic-${sequence}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] }, finish_reason: null }] };
@@ -75,10 +75,10 @@ export async function createSyntheticSdkHost(input) {
   return Object.freeze({
     output, sdk_version: observed.version,
     async runRow(case_id, arm, fault = null) {
-      if (closed || !PAIR_CASES.includes(case_id) || !["baseline", "guided"].includes(arm) || fault !== null && !SYNTHETIC_FAULTS.includes(fault)) refuse();
+      if (closed || !PAIR_CASES.includes(case_id) || !["baseline", "guided"].includes(arm) || fault !== null && ![...SYNTHETIC_FAULTS, "window-budget"].includes(fault)) refuse();
       const metadata = pairedFixture(case_id, PAIR_SOURCE_SHA, bindings.env_fingerprint), expected = expectedFixtureContract(PAIR_SOURCE_SHA, bindings.env_fingerprint), metadataFile = join(output, `row-${rows.length}.json`); await writeFile(metadataFile, JSON.stringify(metadata));
       active = { case_id, fault, expected, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), messageEnds: 0, toolEnds: 0 };
-      const row = active;
+      const row = active, attemptsBefore = window.statusSnapshot().pretransport_attempts;
       const runtime = await sdk.ModelRuntime.create({ modelsPath: null, allowModelNetwork: false, refreshOnCreate: false, credentials: { async read() { credentialReads++; return undefined; }, async list() { return []; }, async modify() { assert.fail("credential write"); }, async delete() { assert.fail("credential delete"); } }, modelsStore: { async read() { return undefined; }, async write() {}, async delete() {} } });
       runtime.registerProvider(context.provider, { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic-no-network", models: [{ id: context.model, name: context.model, reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
       const customTools = [{ name: "paired_inspect_metadata", label: "Synthetic inspector", description: "Read fixed synthetic metadata", parameters: { type: "object", properties: { case_id: { type: "string", enum: [case_id] } }, required: ["case_id"], additionalProperties: false }, async execute(id, args, signal) { assert.equal(args.case_id, case_id); row.inspectorExecutions++; const result = await nativeRead.execute(id, { path: metadataFile }, signal); row.inspected = JSON.parse(result.content[0].text); return result; } }, { name: "stage6_decision", label: "Synthetic decision", description: "Emit terminating structured decision", parameters: STRICT_DECISION_SCHEMA, async execute(_id, args) { row.decisionExecutions++; row.invocation = { name: "stage6_decision", arguments: args }; return { content: [{ type: "text", text: "synthetic decision" }], details: args, terminate: true }; } }];
@@ -93,14 +93,16 @@ export async function createSyntheticSdkHost(input) {
       if (fault === "cancelled") { await row.started.promise; await session.abort(); }
       await prompt; await session.waitForIdle();
       const last = session.messages.filter(message => message.role === "assistant").at(-1), stopped = last?.stopReason;
-      if (fault === "cancelled") { assert.equal(row.abortObserved, true); assert.equal(stopped, "aborted"); row.lateResolve(sse(context.model, "stage6_decision", caseTruth(case_id), 999)); await new Promise(done => setImmediate(done)); assert.equal(row.decisionExecutions, 0); }
-      const status = fault === "cancelled" ? "cancelled" : ["provider-error", "request-guard", "session-budget"].includes(fault) ? "provider-error" : "completed";
+      if (fault === "cancelled") { assert.equal(row.abortObserved, true); assert.equal(stopped, "aborted"); row.lateResolve(sse(context.model, "stage6_decision", { case_id, ...caseTruth(case_id) }, 999)); await new Promise(done => setImmediate(done)); assert.equal(row.decisionExecutions, 0); }
+      if (["provider-error", "request-guard", "session-budget", "window-budget"].includes(fault)) assert.equal(stopped, "error");
+      const status = fault === "cancelled" ? "cancelled" : ["provider-error", "request-guard", "session-budget", "window-budget"].includes(fault) ? "provider-error" : "completed";
       const decision = classifyDecisionOutcome({ case_id, status, call: row.invocation, metadata: row.inspected ?? metadata, expected });
       if (fault === null || fault === "profile-drift") { assert.equal(decision.outcome, "decision-valid"); assert.deepEqual({ decision: decision.decision, reason_code: decision.reason_code }, caseTruth(case_id)); assert.equal(row.fetches, 2); }
       if (fault === "semantic-mismatch") assert.equal(decision.outcome, "semantic-mismatch");
       if (fault === "schema-invalid") { assert.equal(decision.outcome, "schema-invalid"); assert.equal(row.decisionExecutions, 0); }
       if (fault === "cancelled") assert.equal(decision.outcome, "cancelled");
       if (fault === "request-guard") assert.equal(row.fetches, 0);
+      if (fault === "window-budget" && attemptsBefore === options.max_requests) { assert.equal(row.fetches, 0); assert.equal(window.statusSnapshot().pretransport_attempts, attemptsBefore); }
       assert.deepEqual(projection(session), before);
       if (fault === "profile-drift") await writeFile(join(profileDirectory, "auth.json"), '{"synthetic_drift":true}', { mode: 0o600 });
       const result = Object.freeze({ case_id, arm, fault, outcome: decision.outcome, decision_parsed: decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, task_digest: hash(task), guidance_scope: arm === "guided" ? "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? historyDigest : null });
@@ -108,7 +110,7 @@ export async function createSyntheticSdkHost(input) {
     },
     async finish() {
       if (closed) refuse(); closed = true; globalThis.fetch = savedFetch;
-      try { const receipt = await window.finalize(); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
+      try { const receipt = await window.finalize(); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
       finally { for (const session of sessions) { try { if (!session.isIdle) await session.abort(); } finally { session.dispose(); } } }
     },
   });
