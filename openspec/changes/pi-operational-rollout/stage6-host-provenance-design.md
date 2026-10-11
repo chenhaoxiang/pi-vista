@@ -72,9 +72,12 @@ admission; unknown actor attribution is not guessed.
 
 One private budget reuses the canary pretransport seam across all distinct
 baseline/guided sessions: total requests at most 16, at most two per native
-session, exact provider/model/thinking. Rebinding a session or copying admission
-cannot reset limits. This is a counter at the selected `streamFunction` boundary,
-not a universal network interceptor, financial decision or new primary-task gate.
+session, exact provider/model/thinking. The coordinator binds each native
+`session.agent` at most once; a second session object around the same agent is
+refused so wrappers cannot stack or leave a withdrawn wrapper installed. Rebinding
+a session or copying admission cannot reset limits. This is a counter at the
+selected `streamFunction` boundary, not a universal network interceptor,
+financial decision or new primary-task gate.
 All collection and final-read waits share the window's bounded deadline. Trusted
 callbacks may outlive their wait; a JavaScript timeout is not an OS sandbox or
 proof that arbitrary synchronous/native side effects were cancelled.
@@ -82,8 +85,22 @@ proof that arbitrary synchronous/native side effects were cancelled.
 At `finalize`, bindings retire before any final read, and a single cached Promise
 prevents duplicate concurrent finalization. Both profile and provenance are
 collected again. SDK/broker/source/history drift, profile drift and unavailable
-collection preserve non-positive outcomes. A retained old stream wrapper is
-revoked; restoring the original primary stream does not authorize a new pilot.
+collection preserve non-positive outcomes; bounded deadline failures retain a
+fixed deadline reason rather than being relabelled as missing profile data. A
+retained old stream wrapper is revoked and the original primary stream is
+restored in reverse binding order; restoring it does not authorize a new pilot.
+
+The budget is deliberately per coordinator window. The eventual pilot host must
+put every baseline/guided arm in one window; opening a fresh window per arm would
+create another counter and is not a pilot-wide budget guarantee. No global ledger,
+new execution lock or primary-task restriction is introduced to compensate for
+that trusted-host responsibility.
+
+The broker command/path/stat digests are unsalted metadata fingerprints, not
+secrecy guarantees. They omit the raw string but can link a repeated target or
+confirm a guessed target; this disclosed metadata property does not certify
+credential contents or Owner identity. Per-window keyed identifiers, if needed,
+are a separate consumer-contract change, not silently added here.
 
 ## Result truthfulness
 
@@ -110,12 +127,14 @@ wire the plan-only CLI or default Pi and does not call the old private runtime.
   scoped and not a full provenance/current-proof or model acceptance.
 - [x] Coordinator fixtures: pre-admission zero forwarding, setup and final
   protected/volatile drift, provenance drift, copyable metadata vs genuine
-  admission, per-session and whole-window budgets, concurrent finalization,
-  refusal without raw diagnostics, bounded waits and explicit lifecycle. The
-  initial integrated release-contract was 219/219; credential-boundary follow-ups
-  now pass 223/223, with 13 coordinator cases and source/consumer plus actual Node20
-  gates passing in this candidate worktree. The original source BLOCK, subsequent
-  version-path BLOCK and old-source version regression (30 pass / 1 fail) are kept;
+  admission, per-session and whole-window budgets, shared-agent wrapper refusal,
+  deadline diagnostics, concurrent finalization, import inertness, refusal without
+  raw diagnostics and explicit lifecycle. The initial integrated release-contract
+  was 219/219; credential-boundary follow-ups passed 223/223, and lifecycle
+  follow-ups now pass 227/227, with 17 coordinator cases and source/consumer plus
+  actual Node20 gates passing in this candidate worktree. The original source BLOCK,
+  subsequent version-path BLOCK and old-source regressions (30 pass / 1 fail for
+  version; 14 pass / 3 fail for lifecycle) are kept;
   those failures are not overwritten or reclassified as successful.
 - [ ] Existing source/packed-consumer/actual Node20 gates, fresh independent
   review, exact head CI, ordinary PR and main readback for this source candidate.

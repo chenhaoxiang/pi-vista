@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {ROOT} from './release-utils.mjs';
@@ -92,6 +94,17 @@ test('one private global budget spans distinct baseline/guided admissions and se
   const result = await window.finalize(); assert.equal(result.pretransport_attempts, 2);
 });
 
+test('different session objects sharing a native agent cannot stack wrappers or revoke the restored stream', async () => {
+  const window = await openStage6Pilot(input(), ports().value), native = nativeSession();
+  const original = native.session.agent.streamFunction;
+  window.bindSession(native.session);
+  assert.throws(() => window.bindSession({agent: native.session.agent}), /stage6-agent-reused/);
+  assert.equal(request(native.session), 'stream'); assert.equal(native.forwarded, 1);
+  const result = await window.finalize();
+  assert.equal(result.pretransport_attempts, 1); assert.equal(result.integrity_status, 'unchanged');
+  assert.equal(native.session.agent.streamFunction, original);
+});
+
 test('session reuse, per-session limits, copied admission and model/thinking drift cannot forward', async () => {
   const window = await openStage6Pilot(input(), ports().value), native = nativeSession();
   const binding = window.bindSession(native.session);
@@ -159,6 +172,36 @@ test('collection failure and final read failure preserve fixed diagnostics and d
   const result = await window.finalize();
   assert.equal(result.reason_code, 'stage6-profile-unavailable'); assert.equal(result.profile_after_digest, null);
   assert.equal(result.integrity_status, 'unknown'); assert.doesNotMatch(JSON.stringify(result), /PRIVATE/);
+});
+
+test('final profile drift does not hide an unavailable provenance final read', async () => {
+  let collections = 0;
+  const p = ports([profile(), profile(), profile('b', 'c')]);
+  const window = await openStage6Pilot(input(), {...p.value, collectProvenance: async () => {
+    if (++collections > 1) throw Error('PRIVATE_PROVENANCE'); return provenance;
+  }});
+  const result = await window.finalize();
+  assert.equal(result.reason_code, 'stage6-provenance-unavailable');
+  assert.equal(result.drift.classification, 'protected-profile-drift');
+  assert.equal(result.provenance_after_digest, null); assert.equal(result.integrity_status, 'unknown');
+});
+
+test('final bounded wait preserves deadline classification instead of reporting a missing profile', {timeout: 3000}, async () => {
+  let reads = 0;
+  const window = await openStage6Pilot(input({deadline_ms: 100}), {captureProfile: async () => {
+    if (++reads === 3) return new Promise(() => {}); return profile();
+  }, collectProvenance: async () => provenance});
+  assert.equal(window.status, 'admitted');
+  const result = await window.finalize();
+  assert.equal(result.reason_code, 'stage6-window-deadline'); assert.equal(result.integrity_status, 'unknown');
+});
+
+test('coordinator import is inert before explicit host collection or budget binding', async () => {
+  const module = new URL('./stage6-pilot-coordinator.mjs', import.meta.url).href;
+  const result = await promisify(execFile)(process.execPath, ['--input-type=module', '-e', `globalThis.fetch=()=>{throw Error('fetch');};globalThis.setTimeout=()=>{throw Error('timer');};await import(${JSON.stringify(module)});console.log('imported');`], {
+    env: {PATH: '/usr/bin:/bin', HOME: '/nonexistent', TMPDIR: '/nonexistent'}, shell: false, timeout: 5000,
+  });
+  assert.equal(result.stdout.trim(), 'imported'); assert.equal(result.stderr, '');
 });
 
 test('a hung collection is bounded and refuses only the evaluation without forwarding any request', {timeout: 3000}, async () => {

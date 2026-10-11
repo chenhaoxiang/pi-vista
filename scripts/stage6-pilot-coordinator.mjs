@@ -96,7 +96,7 @@ export async function openStage6Pilot(input, ports) {
   }
   if (!admission.admitted) return refused(admission.reason_code, admission.model_calls);
 
-  const sessions = new WeakSet(), streamBindings = [];
+  const sessions = new WeakSet(), agents = new WeakSet(), streamBindings = [];
   let active = true, finalPromise;
   const budget = {take(model, thinking) { if (!active) unavailable('stage6-pilot-closed'); sharedBudget.take(model, thinking); }};
   return Object.freeze({
@@ -105,6 +105,7 @@ export async function openStage6Pilot(input, ports) {
     bindSession(session, rowAdmission = admission, options = {}) {
       if (!active) unavailable('stage6-pilot-closed');
       if (!session || typeof session !== 'object' || sessions.has(session)) unavailable('stage6-session-reused');
+      if (!session.agent || typeof session.agent !== 'object' || agents.has(session.agent)) unavailable('stage6-agent-reused');
       createAdmissionRequestBudget(rowAdmission, 16); // Reject copies before reading their fields.
       if (COMMON_CONTEXT.some(key => rowAdmission[key] !== context[key])) unavailable('stage6-row-context-mismatch');
       if (!options || typeof options !== 'object' || Array.isArray(options) || types.isProxy(options) ||
@@ -113,20 +114,20 @@ export async function openStage6Pilot(input, ports) {
       if (names.some(name => !['maxPerSession', 'requestGuard'].includes(name))) unavailable('stage6-coordinator-refused');
       const opts = own(options, names);
       const binding = bindStage6Stream(session, rowAdmission, budget, opts);
-      sessions.add(session); streamBindings.push(binding); return binding;
+      sessions.add(session); agents.add(session.agent); streamBindings.push(binding); return binding;
     },
     finalize() {
       if (finalPromise) return finalPromise;
       active = false;
       let shutdownFailed = false;
-      for (const binding of streamBindings) { try { binding.shutdown(); } catch { shutdownFailed = true; } }
+      for (const binding of [...streamBindings].reverse()) { try { binding.shutdown(); } catch { shutdownFailed = true; } }
       finalPromise = (async () => {
         let after, drift, afterProvenance, reason = null;
         try { after = profileSnapshot(await sharedBudget.wait(Promise.resolve().then(() => captureProfile(value.profileDirectory)))); drift = classifyProfileDrift(before, after); }
-        catch { reason = 'stage6-profile-unavailable'; }
+        catch (error) { reason = failureCode(error) === 'deadline' ? 'stage6-window-deadline' : 'stage6-profile-unavailable'; }
         try { afterProvenance = snapshotStage6Provenance(await sharedBudget.wait(Promise.resolve().then(() => collectProvenance()))); }
-        catch { reason ??= 'stage6-provenance-unavailable'; }
-        if (drift && drift.classification !== 'unchanged') reason = drift.classification;
+        catch (error) { reason ??= failureCode(error) === 'deadline' ? 'stage6-window-deadline' : 'stage6-provenance-unavailable'; }
+        if (drift && drift.classification !== 'unchanged') reason ??= drift.classification;
         if (afterProvenance && digest(afterProvenance) !== digest(expectedProvenance)) reason ??= 'stage6-provenance-drift';
         if (shutdownFailed) reason ??= 'stage6-shutdown-failed';
         return Object.freeze({schema: SCHEMA, status: 'closed', reason_code: reason,
