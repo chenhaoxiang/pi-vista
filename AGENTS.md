@@ -54,6 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/handoff/2026-10-12-stage6-zero-model-matrix-closeout.md](docs/handoff/2026-10-12-stage6-zero-model-matrix-closeout.md): PR41 one-window 4-case×2-arm native matrix, 11 independent fault windows, exact CI/main and non-authorizing boundaries; full paired quality/current proof pending
+- [docs/handoff/evidence/2026-10-11-stage6-zero-model/README.md](docs/handoff/evidence/2026-10-11-stage6-zero-model/README.md): sanitized matrix/fault/head/main CI projections; no model quality, bank, current permission or release claim
 - [openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md](openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md): one-window four-case×two-arm model-free matrix plus real SDK negative windows; current candidate not model quality or LOCAL history proof
 - [scripts/stage6-synthetic-sdk-host.mjs](scripts/stage6-synthetic-sdk-host.mjs): explicit synthetic SDK host for matrix and independent negative windows; no real model/bank/default Pi
 - [scripts/stage6-native-sdk-matrix.mjs](scripts/stage6-native-sdk-matrix.mjs), [scripts/stage6-native-sdk-faults.mjs](scripts/stage6-native-sdk-faults.mjs): opt-in one-window matrix/budget guard and independent synthetic faults with trace/counter/cleanup assertions

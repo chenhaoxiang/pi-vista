@@ -1,0 +1,33 @@
+{
+  "databaseId": 38177305015,
+  "headSha": "c5c84e03207b6dcceea16750fbdb3e113e327931",
+  "workflowName": "Source and packed-consumer contract",
+  "event": "pull_request",
+  "status": "completed",
+  "conclusion": "success",
+  "createdAt": "2026-10-11T21:40:00Z",
+  "updatedAt": "2026-10-11T21:45:24Z",
+  "jobs": [
+    {
+      "name": "Node 22 / POSIX source evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "databaseId": 114582296903,
+      "url": "https://github.com/chenhaoxiang/pi-vista/actions/runs/38177305015/job/114582296903"
+    },
+    {
+      "name": "Node 20 / POSIX source evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "databaseId": 114582297071,
+      "url": "https://github.com/chenhaoxiang/pi-vista/actions/runs/38177305015/job/114582297071"
+    },
+    {
+      "name": "Node 26 / POSIX source evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "databaseId": 114582297112,
+      "url": "https://github.com/chenhaoxiang/pi-vista/actions/runs/38177305015/job/114582297112"
+    }
+  ]
+}
