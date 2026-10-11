@@ -1,6 +1,4 @@
-import { createHash } from "node:crypto";
 import { types } from "node:util";
-import { hasKnownCredential } from "@pi-vista/core";
 import { snapshotStage6Context } from "./stage6-admission.mjs";
 import { validateStage6Provenance } from "./stage6-sdk-provenance.mjs";
 
@@ -10,7 +8,6 @@ const HEX = /^[a-f0-9]{64}$/u;
 const KEYS = ["context", "expected", "provenance", "history", "budget", "model_calls"];
 const HISTORY_KEYS = ["schema", "purpose", "current_verification", "authorization", "executable", "content_digest", "subject_source_sha", "context_digest", "character_count", "provenance_digests"];
 const BUDGET_KEYS = ["max_requests", "max_per_session", "deadline_ms", "k"];
-const digest = value => createHash("sha256").update(value).digest("hex");
 const refuse = () => { throw new Error("stage6-k1-refused"); };
 function own(input, keys) {
   if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) || ![Object.prototype, null].includes(Object.getPrototypeOf(input)) || Reflect.ownKeys(input).length !== keys.length) refuse();
@@ -42,7 +39,10 @@ export function admitK1(input) {
     provenance = validateStage6Provenance(value.provenance); history = historical(value.history); max = budget(value.budget);
     if (!Number.isSafeInteger(value.model_calls) || value.model_calls < 0) refuse();
     if (Object.keys(context).some(key => context[key] !== expected[key])) return result("context-mismatch", value.model_calls);
-    if (!provenance.sdk.matched || !provenance.broker.matched || provenance.subject_source_sha !== context.subject_source_sha || provenance.history_digest !== context.subject_history_digest || provenance.sdk.observed.version !== context.sdk) return result("provenance-mismatch", value.model_calls);
+    if (!provenance.sdk.matched || !provenance.broker.matched ||
+        provenance.broker.provider !== context.provider || provenance.broker.command_sha256 !== context.broker_digest ||
+        provenance.subject_source_sha !== context.subject_source_sha || provenance.history_digest !== context.subject_history_digest ||
+        provenance.bindings.harness_source_sha !== context.harness_source_sha || provenance.sdk.observed.version !== context.sdk) return result("provenance-mismatch", value.model_calls);
     if (context.arm === "guided" && (!history || history.subject_source_sha !== context.subject_source_sha || history.content_digest !== context.subject_history_digest || history.context_digest !== context.guidance_digest)) return result("history-mismatch", value.model_calls);
     if (context.arm === "baseline" && history !== null) return result("baseline-history-unexpected", value.model_calls);
     if (value.model_calls !== 0) return result("model-calls-before-admission", value.model_calls);

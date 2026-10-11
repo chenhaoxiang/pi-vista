@@ -4,8 +4,8 @@ project: workspace
 owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
-created: 2026-10-12
-verified: 2026-10-12
+created: 2026-10-11
+verified: 2026-10-11
 ---
 
 # Stage6 K1 admission — source candidate
@@ -24,19 +24,30 @@ a matching synthetic context digest and a historical-only DTO with
 `current_verification=not-checked`, `authorization=none`, `executable=false`,
 subject source binding, content digest, bounded character count and provenance
 digests. The DTO is detached metadata, not a verifier handle or current proof.
-Its history digest is checked against the Stage6 context anchor; it does not read
-LOCAL/Hindsight, restore old permission or establish ROI.
+`content_digest` is compared with the accepted subject-history anchor
+`context.subject_history_digest`; it is not evidence of a current LOCAL/Hindsight
+readback. `context_digest` binds the guided block separately. The retained
+`provenance_digests` are validated only as bounded digest labels, not authenticated
+sources. This module does not read LOCAL/Hindsight, restore old permission or
+establish ROI.
 
 The K1 budget is a closed declaration: `k=1`, total max requests <=16, max per
-session=2 and bounded deadline. Observed pre-admission model calls must be zero;
+session=2 and bounded deadline. It creates no counter and enforces no transport
+limit; the delivered whole-window coordinator remains the one pilot budget owner.
+Observed pre-admission model calls must be zero;
 nonzero counts are preserved as `model-calls-before-admission`, not rewritten to
 zero. `started_model_calls` stays zero because this module never starts a model.
 
 ## Provenance and refusal semantics
 
 SDK/broker provenance is validated through the delivered
-`validateStage6Provenance` collector contract; source, harness, context, artifact,
-history and broker bindings remain distinct. Any mismatch, malformed history,
+`validateStage6Provenance` collector contract and cross-checked for SDK match/version,
+broker match/provider/command digest, subject source, history and harness source.
+The remaining run/repo/policy/environment/artifact binding labels are validated by
+that existing DTO validator, not authenticated or compared with a separate host
+snapshot here. `bindings.context_digest` is the common provenance context label;
+the arm-specific compiled guidance remains `history.context_digest`. Neither
+label is silently substituted for source/history/artifact. Any mismatch, malformed history,
 invalid budget, unexpected baseline history or prior model call returns a fixed
 non-authorizing refusal. This affects only the future K1 evaluation window and
 never blocks the primary Pi task.
@@ -49,11 +60,16 @@ exhausted and not reused.
 
 ## Acceptance status
 
-- [x] Closed source DTO and synthetic admission tests: baseline/guided history
-  boundary, exact subject/context/provenance relation, nonzero prior call,
-  invalid budget, getters/proxies and non-authorizing outputs.
-- [ ] Integrate with a fresh real SDK host window after matrix PR41/main and
-  independent review; no model call is authorized by this source candidate.
+- [x] Closed source DTO and synthetic admission tests in this candidate:
+  baseline/guided history boundary, subject/context/provenance cross-checks,
+  nonzero prior call, invalid budget, getters/proxies and non-authorizing outputs.
+  A broker/provider/harness mismatch regression was red against initial
+  `9c96564`, then green after the source correction; original logs are retained.
+- [ ] Fresh independent source review, exact-head source/consumer/Node20 CI,
+  ordinary PR43/main inclusion and readback remain pending at preparation.
+- [ ] Integrate with a fresh real SDK host window after source delivery. The
+  metadata DTO supplies no execution authorization; existing user authorization
+  is separate and is not renewed per implementation step.
 - [ ] A future real K1 window requires concrete provider/model/SDK/source/history/
   budget facts and a separate current evidence chain. K3, ROI and release remain
   later decisions.
