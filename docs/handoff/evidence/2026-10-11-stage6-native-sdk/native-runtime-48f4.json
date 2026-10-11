@@ -1,0 +1,45 @@
+{
+  "schema": "stage6-native-sdk-acceptance/1",
+  "status": "passed",
+  "scope": "synthetic SDK tool lifecycle only",
+  "harness_source_sha": "48f4c90a7d5f38893f95b455e1ff9c2be40a915b",
+  "runner_sha256": "a412ca22fe724c94aec822e42b813d734b126f1797a481a292acc6e259bdb754",
+  "sdk_version": "1.1.0-fork.1",
+  "node": "v26.9.0",
+  "intercepted_provider_requests": 2,
+  "synthetic_responses": 2,
+  "credential_store_read_attempts": 212,
+  "declared_scope": {
+    "real_model_calls": 0,
+    "bank_calls": 0,
+    "credential_bytes_read": false
+  },
+  "native_read_implementation_verified": true,
+  "native_read_registry_dispatch": false,
+  "strict_decision": "decision-valid",
+  "receipt": {
+    "schema": "stage6-pilot-window/1",
+    "status": "closed",
+    "reason_code": null,
+    "integrity_status": "unchanged",
+    "evaluation_status": "not-evaluated",
+    "observed_pre_admission_calls": 0,
+    "pretransport_attempts": 2,
+    "max_requests": 2,
+    "profile_before_digest": "5e6e739b00fae97e926cfc697c632c7e03afb58cb0695df84e79079da7d6f96b",
+    "profile_after_digest": "5e6e739b00fae97e926cfc697c632c7e03afb58cb0695df84e79079da7d6f96b",
+    "drift": {
+      "classification": "unchanged",
+      "protected_changed": [],
+      "volatile_changed": [],
+      "attribution": "not-observed"
+    },
+    "provenance_before_digest": "b560da008ba73dbd17d4a8b66ff44ffb43b5216ac3922ad799021810667af420",
+    "provenance_after_digest": "b560da008ba73dbd17d4a8b66ff44ffb43b5216ac3922ad799021810667af420",
+    "verification": "metadata-only",
+    "authorization": "none",
+    "executable": false
+  },
+  "authorization": "none",
+  "executable": false
+}
