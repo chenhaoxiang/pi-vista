@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {createBudget, failureCode} from './pi-agent-canary-support.mjs';
 import {captureStage6Profile, bindStage6Stream} from './stage6-host-admission.mjs';
+import {validateStage6Provenance as validateSdkStage6Provenance} from './stage6-sdk-provenance.mjs';
 import {admitStage6Run, classifyProfileDrift, createAdmissionRequestBudget, profileDigest, profileSnapshot, snapshotStage6Context} from './stage6-admission.mjs';
 
 const SCHEMA = 'stage6-pilot-window/1';
@@ -11,8 +12,13 @@ const BINDING_KEYS = ['run_id', 'repo', 'source_sha', 'policy_version', 'env_fin
 const HEX64 = /^[a-f0-9]{64}$/u;
 const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const LABEL = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
-const SAFE_REASONS = new Set(['stage6-coordinator-refused', 'stage6-provenance-refused', 'stage6-provenance-mismatch', 'stage6-profile-unavailable', 'stage6-admission-refused']);
-const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const SAFE_REASONS = new Set(['stage6-coordinator-refused', 'stage6-provenance-refused', 'stage6-provenance-mismatch', 'stage6-profile-unavailable', 'stage6-admission-refused', 'stage6-sdk-installation-refused', 'stage6-sdk-contract-refused', 'stage6-sdk-broker-refused', 'stage6-sdk-binding-refused']);
+function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value !== null && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+const digest = value => createHash('sha256').update(canonical(value)).digest('hex');
 const unavailable = reason => { throw Error(reason); };
 
 function own(input, keys, reason = 'stage6-coordinator-refused') {
@@ -31,29 +37,17 @@ function bindingsSnapshot(input) {
   const value = own(input, BINDING_KEYS, 'stage6-provenance-refused');
   for (const key of ['run_id', 'repo', 'policy_version']) if (typeof value[key] !== 'string' || !LABEL.test(value[key])) unavailable('stage6-provenance-refused');
   for (const key of ['source_sha', 'harness_source_sha']) if (typeof value[key] !== 'string' || !SHA.test(value[key])) unavailable('stage6-provenance-refused');
-  for (const key of ['env_fingerprint', 'context_digest', 'artifact_digest']) if (typeof value[key] !== 'string' || !HEX64.test(value[key])) unavailable('stage6-provenance-refused');
+  if (typeof value.env_fingerprint !== 'string' || !LABEL.test(value.env_fingerprint)) unavailable('stage6-provenance-refused');
+  if (value.context_digest !== null && (typeof value.context_digest !== 'string' || !HEX64.test(value.context_digest))) unavailable('stage6-provenance-refused');
+  if (typeof value.artifact_digest !== 'string' || !HEX64.test(value.artifact_digest)) unavailable('stage6-provenance-refused');
   return Object.freeze(value);
 }
 
-// This seam accepts host-collected, COPYABLE metadata. It is not opaque evidence
-// or independent origin authentication. SDK/broker schemas are integrated with
-// the paired SDK collector below; the primary task never imports this module.
+// Reuse the paired SDK/broker validator. The DTO is copyable metadata, not an
+// opaque proof; the validator detaches nested values and rejects permission fields.
 export function snapshotStage6Provenance(input) {
-  const value = own(input, ['schema', 'sdk', 'broker', 'subject_source_sha', 'history_digest', 'bindings', 'verification', 'authorization', 'executable'], 'stage6-provenance-refused');
-  if (value.schema !== 'stage6-provenance/1' || value.verification !== 'metadata-only' || value.authorization !== 'none' || value.executable !== false ||
-      typeof value.subject_source_sha !== 'string' || !SHA.test(value.subject_source_sha) || typeof value.history_digest !== 'string' || !HEX64.test(value.history_digest)) unavailable('stage6-provenance-refused');
-  const bindings = bindingsSnapshot(value.bindings);
-  if (bindings.source_sha !== value.subject_source_sha) unavailable('stage6-provenance-mismatch');
-  const sdk = own(value.sdk, ['schema', 'package_name', 'version', 'manifest_sha256', 'entry_sha256', 'export_entry', 'node_engine', 'provenance'], 'stage6-provenance-refused');
-  if (sdk.schema !== 'pi-sdk-provenance/1' || sdk.provenance !== 'installed-readonly' || sdk.package_name !== '@earendil-works/pi-coding-agent' ||
-      typeof sdk.version !== 'string' || !LABEL.test(sdk.version) || typeof sdk.manifest_sha256 !== 'string' || !HEX64.test(sdk.manifest_sha256) || typeof sdk.entry_sha256 !== 'string' || !HEX64.test(sdk.entry_sha256) ||
-      sdk.export_entry !== './dist/index.js' || typeof sdk.node_engine !== 'string' || sdk.node_engine.length > 128 || /[\u0000-\u001f]/u.test(sdk.node_engine)) unavailable('stage6-provenance-refused');
-  // Explicit no-broker and the exact readonly collector DTO are supported, not
-  // arbitrary tool annotations, command text or profile configuration objects.
-  const broker = value.broker === null ? null : own(value.broker, ['schema', 'provider', 'command_sha256', 'file_metadata_sha256', 'contract_matched', 'provenance'], 'stage6-provenance-refused');
-  if (broker && (broker.schema !== 'pi-broker-provenance/1' || broker.provenance !== 'installed-readonly' || typeof broker.provider !== 'string' || !LABEL.test(broker.provider) ||
-      typeof broker.command_sha256 !== 'string' || !HEX64.test(broker.command_sha256) || typeof broker.file_metadata_sha256 !== 'string' || !HEX64.test(broker.file_metadata_sha256) || broker.contract_matched !== true)) unavailable('stage6-provenance-refused');
-  return Object.freeze({...value, sdk: Object.freeze(sdk), broker: broker && Object.freeze(broker), bindings});
+  try { return validateSdkStage6Provenance(input); }
+  catch { unavailable('stage6-provenance-refused'); }
 }
 
 function refused(reason_code, model_calls) {
@@ -82,8 +76,9 @@ export async function openStage6Pilot(input, ports) {
     expectedProvenance = snapshotStage6Provenance(value.expectedProvenance);
     if (digest(bindings) !== digest(expectedProvenance.bindings) || bindings.source_sha !== context.subject_source_sha ||
         bindings.harness_source_sha !== context.harness_source_sha || expectedProvenance.history_digest !== context.subject_history_digest ||
-        expectedProvenance.sdk.version !== context.sdk || (expectedProvenance.broker?.command_sha256 ?? null) !== context.broker_digest ||
-        expectedProvenance.broker && expectedProvenance.broker.provider !== context.provider) unavailable('stage6-provenance-mismatch');
+        !expectedProvenance.sdk.matched || expectedProvenance.sdk.observed.version !== context.sdk ||
+        !expectedProvenance.broker.matched || expectedProvenance.broker.provider !== context.provider ||
+        expectedProvenance.broker.command_sha256 !== context.broker_digest) unavailable('stage6-provenance-mismatch');
     const port = own(ports, ['captureProfile', 'collectProvenance']);
     captureProfile = port.captureProfile ?? captureStage6Profile;
     collectProvenance = port.collectProvenance;
