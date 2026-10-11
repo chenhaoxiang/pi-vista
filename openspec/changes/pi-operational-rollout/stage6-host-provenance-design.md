@@ -104,15 +104,19 @@ wire the plan-only CLI or default Pi and does not call the old private runtime.
 
 - [x] Closed collector fixtures: distinct public/fork contracts, missing/changed
   public files, readonly broker pin/metadata, no credential/shell access. The
-  paired SDK lane supplies 29/29 Node26 and 29/29 actual Node20 targeted cases;
-  its 1.1.0 observer/native-read acceptance is separately scoped and not a full
-  provenance/current-proof or model acceptance.
+  paired SDK lane supplies initial 29/29 Node26 and 29/29 actual Node20 targeted
+  cases; integrated label/version credential-boundary follow-ups add two cases
+  (31 collector cases). Its 1.1.0 observer/native-read acceptance is separately
+  scoped and not a full provenance/current-proof or model acceptance.
 - [x] Coordinator fixtures: pre-admission zero forwarding, setup and final
   protected/volatile drift, provenance drift, copyable metadata vs genuine
   admission, per-session and whole-window budgets, concurrent finalization,
   refusal without raw diagnostics, bounded waits and explicit lifecycle. The
-  integrated source release-contract is 219/219, with source/consumer and actual
-  Node20 gates passing in this candidate worktree.
+  initial integrated release-contract was 219/219; credential-boundary follow-ups
+  now pass 223/223, with 13 coordinator cases and source/consumer plus actual Node20
+  gates passing in this candidate worktree. The original source BLOCK, subsequent
+  version-path BLOCK and old-source version regression (30 pass / 1 fail) are kept;
+  those failures are not overwritten or reclassified as successful.
 - [ ] Existing source/packed-consumer/actual Node20 gates, fresh independent
   review, exact head CI, ordinary PR and main readback for this source candidate.
 - [ ] Actual loaded-SDK/session/source/history/decision/transport acceptance in a
