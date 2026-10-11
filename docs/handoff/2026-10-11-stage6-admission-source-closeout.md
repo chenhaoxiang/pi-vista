@@ -22,8 +22,8 @@ PR35 已普通合入 `main`，合并提交：
 main。PR35 head：`50509e7a9dce454f54fa1adb3245e54569941950`。本文自身仍待
 独立 docs PR/main 包含，不用 PR35 反向证明这份补充文档已经交付。
 
-精确 head CI：`38098891376`，Node20/22/26 source/packed-consumer 与
-GitGuardian 均 SUCCESS。精确 main CI：`38099439850`，三 Node source/consumer
+精确 head CI：`38098891376`，Node20/22/26 source/packed-consumer SUCCESS；
+head 提交另有 GitGuardian SUCCESS。精确 main CI：`38099439850`，三 Node source/consumer
 均 SUCCESS（不称另有 main GitGuardian）。主线回读为 `d2abf0c1`，本地主 checkout
 通过 scoped ff-only 同步回读一致。
 
