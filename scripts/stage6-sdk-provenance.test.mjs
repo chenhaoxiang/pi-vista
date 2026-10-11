@@ -127,6 +127,15 @@ test("broker rejects shell, path escape and malformed metadata without fallback"
   } finally { await rm(profile, { recursive: true, force: true }); }
 });
 
+test("embedded credential signatures are refused at provider, contract and binding label boundaries", async () => {
+  const f = await pairedFixture();
+  try {
+    await assert.rejects(observeReadonlyBrokerMetadata({ profile_directory: f.profile, provider: "fixture-sk-12345678", command: `cat ${f.target}`, expected_command_sha256: sha(`cat ${f.target}`) }), /stage6-sdk-broker-refused/);
+    assert.throws(() => matchSdkContract(f.observed, { ...fixtureContract(f.observed), contract_id: "fixture-ghp_12345678" }), /stage6-sdk-contract-refused/);
+    assert.throws(() => bindStage6Provenance({ ...f.input, bindings: { ...f.input.bindings, env_fingerprint: "env-sk-12345678" } }), /stage6-sdk-binding-refused/);
+  } finally { await f.close(); }
+});
+
 test("metadata-only binding keeps subject source/history/context/artifact/harness fields distinct", async () => {
   const root = await fixtureRoot();
   const { profile, target } = await brokerFixture();

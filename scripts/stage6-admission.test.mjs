@@ -45,6 +45,15 @@ test("protected/volatile drift and context mismatch refuse before any model requ
   const guided = { ...context, arm: "guided", guidance_mode: "historical-observed", guidance_digest: d("g") };
   assert.equal(admitStage6Run(input(guided), guided).status, "admitted");
 });
+test("embedded credential signatures refuse admission context before a model call", () => {
+  for (const key of ["provider", "model", "sdk"]) {
+    const result = admitStage6Run(input({ [key]: `fixture-sk-${key}-12345678` }), context);
+    assert.equal(result.reason_code, "invalid-input"); assert.equal(result.model_calls, null);
+  }
+  const profileWithCredential = { protected: { "env-sk-12345678": d("p") }, volatile: { cache: d("v") } };
+  assert.equal(admitStage6Run(input({ profile_before: profileWithCredential }), context).reason_code, "invalid-input");
+});
+
 test("invalid provenance and pre-admission calls preserve refusal without fallback", () => {
   for (const bad of [input({ subject_source_sha: "not-a-digest" }), input({ broker_digest: "not-a-digest" }), input({ profile_before: undefined })]) {
     const result = admitStage6Run(bad, context); assert.equal(result.status, "refused"); assert.equal(result.admitted, false); assert.equal(result.authorization, "none");

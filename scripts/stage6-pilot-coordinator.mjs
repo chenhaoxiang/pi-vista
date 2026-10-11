@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
+import {hasKnownCredential} from '@pi-vista/core';
 import {createBudget, failureCode} from './pi-agent-canary-support.mjs';
 import {captureStage6Profile, bindStage6Stream} from './stage6-host-admission.mjs';
 import {validateStage6Provenance as validateSdkStage6Provenance} from './stage6-sdk-provenance.mjs';
@@ -35,9 +36,9 @@ function own(input, keys, reason = 'stage6-coordinator-refused') {
 
 function bindingsSnapshot(input) {
   const value = own(input, BINDING_KEYS, 'stage6-provenance-refused');
-  for (const key of ['run_id', 'repo', 'policy_version']) if (typeof value[key] !== 'string' || !LABEL.test(value[key])) unavailable('stage6-provenance-refused');
+  for (const key of ['run_id', 'repo', 'policy_version']) if (typeof value[key] !== 'string' || !LABEL.test(value[key]) || hasKnownCredential(value[key])) unavailable('stage6-provenance-refused');
   for (const key of ['source_sha', 'harness_source_sha']) if (typeof value[key] !== 'string' || !SHA.test(value[key])) unavailable('stage6-provenance-refused');
-  if (typeof value.env_fingerprint !== 'string' || !LABEL.test(value.env_fingerprint)) unavailable('stage6-provenance-refused');
+  if (typeof value.env_fingerprint !== 'string' || !LABEL.test(value.env_fingerprint) || hasKnownCredential(value.env_fingerprint)) unavailable('stage6-provenance-refused');
   if (value.context_digest !== null && (typeof value.context_digest !== 'string' || !HEX64.test(value.context_digest))) unavailable('stage6-provenance-refused');
   if (typeof value.artifact_digest !== 'string' || !HEX64.test(value.artifact_digest)) unavailable('stage6-provenance-refused');
   return Object.freeze(value);

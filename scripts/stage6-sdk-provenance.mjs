@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 import { dirname, isAbsolute, join, normalize, parse, relative, sep } from "node:path";
 import { types } from "node:util";
+import { hasKnownCredential } from "@pi-vista/core";
 
 // Explicit readonly metadata seam, not a loader, proof, admission, budget or permission.
 // Importing performs no I/O; SDK public files and broker metadata are read only on call.
@@ -56,7 +57,7 @@ function fields(value, keys) {
   return out;
 }
 function label(value) {
-  if (typeof value !== "string" || !LABEL.test(value) || /^(?:sk[-_]|gh[pousr]_|github_pat_|xox[baprs]-)/iu.test(value) ||
+  if (typeof value !== "string" || !LABEL.test(value) || hasKnownCredential(value) ||
       ["__proto__", "constructor", "prototype"].includes(value)) refused();
   return value;
 }

@@ -143,6 +143,14 @@ test('copyable metadata is accepted as metadata, not opaque proof, while raw fie
   assert.equal(reads, 0);
 });
 
+test('embedded credential signatures in coordinator bindings refuse before host reads', async () => {
+  let reads = 0;
+  const result = await openStage6Pilot(input({bindings: {...bindings, env_fingerprint: 'env-sk-12345678'}}), {
+    captureProfile: async () => { reads++; return profile(); }, collectProvenance: async () => provenance,
+  });
+  assert.equal(result.reason_code, 'stage6-provenance-refused'); assert.equal(reads, 0);
+});
+
 test('collection failure and final read failure preserve fixed diagnostics and do not fabricate full provenance', async () => {
   const refused = await openStage6Pilot(input(), {captureProfile: async () => {throw Error('PRIVATE_PROFILE');}, collectProvenance: async () => provenance});
   assert.equal(refused.reason_code, 'stage6-collection-unavailable'); assert.doesNotMatch(JSON.stringify(refused), /PRIVATE/);
