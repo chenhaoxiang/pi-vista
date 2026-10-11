@@ -56,6 +56,7 @@ test("copied provenance remains metadata and does not require an opaque proof ha
 test("K1 preserves consumed pre-admission counts and accepts only K1 budget declarations", () => {
   assert.equal(admitK1(input({ model_calls: 1 })).reason_code, "model-calls-before-admission"); assert.equal(admitK1(input({ model_calls: 1 })).model_calls, 1);
   assert.equal(admitK1(input({ model_calls: 1, context: { ...context, model: "other-model" } })).reason_code, "model-calls-before-admission");
+  assert.equal(admitK1(input({ model_calls: 1, budget: { ...budget, deadline_ms: 999 } })).reason_code, "model-calls-before-admission");
   for (const changes of [{ k: 3 }, { max_requests: 17 }, { max_per_session: 3 }, { deadline_ms: 1_200_001 }, { deadline_ms: 999 }])
     assert.equal(admitK1(input({ budget: { ...budget, ...changes } })).reason_code, "invalid-input");
 });
