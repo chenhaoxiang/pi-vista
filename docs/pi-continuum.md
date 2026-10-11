@@ -78,7 +78,7 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 
 ### P0：先修 harness，再调用模型
 
-1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。Stage6 P0 admission/decision/planner source 已通过 PR35 合入 main `d2abf0c1`（包含 PR32 `a42ff57` 的 source-only 祖先）；旧16-call draft仍 INVALID。另有只读 host seam（`scripts/stage6-host-admission.mjs`），只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。
+1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。Stage6 P0 admission/decision/planner source 已通过 PR35 合入 main `d2abf0c1`（包含 PR32 `a42ff57` 的 source-only 祖先）；旧16-call draft仍 INVALID。另有只读 host seam（`scripts/stage6-host-admission.mjs`），只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。当前候选继续补充 `scripts/stage6-pilot-coordinator.mjs`：由受信宿主显式提供 SDK/broker/source/history metadata，围绕整轮 profile/provenance bracket 和共享 pretransport budget 生成 `metadata-only`、`authorization:none`、`executable:false` 结果；仍是 source/mock candidate，不代表实际 SDK、默认 Pi 或有效 pilot。
 2. Strict decision：使用固定 decision tool（case_id、decision、reason enum，additionalProperties=false），区分 tool-not-called/schema-invalid/refusal/provider-error/semantic-mismatch；不把自由文本JSON或 aggregation-completed当有效semantic结果。当前 source candidate 通过固定 synthetic reference/mock，不代表实际模型决策。
 
 ### P1：逐步测效益

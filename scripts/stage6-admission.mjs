@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { types } from "node:util";
+import { hasKnownCredential } from "@pi-vista/core";
 
 // Offline metadata contract only. A future trusted host must collect these facts;
 // this module neither reads profiles nor starts a model or grants permission.
@@ -25,7 +26,7 @@ function own(value, keys) {
 }
 export function snapshotStage6Context(input) {
   const value = own(input, CONTEXT_KEYS);
-  for (const key of ["provider", "model", "sdk", "arm", "guidance_mode"]) if (typeof value[key] !== "string" || !LABEL.test(value[key])) refuse();
+  for (const key of ["provider", "model", "sdk", "arm", "guidance_mode"]) if (typeof value[key] !== "string" || !LABEL.test(value[key]) || hasKnownCredential(value[key])) refuse();
   if (!["off", "minimal", "low", "medium", "high", "xhigh", "max"].includes(value.thinking)) refuse();
   if (!["baseline", "guided"].includes(value.arm)) refuse();
   if (value.arm === "baseline" && (value.guidance_mode !== "none" || value.guidance_digest !== null)) refuse();
@@ -45,7 +46,7 @@ export function profileSnapshot(input) {
     const names = Object.keys(map).sort();
     if (Reflect.ownKeys(map).length !== names.length || names.length > 32 || key === "protected" && names.length === 0) refuse();
     const entries = names.map(name => {
-      if (!LABEL.test(name)) refuse();
+      if (!LABEL.test(name) || hasKnownCredential(name)) refuse();
       const p = Object.getOwnPropertyDescriptor(map, name);
       if (!p || !Object.hasOwn(p, "value") || (p.value !== null && (typeof p.value !== "string" || !HEX64.test(p.value)))) refuse();
       return [name, p.value];

@@ -90,6 +90,9 @@ a genuine admitted object and a single pilot-wide budget; it refuses copied
 admissions, model/thinking drift, per-session over-budget calls and shutdown.
 No current Stage6 planner or default Pi path imports this seam. Actual SDK,
 broker, source-subject and history collection remain a separate acceptance task.
+A follow-on source candidate (`stage6-host-provenance-design.md` and
+`scripts/stage6-pilot-coordinator.mjs`) defines the trusted-host whole-window
+bracket and pilot-wide budget, but it is not independent host/runtime acceptance.
 
 ## Current validation and remaining work
 
