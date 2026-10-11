@@ -58,6 +58,14 @@ export function parseStage6NativeAcceptanceOptions(args) {
   return Object.freeze({ sdk: absolute(options.sdk), source_sha: options["source-sha"] });
 }
 
+function sessionSnapshot(session) {
+  const model = session.model;
+  return { model: { provider: model.provider, id: model.id, api: model.api, baseUrl: model.baseUrl,
+    reasoning: model.reasoning, contextWindow: model.contextWindow, maxTokens: model.maxTokens,
+    input: [...model.input], cost: { ...model.cost } }, thinking: session.thinkingLevel,
+    tools: [...session.getActiveToolNames()], prompt: session.systemPrompt };
+}
+
 function nativeSessionResources(sdk) {
   return {
     getExtensions: () => ({ extensions: [], errors: [], runtime: sdk.createExtensionRuntime() }),
@@ -102,7 +110,7 @@ export async function runStage6NativeAcceptance(input) {
   const fixture = pairedFixture("healthy-metadata", PAIR_SOURCE_SHA, bindings.env_fingerprint);
   const expected = expectedFixtureContract(PAIR_SOURCE_SHA, bindings.env_fingerprint);
   const metadataFile = join(output, "metadata.json"); await writeFile(metadataFile, JSON.stringify(fixture));
-  let inspected, decisionCall, requestCount = 0;
+  let inspected, decisionCall, requestCount = 0, credentialReadAttempts = 0;
   const savedFetch = globalThis.fetch;
   let session;
   try {
@@ -120,7 +128,7 @@ export async function runStage6NativeAcceptance(input) {
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: ${JSON.stringify(ending)}\n\ndata: [DONE]\n\n`, { status: 200, headers: { "Content-Type": "text/event-stream" } });
   };
   const runtime = await sdk.ModelRuntime.create({ modelsPath: null, allowModelNetwork: false, refreshOnCreate: false,
-    credentials: { async read() { return undefined; }, async list() { return []; }, async modify() { assert.fail("credential write"); }, async delete() { assert.fail("credential delete"); } },
+    credentials: { async read() { credentialReadAttempts++; return undefined; }, async list() { return []; }, async modify() { assert.fail("credential write"); }, async delete() { assert.fail("credential delete"); } },
     modelsStore: { async read() { return undefined; }, async write() {}, async delete() {} } });
   runtime.registerProvider(context.provider, { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic-no-network",
     models: [{ id: context.model, name: context.model, reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
@@ -136,17 +144,19 @@ export async function runStage6NativeAcceptance(input) {
     ({ session } = await sdk.createAgentSession({ cwd: output, agentDir: output, modelRuntime: runtime, model: runtime.getModel(context.provider, context.model), thinkingLevel: context.thinking,
       tools: ["paired_inspect_metadata", "stage6_decision"], customTools, resourceLoader: resources, sessionManager: sdk.SessionManager.inMemory(output),
       settingsManager: sdk.SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false }, cacheWarming: "off", enableAnalytics: false, enableInstallTelemetry: false }, { projectTrusted: false }) }));
-    const before = { model: structuredClone(session.model), thinking: session.thinkingLevel, tools: [...session.getActiveToolNames()], prompt: session.systemPrompt };
+    const before = sessionSnapshot(session);
     const originalStream = session.agent.streamFunction; window.bindSession(session);
     await session.prompt("Inspect the fixed metadata and emit the strict decision.", { expandPromptTemplates: false }); await session.waitForIdle();
     assert.equal(requestCount, 2); assert.ok(inspected); assert.equal(classifyDecisionOutcome({ case_id: fixture.case_id, status: "completed", call: decisionCall, metadata: inspected, expected }).outcome, "decision-valid");
-    assert.deepEqual({ model: session.model, thinking: session.thinkingLevel, tools: session.getActiveToolNames(), prompt: session.systemPrompt }, before);
+    assert.deepEqual(sessionSnapshot(session), before);
     const receipt = await window.finalize(); assert.equal(receipt.integrity_status, "unchanged"); assert.equal(session.agent.streamFunction, originalStream);
+    assert.equal(receipt.pretransport_attempts, requestCount); assert.equal(receipt.max_requests, 2);
     assert.equal(await readHarnessSource(sourceSha), artifactDigest);
     const report = { schema: "stage6-native-sdk-acceptance/1", status: "passed", scope: "synthetic SDK tool lifecycle only", harness_source_sha: sourceSha,
       runner_sha256: artifactDigest, sdk_version: observed.version, node: process.version,
-      intercepted_provider_requests: requestCount, synthetic_responses: requestCount, real_model_calls: 0, bank_calls: 0, credentials_read: false,
-      native_read_verified: true, strict_decision: "decision-valid", receipt, authorization: "none", executable: false };
+      intercepted_provider_requests: requestCount, synthetic_responses: requestCount, credential_store_read_attempts: credentialReadAttempts,
+      declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false },
+      native_read_implementation_verified: true, native_read_registry_dispatch: false, strict_decision: "decision-valid", receipt, authorization: "none", executable: false };
     await writeFile(join(output, "report.json"), `${JSON.stringify(report, null, 2)}\n`); return { report, evidence: output };
   } finally {
     globalThis.fetch = savedFetch;
