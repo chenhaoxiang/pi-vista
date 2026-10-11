@@ -18,9 +18,12 @@ const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 export const SYNTHETIC_FAULTS = Object.freeze(["semantic-mismatch", "schema-invalid", "provider-error", "cancelled", "timeout", "deadline", "stream-disconnected", "profile-drift", "request-guard", "session-budget"]);
 const refuse = () => { throw Error("stage6-synthetic-host-refused"); };
 export function snapshotSyntheticHostOptions(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) || ![Object.prototype, null].includes(Object.getPrototypeOf(input)) || Reflect.ownKeys(input).length !== 3) refuse();
+  if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) refuse();
+  const keys = Reflect.ownKeys(input);
+  if (keys.length !== 3 && keys.length !== 4 || keys.some(key => !["sdk", "source_sha", "max_requests", "deadline_ms"].includes(key))) refuse();
   const result = {};
   for (const key of ["sdk", "source_sha", "max_requests"]) { const p = Object.getOwnPropertyDescriptor(input, key); if (!p || !Object.hasOwn(p, "value")) refuse(); result[key] = p.value; }
+  if (Object.hasOwn(input, "deadline_ms")) { const p = Object.getOwnPropertyDescriptor(input, "deadline_ms"); if (!p || !Object.hasOwn(p, "value") || !Number.isSafeInteger(p.value) || p.value < 1000 || p.value > 120_000) refuse(); result.deadline_ms = p.value; }
   const [major, minor] = process.versions.node.split(".").map(Number);
   if (!(major > 22 || major === 22 && minor >= 19) || typeof result.sdk !== "string" || !isAbsolute(result.sdk) || normalize(result.sdk) !== result.sdk || /[\u0000-\u001f\u007f]/u.test(result.sdk) || typeof result.source_sha !== "string" || !SHA.test(result.source_sha) || !Number.isSafeInteger(result.max_requests) || result.max_requests < 1 || result.max_requests > 16) refuse();
   return Object.freeze(result);
@@ -55,19 +58,22 @@ export async function createSyntheticSdkHost(input) {
   const bindings = { run_id: "stage6-synthetic-host", repo: "pi-vista", source_sha: PAIR_SOURCE_SHA, policy_version: "stage6-synthetic-host-1", env_fingerprint: hash("synthetic-environment"), harness_source_sha: options.source_sha, context_digest: null, artifact_digest: runnerDigest };
   const provenance = async () => bindStage6Provenance({ sdk: matchSdkContract(await observeSdkInstallation(options.sdk), OBSERVED_INSTALLED_FORK_1_1_0_FORK_1_CONTRACT), broker: await observeReadonlyBrokerMetadata({ profile_directory: profileDirectory, provider: context.provider, command, expected_command_sha256: context.broker_digest }), subject_source_sha: PAIR_SOURCE_SHA, history_digest: historyDigest, bindings });
   const expectedProvenance = await provenance();
-  const window = await openStage6Pilot({ profileDirectory, context, expected: context, bindings, expectedProvenance, model_calls: 0, max_requests: options.max_requests, deadline_ms: 120_000 }, { captureProfile: null, collectProvenance: provenance }); assert.equal(window.status, "admitted");
+  const window = await openStage6Pilot({ profileDirectory, context, expected: context, bindings, expectedProvenance, model_calls: 0, max_requests: options.max_requests, deadline_ms: options.deadline_ms ?? 120_000 }, { captureProfile: null, collectProvenance: provenance }); assert.equal(window.status, "admitted");
   const sdk = await import(pathToFileURL(join(options.sdk, "dist/index.js")).href), nativeRead = sdk.createReadTool(output);
   let fetchCount = 0, responses = 0, credentialReads = 0, active, closed = false;
   const sessions = [], rows = [], nativeAgents = new Set(), streams = [], savedFetch = globalThis.fetch;
+  let rowRunning = false;
   globalThis.fetch = async (url, init) => {
     assert.equal(String(url), "http://127.0.0.1:1/chat/completions"); assert.ok(active && !closed);
     fetchCount++; active.fetches++; const payload = JSON.parse(init.body); assert.equal(payload.model, context.model); assert.deepEqual(payload.tools.map(tool => tool.function.name).sort(), ["paired_inspect_metadata", "stage6_decision"]);
     if (["cancelled", "timeout", "deadline"].includes(active.fault)) {
       assert.ok(init.signal); active.fetchSignal = init.signal;
-      return new Promise(resolve => {
-        init.signal.addEventListener("abort", () => { active.abortObserved = true; active.abortBarrier.resolve(); }, { once: true });
-        active.abortResponseResolve = () => resolve(new Response(sseText(context.model, "stage6_decision", { case_id: active.case_id, ...caseTruth(active.case_id) }, 999), { status: 200, headers: { "Content-Type": "text/event-stream" } }));
-        active.started.resolve();
+      const row = active;
+      return new Promise((resolve, reject) => {
+        init.signal.addEventListener("abort", () => { row.abortObserved = true; row.abortBarrier.resolve(); }, { once: true });
+        row.timeoutReject = () => { row.timeoutRejected = true; reject(new DOMException("synthetic response timeout", "TimeoutError")); };
+        row.abortResponseResolve = () => { responses++; resolve(new Response(sseText(context.model, "stage6_decision", { case_id: row.case_id, ...caseTruth(row.case_id) }, 999), { status: 200, headers: { "Content-Type": "text/event-stream" } })); };
+        row.started.resolve();
       });
     }
     if (active.fault === "stream-disconnected") { responses++; return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("data: {\\\"partial\\\":true}\\n\\n")); controller.error(new Error("synthetic stream disconnected")); } }), { status: 200, headers: { "Content-Type": "text/event-stream" } }); }
@@ -81,7 +87,8 @@ export async function createSyntheticSdkHost(input) {
   return Object.freeze({
     output, sdk_version: observed.version,
     async runRow(case_id, arm, fault = null) {
-      if (closed || !PAIR_CASES.includes(case_id) || !["baseline", "guided"].includes(arm) || fault !== null && ![...SYNTHETIC_FAULTS, "window-budget"].includes(fault)) refuse();
+      if (closed || rowRunning || !PAIR_CASES.includes(case_id) || !["baseline", "guided"].includes(arm) || fault !== null && ![...SYNTHETIC_FAULTS, "window-budget"].includes(fault)) refuse();
+      rowRunning = true;
       const metadata = pairedFixture(case_id, PAIR_SOURCE_SHA, bindings.env_fingerprint), expected = expectedFixtureContract(PAIR_SOURCE_SHA, bindings.env_fingerprint), metadataFile = join(output, `row-${rows.length}.json`); await writeFile(metadataFile, JSON.stringify(metadata));
       active = { case_id, fault, expected, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), abortBarrier: deferred(), abortResponseResolve: null, messageEnds: 0, toolEnds: 0 };
       const row = active, attemptsBefore = window.statusSnapshot().pretransport_attempts;
@@ -97,31 +104,37 @@ export async function createSyntheticSdkHost(input) {
       session.subscribe(event => { if (event.type === "message_end") { row.messageEnds++; if (event.message.role === "assistant") for (const item of event.message.content) if (item.type === "toolCall" && item.name === "stage6_decision") row.invocation = { name: item.name, arguments: item.arguments }; } if (event.type === "tool_execution_end") row.toolEnds++; });
       const task = `Inspect synthetic metadata case ${case_id} and emit stage6_decision.`, prompt = session.prompt(arm === "guided" ? `${task}\n${guidance}` : task, { expandPromptTemplates: false });
       if (["cancelled", "timeout", "deadline"].includes(fault)) {
-        await row.started.promise;
-        if (fault !== "cancelled") await new Promise(done => setTimeout(done, fault === "deadline" ? 30 : 10));
-        const abort = session.abort(); await row.abortBarrier.promise;
-        row.abortResponseResolve(); row.lateBodySent = true; await abort;
+        let timer;
+        try { await Promise.race([row.started.promise, new Promise((_, reject) => { timer = setTimeout(() => reject(Error("stage6-synthetic-barrier-deadline")), 10_000); })]); }
+        finally { clearTimeout(timer); }
+        if (fault === "timeout") row.timeoutReject();
+        else {
+          if (fault === "deadline") await new Promise(done => setTimeout(done, (options.deadline_ms ?? 120_000) + 100));
+          const abort = session.abort(); await row.abortBarrier.promise;
+          row.abortResponseResolve(); row.lateBodySent = true; await abort;
+        }
       }
       await prompt; await session.waitForIdle();
       const last = session.messages.filter(message => message.role === "assistant").at(-1), stopped = last?.stopReason;
-      if (["cancelled", "timeout", "deadline"].includes(fault)) { assert.equal(row.abortObserved, true); assert.equal(stopped, "aborted"); await new Promise(done => setImmediate(done)); assert.equal(row.lateBodySent, true); assert.equal(row.decisionExecutions, 0); }
+      if (["cancelled", "deadline"].includes(fault)) { assert.equal(row.abortObserved, true); assert.equal(stopped, "aborted"); await new Promise(done => setImmediate(done)); assert.equal(row.lateBodySent, true); assert.equal(row.decisionExecutions, 0); }
+      if (fault === "timeout") { assert.equal(row.timeoutRejected, true); assert.equal(stopped, "error"); }
       if (["provider-error", "request-guard", "session-budget", "window-budget", "stream-disconnected"].includes(fault)) assert.equal(stopped, "error");
-      const status = ["cancelled", "timeout", "deadline"].includes(fault) ? fault : ["provider-error", "request-guard", "session-budget", "window-budget", "stream-disconnected"].includes(fault) ? "provider-error" : "completed";
+      const status = ["cancelled", "timeout", "deadline", "stream-disconnected"].includes(fault) ? fault : fault === "provider-error" ? "provider-error" : "completed";
       const decision = classifyDecisionOutcome({ case_id, status, call: row.invocation, metadata: row.inspected ?? metadata, expected });
       if (fault === null || fault === "profile-drift") { assert.equal(decision.outcome, "decision-valid"); assert.deepEqual({ decision: decision.decision, reason_code: decision.reason_code }, caseTruth(case_id)); assert.equal(row.fetches, 2); }
       if (fault === "semantic-mismatch") assert.equal(decision.outcome, "semantic-mismatch");
       if (fault === "schema-invalid") { assert.equal(decision.outcome, "schema-invalid"); assert.equal(row.decisionExecutions, 0); }
       if (fault === "cancelled") assert.equal(decision.outcome, "cancelled");
       if (["timeout", "deadline"].includes(fault)) assert.equal(decision.outcome, fault);
-      if (fault === "stream-disconnected") assert.equal(decision.outcome, "provider-error");
+      if (fault === "stream-disconnected") assert.equal(decision.outcome, "stream-disconnected");
       if (fault === "request-guard") assert.equal(row.fetches, 0);
       if (fault === "window-budget" && attemptsBefore === options.max_requests) { assert.equal(row.fetches, 0); assert.equal(window.statusSnapshot().pretransport_attempts, attemptsBefore); }
       assert.deepEqual(projection(session), before);
       if (fault === "profile-drift") await writeFile(join(profileDirectory, "auth.json"), '{"synthetic_drift":true}', { mode: 0o600 });
       if (fault === null || fault === "profile-drift") { assert.ok(row.messageEnds >= 2); assert.equal(row.toolEnds, 2); }
       const failureOrigin = ["request-guard", "session-budget", "window-budget"].includes(fault) ? "local-coordinator-rejection" : fault === "stream-disconnected" ? "provider-stream-disconnected" : fault === "provider-error" ? "provider-error" : fault;
-      const result = Object.freeze({ case_id, arm, fault, failure_origin: failureOrigin, outcome: decision.outcome, decision_parsed: decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, late_sse_body_sent: row.lateBodySent === true, task_digest: hash(task), guidance_scope: arm === "guided" ? "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? historyDigest : null });
-      rows.push(result); return result;
+      const result = Object.freeze({ case_id, arm, fault, failure_origin: failureOrigin, outcome: fault === "request-guard" ? "request-guard-rejected" : fault === "session-budget" ? "session-budget-exhausted" : fault === "window-budget" ? "window-budget-exhausted" : decision.outcome, decision_outcome: decision.outcome, decision_parsed: decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, late_sse_body_sent: row.lateBodySent === true, task_digest: hash(task), guidance_scope: arm === "guided" ? "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? historyDigest : null });
+      rows.push(result); rowRunning = false; return result;
     },
     async finish() {
       if (closed) refuse(); closed = true; globalThis.fetch = savedFetch;
