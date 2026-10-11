@@ -105,6 +105,15 @@ test('different session objects sharing a native agent cannot stack wrappers or 
   assert.equal(native.session.agent.streamFunction, original);
 });
 
+test('overlapping pilot windows cannot bind the same native agent, but finalize releases it', async () => {
+  const first = await openStage6Pilot(input(), ports().value), second = await openStage6Pilot(input(), ports().value), native = nativeSession();
+  first.bindSession(native.session);
+  assert.throws(() => second.bindSession({agent: native.session.agent}), /stage6-agent-reused/);
+  await first.finalize();
+  second.bindSession({agent: native.session.agent});
+  await second.finalize();
+});
+
 test('session reuse, per-session limits, copied admission and model/thinking drift cannot forward', async () => {
   const window = await openStage6Pilot(input(), ports().value), native = nativeSession();
   const binding = window.bindSession(native.session);

@@ -73,11 +73,14 @@ admission; unknown actor attribution is not guessed.
 One private budget reuses the canary pretransport seam across all distinct
 baseline/guided sessions: total requests at most 16, at most two per native
 session, exact provider/model/thinking. The coordinator binds each native
-`session.agent` at most once; a second session object around the same agent is
-refused so wrappers cannot stack or leave a withdrawn wrapper installed. Rebinding
-a session or copying admission cannot reset limits. This is a counter at the
-selected `streamFunction` boundary, not a universal network interceptor,
-financial decision or new primary-task gate.
+`session.agent` at most once per window and refuses a second active window around
+the same agent in this module instance; finalization withdraws the owned wrapper
+and releases that temporary identity registration. The registry is process-local,
+not a lock, ledger, current-proof or control over primary tasks. This prevents
+coordinator windows from stacking wrappers and leaving a withdrawn wrapper
+installed. Rebinding a session or copying admission cannot reset limits. This is
+a counter at the selected `streamFunction` boundary, not a universal network
+interceptor, financial decision or new primary-task gate.
 All collection and final-read waits share the window's bounded deadline. Trusted
 callbacks may outlive their wait; a JavaScript timeout is not an OS sandbox or
 proof that arbitrary synchronous/native side effects were cancelled.
@@ -131,8 +134,9 @@ wire the plan-only CLI or default Pi and does not call the old private runtime.
   deadline diagnostics, concurrent finalization, import inertness, refusal without
   raw diagnostics and explicit lifecycle. The initial integrated release-contract
   was 219/219; credential-boundary follow-ups passed 223/223, and lifecycle
-  follow-ups now pass 227/227, with 17 coordinator cases and source/consumer plus
-  actual Node20 gates passing in this candidate worktree. The original source BLOCK,
+  follow-ups passed 227/227; lifecycle follow-up now passes 228/228, with 18
+  coordinator cases and source/consumer plus actual Node20 gates passing in this
+  candidate worktree. The original source BLOCK,
   subsequent version-path BLOCK and old-source regressions (30 pass / 1 fail for
   version; 14 pass / 3 fail for lifecycle) are kept;
   those failures are not overwritten or reclassified as successful.
