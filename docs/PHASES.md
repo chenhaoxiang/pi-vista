@@ -308,23 +308,32 @@ postmainNode20source/consumer1282cases/23exportsPASS. Later [main closeout](hand
 has its own pendinginclusion; Stage6pairedquality/cost/release is notcompleted. Earlier larger-operator-pending statements
 above are the source-library closeout's boundary, not a denial of this later scopedtrial.
 
-## Stage6 paired pilot: design and offline metrics only
+## Stage6 paired pilot: source-only P0 delivered, actual pilot pending
 
-A [four-case paired pilot design](../openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md)
-and closed offline metric tests are being prepared. Source, model, SDK, thinking,
-tool definitions and budget must be equal within each pair; only fresh-verified
-historical guidance context differs. The plan-only script refuses actual runtime.
-The initial exactac147f8 eight-path audit was BLOCK (4P1/3P2). Closed metric
-corrections now require pair/session identities, fixed subject/accepted history,
-condition/context digests, bounded requests, consistent non-success categories,
-unknown reasoning/cost and same-schema mismatch fixtures. Metadata is not proof.
-A separate uncommitted runtime draft consumed16actual requests/8sessions with
-0bank writes; all strict final decisions were fixture-mismatch and profile
-metadata drift was unclassified. Its raw report incorrectly labelled aggregation
-completion passed; an explicit INVALID assessment supersedes that interpretation
-without rewriting the original. The draft is retained under tmp, not delivered
-or wired into the tracked CLI. No accepted actual quality/ROI/cost reduction,
-default activation or release claim exists; corrected runtime remains pending.
+The [four-case paired pilot design](../openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md)
+and closed offline metric tests are now accompanied by the merged
+[Stage6 P0 source closeout](handoff/2026-10-11-stage6-admission-source-closeout.md).
+The P0 source slice adds metadata-only admission/provenance classification, a
+closed structured `stage6_decision` contract, a deterministic reference/mock
+oracle and an explicit readonly host seam. It is not imported by the planner or
+default Pi, does not read credential bytes or call models, and does not establish
+current permission/proof. Source/main/CI evidence is bound in the closeout; actual
+SDK/broker/source/history collection and pilot-wide transport budget remain pending.
+
+Within any future pair, source, model, SDK, thinking, tool definitions and budget
+must be equal; only fresh-verified historical guidance context differs. The
+plan-only script still refuses actual runtime. The initial exactac147f8 eight-path
+audit was BLOCK (4P1/3P2). Closed metric corrections require pair/session
+identities, fixed subject/accepted history, condition/context digests, bounded
+requests, consistent non-success categories, unknown reasoning/cost and same-schema
+mismatch fixtures. Metadata is not proof. A separate uncommitted runtime draft
+consumed16actual requests/8sessions with0bank writes; all strict final decisions
+were fixture-mismatch and profile metadata drift was unclassified. Its raw report
+incorrectly labelled aggregation completion passed; an explicit INVALID assessment
+supersedes that interpretation without rewriting the original. The draft remains
+under tmp, not delivered or wired into the tracked CLI. No accepted actual
+quality/ROI/cost reduction, default activation or release claim exists; corrected
+runtime remains pending.
 
 ## Meta terminal-outcomes consumer compatibility (read-only)
 
