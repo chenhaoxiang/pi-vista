@@ -54,6 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [openspec/changes/pi-operational-rollout/stage6-native-sdk-acceptance-design.md](openspec/changes/pi-operational-rollout/stage6-native-sdk-acceptance-design.md): explicit installed-SDK model-free candidate, native read/strict terminating decision, bounded synthetic HTTP interception; not paired quality, real model, default Pi or current-proof acceptance
+- [scripts/stage6-native-sdk-acceptance.mjs](scripts/stage6-native-sdk-acceptance.mjs): opt-in source-bound SDK1.1.0-fork.1 acceptance runner; Node>=22.19 runtime only, source/consumer Node20 remains separate
 - [docs/handoff/2026-10-11-stage6-host-provenance-source-closeout.md](docs/handoff/2026-10-11-stage6-host-provenance-source-closeout.md): PR37 trusted-host provenance/window source, layered review and exact head/main CI, retained Owner-authorized gate/App403/exit3 then readonly reconcile; actual model/default activation still pending
 - [docs/handoff/evidence/2026-10-11-stage6-host-provenance/README.md](docs/handoff/evidence/2026-10-11-stage6-host-provenance/README.md): public head/main CI and parent per-run reviewer runtime readback projection; not vendor/current-proof authentication
 - [docs/handoff/2026-10-11-stage6-admission-source-closeout.md](docs/handoff/2026-10-11-stage6-admission-source-closeout.md): PR35 source/main/CI delivery, PR32 ancestry inclusion, preserved INVALID pilot and remaining actual-host/model/release boundaries
