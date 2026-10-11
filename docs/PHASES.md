@@ -311,9 +311,10 @@ above are the source-library closeout's boundary, not a denial of this later sco
 ## Stage6 paired pilot: source-only P0 delivered, actual pilot pending
 
 The [four-case paired pilot design](../openspec/changes/pi-operational-rollout/stage6-paired-evaluation-design.md)
-and closed offline metric tests are now accompanied by the merged
+and closed offline metric tests are now accompanied by the
 [Stage6 P0 source closeout](handoff/2026-10-11-stage6-admission-source-closeout.md).
-The P0 source slice adds metadata-only admission/provenance classification, a
+This closeout document is being included by the current docs change; the
+underlying P0 source slice adds metadata-only admission/provenance classification, a
 closed structured `stage6_decision` contract, a deterministic reference/mock
 oracle and an explicit readonly host seam. It is not imported by the planner or
 default Pi, does not read credential bytes or call models, and does not establish
