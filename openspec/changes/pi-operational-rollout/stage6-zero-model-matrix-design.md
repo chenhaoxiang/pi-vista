@@ -60,7 +60,7 @@ new global ledger or execution lock.
 
 ## Current preparation evidence and pending boundary
 
-At candidate HEAD `bcb2686`, the actual SDK/Node26 matrix completed one native
+At candidate HEAD `d33636c`, the actual SDK/Node26 matrix completed one native
 window with 16 intercepted synthetic responses, all eight request-bearing rows
 `decision-valid`, one ninth zero-request budget guard, native read implementation,
 unchanged profile/provenance and injected credential-store attempts with no
