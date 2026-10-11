@@ -2,9 +2,10 @@
 doc_type: handoff
 project: workspace
 owner_repository: chenhaoxiang/pi-vista
+product_line: pi-vista
 release_scope: Stage6 trusted-host provenance source; no actual model or default activation
 status: active
-truth_mode: maintained
+truth_mode: snapshot
 created: 2026-10-11
 verified: 2026-10-11
 ssot: false
@@ -52,10 +53,12 @@ ssot: false
   通过；既有 11 包构建/类型检查/消费者合同由现有 gates 覆盖，没有新增 SDK 依赖。
 - 精确 head CI **38123716001**：Node20/22/26 source/consumer 全成功；head
   另有 GitGuardian success。精确 main CI **38125352527** 三 Node 全成功，
-  不声称 main 另有 GitGuardian。
+  不声称 main 另有 GitGuardian。两次 CI 的精确 SHA/job/conclusion 公开读回
+  已保存到 [public evidence readback](evidence/2026-10-11-stage6-host-provenance/README.md)。
 - 独审为分层覆盖：fresh `c83d94a` 源审 `d3ece8c4`，retained `2532a86`
   lifecycle 复审 `25f7e39b`，最终 `849ebe3` cross-window 复审 `4d1d119d`；
-  实际 runtime 模型均 `codex-local/deepseek-flash:high`。最终范围无 P0/P1/P2，
+  父级逐 run runtime readback 记录为 `codex-local/deepseek-flash:high`，投影见
+  [public evidence readback](evidence/2026-10-11-stage6-host-provenance/README.md)。最终范围无 P0/P1/P2，
   但这不是一次新的 fresh 全量 849 审查，审查者未执行测试或 Git committed diff。
 - 最终源审 artifact SHA-256：
   `264ec4f8d6274149212d271313358688a73aabfcd58361aafc480e0966d7751c`；
@@ -89,7 +92,9 @@ review-check publisher 还返回 HTTP403。真实异审文本和普通 commit st
 这是后继当前只读对账，不是改写原 CLI 收据、当前许可或新增 merge 请求。
 原件位于集成 worktree `tmp/stage6-provenance/`，含 `gate-ready.json`、
 `gate-owner-scope-retry.json`、`gate-merge.json/.stderr`、
-`reconciled-terminal.json`、main/head CI 和回归日志。
+`reconciled-terminal.json`、main CI 和历史 2532 head 快照、回归日志；精确
+849 head/main CI 及逐 run 模型 readback 的共享投影见上述 evidence 文档，原始
+CI JSON 另保留于 closeout worktree `tmp/stage6-closeout/evidence/`。
 
 ## 下一步
 

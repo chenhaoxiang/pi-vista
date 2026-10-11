@@ -140,8 +140,11 @@ wire the plan-only CLI or default Pi and does not call the old private runtime.
   subsequent version-path BLOCK and old-source regressions (30 pass / 1 fail for
   version; 14 pass / 3 fail for lifecycle) are kept;
   those failures are not overwritten or reclassified as successful.
-- [ ] Existing source/packed-consumer/actual Node20 gates, fresh independent
-  review, exact head CI, ordinary PR and main readback for this source candidate.
+- [x] Existing source/packed-consumer/actual Node20 gates, layered independent
+  review, exact headCI38123716001/mainCI38125352527, ordinary PR37/main
+  `93c3825236ad9daa1d8bb79c46196e7751a1a501` and canonical readback delivered this
+  source slice. The separate closeout document's own PR inclusion remains pending
+  at preparation; actual host/model/default-Pi acceptance stays unchecked below.
 - [ ] Actual loaded-SDK/session/source/history/decision/transport acceptance in a
   new bounded model-free host scope; no source test claims it automatically.
 - [ ] Only after the repaired harness is accepted, define a fresh k=1 model window
