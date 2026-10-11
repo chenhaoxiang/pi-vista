@@ -100,7 +100,7 @@ export async function createSyntheticSdkHost(input) {
         await row.started.promise;
         if (fault !== "cancelled") await new Promise(done => setTimeout(done, fault === "deadline" ? 30 : 10));
         const abort = session.abort(); await row.abortBarrier.promise;
-        await abort; row.abortResponseResolve(); row.lateBodySent = true;
+        row.abortResponseResolve(); row.lateBodySent = true; await abort;
       }
       await prompt; await session.waitForIdle();
       const last = session.messages.filter(message => message.role === "assistant").at(-1), stopped = last?.stopReason;
