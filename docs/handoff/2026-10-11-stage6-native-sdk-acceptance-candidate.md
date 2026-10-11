@@ -53,7 +53,8 @@ checkout HEAD、clean tracked/untracked 状态和 runner 字节摘要；Node20 �
 
 安全原件：集成 worktree 的 `tmp/stage6-native/acceptance-48f4.log` 与
 `tmp/release-contract/stage6-native-sdk-iBalns/report.json` 均为 test-owned
-ignored artifacts；其余历史 runner 原件按各自 `harness_source_sha` 保留。公开
+ignored artifacts；其余历史 runner 原件按各自 `harness_source_sha` 保留，
+早于该字段的版本按原字段集保全。公开
 摘要 `docs/handoff/evidence/2026-10-11-stage6-native-sdk/` 只保留精确 CI 与
 受限 runtime 摘要，不写入真实凭据、raw prompt/output 或路径。
 
