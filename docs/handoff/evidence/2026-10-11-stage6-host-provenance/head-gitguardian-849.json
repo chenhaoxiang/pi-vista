@@ -1,0 +1,15 @@
+{
+  "id": 114423574104,
+  "name": "GitGuardian Security Checks",
+  "head_sha": "849ebe37305caceaa475f04fe63316d92b4bd6f9",
+  "status": "completed",
+  "conclusion": "success",
+  "started_at": "2026-10-11T08:07:42Z",
+  "completed_at": "2026-10-11T08:08:08Z",
+  "details_url": "https://dashboard.gitguardian.com",
+  "app": {
+    "id": 46505,
+    "slug": "gitguardian",
+    "name": "GitGuardian"
+  }
+}

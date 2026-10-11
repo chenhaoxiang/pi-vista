@@ -1,0 +1,33 @@
+{
+  "source": "pi-subagents retained status.json safe projection",
+  "provider_authentication": false,
+  "runs": [
+    {
+      "run_id": "d3ece8c4-8824-45d4-87a9-78f0e801ebe4",
+      "role": "reviewer",
+      "model_ref": "codex-local/deepseek-flash:high",
+      "thinking": "high",
+      "state": "complete",
+      "started_at": 1791703878483,
+      "ended_at": 1791704227470
+    },
+    {
+      "run_id": "25f7e39b-5c25-4e66-8d57-207593bff821",
+      "role": "reviewer",
+      "model_ref": "codex-local/deepseek-flash:high",
+      "thinking": "high",
+      "state": "complete",
+      "started_at": 1791705107839,
+      "ended_at": 1791705236523
+    },
+    {
+      "run_id": "4d1d119d-6a2e-44b1-91c1-1a41c0ad22d2",
+      "role": "reviewer",
+      "model_ref": "codex-local/deepseek-flash:high",
+      "thinking": "high",
+      "state": "complete",
+      "started_at": 1791706090867,
+      "ended_at": 1791706191271
+    }
+  ]
+}
