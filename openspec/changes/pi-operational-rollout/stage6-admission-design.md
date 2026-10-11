@@ -90,13 +90,13 @@ broker, source-subject and history collection remain a separate acceptance task.
 
 ## Current validation and remaining work
 
-- [ ] Offline initial nine new contract/fixture cases pass locally; prior paired
-  metric/planner cases also pass (25 combined). This is local candidate evidence,
+- [ ] Offline fifteen new admission/decision/host cases pass locally; prior paired
+  metric/planner cases also pass (31 combined). This is local candidate evidence,
   not independent review/CI/main delivery.
-- [ ] Add adversarial copied-budget/getter/proxy/missing-fact/source drift cases
-  and bind the actual trusted-host readonly collection/pretransport seam. The
-  current `invalid-input` reason is intentionally coarse for this source slice;
-  later host diagnostics may split field-level reasons without changing refusal.
+- [ ] Bind actual SDK/broker/source-subject/history collection and the shared
+  pretransport seam. The current `invalid-input` reason is intentionally coarse
+  for this source slice; later host diagnostics may split field-level reasons
+  without changing refusal.
 - [ ] Full source/consumer/Node20 gates, independent review, exact-head CI and
   ordinary PR/main delivery of this slice.
 - [ ] Only after offline admission/reference/harness acceptance, define a fresh

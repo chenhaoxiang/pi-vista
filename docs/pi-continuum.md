@@ -78,7 +78,7 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 
 ### P0：先修 harness，再调用模型
 
-1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admission失败时 model_calls=0；漂移原件不反写，无法归因不猜测。当前仅有未合入的离线 source candidate（`scripts/stage6-admission.mjs`），不读profile、不启动模型。
+1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admission失败时 model_calls=0；漂移原件不反写，无法归因不猜测。当前有未合入的离线 admission/decision source candidate（`scripts/stage6-admission.mjs`、`scripts/stage6-decision-tool.mjs`）及只读 host seam（`scripts/stage6-host-admission.mjs`）；只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。
 2. Strict decision：使用固定 decision tool（case_id、decision、reason enum，additionalProperties=false），区分 tool-not-called/schema-invalid/refusal/provider-error/semantic-mismatch；不把自由文本JSON或 aggregation-completed当有效semantic结果。当前 source candidate 通过固定 synthetic reference/mock，不代表实际模型决策。
 
 ### P1：逐步测效益

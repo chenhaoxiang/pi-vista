@@ -26,17 +26,18 @@ export async function captureStage6Profile(directory) {
  */
 export async function collectStage6Admission(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) ||
-      ![Object.prototype, null].includes(Object.getPrototypeOf(input)) || Reflect.ownKeys(input).length !== 3) throw new Error("stage6-collection-refused");
+      ![Object.prototype, null].includes(Object.getPrototypeOf(input)) || Reflect.ownKeys(input).length !== 4) throw new Error("stage6-collection-refused");
   const values = {};
-  for (const key of ["profileDirectory", "context", "expected"]) {
+  for (const key of ["profileDirectory", "context", "expected", "model_calls"]) {
     const p = Object.getOwnPropertyDescriptor(input, key);
     if (!p || !Object.hasOwn(p, "value") || p.value === undefined) throw new Error("stage6-collection-refused");
     values[key] = p.value;
   }
+  if (!Number.isSafeInteger(values.model_calls) || values.model_calls < 0) throw new Error("stage6-collection-refused");
   const context = snapshotStage6Context(values.context), expected = snapshotStage6Context(values.expected);
   const before = await captureStage6Profile(values.profileDirectory);
   const after = await captureStage6Profile(values.profileDirectory);
-  return admitStage6Run({ ...context, profile_before: before, profile_after: after, model_calls: 0 }, expected);
+  return admitStage6Run({ ...context, profile_before: before, profile_after: after, model_calls: values.model_calls }, expected);
 }
 
 /** Reuse the proven canary pretransport seam with a mandatory shared pilot budget.

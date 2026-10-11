@@ -1,12 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "./release-utils.mjs";
+import { promisify } from "node:util";
 import { bindStage6Stream, captureStage6Profile, collectStage6Admission } from "./stage6-host-admission.mjs";
 import { admitStage6Run, profileSnapshot } from "./stage6-admission.mjs";
 
+const exec = promisify(execFile);
 const digest = value => createHash("sha256").update(value).digest("hex");
 const profile = () => profileSnapshot({ protected: { auth: digest("auth") }, volatile: { root: digest("root") } });
 const context = { provider: "fixture-provider", model: "fixture-model", thinking: "max", sdk: "fixture-sdk", arm: "baseline", guidance_mode: "none", guidance_digest: null, harness_source_sha: digest("harness"), subject_source_sha: "a".repeat(40), subject_history_digest: digest("history"), broker_digest: null };
@@ -20,8 +23,10 @@ test("readonly profile capture hashes only metadata and collect admission stays 
     await writeFile(join(directory, "settings.json"), "{}\n", { mode: 0o600 });
     const before = await captureStage6Profile(directory); const after = await captureStage6Profile(directory);
     assert.equal(before.protected.auth.length, 64); assert.deepEqual(before, after);
-    const admission = await collectStage6Admission({ profileDirectory: directory, context, expected: context });
+    const admission = await collectStage6Admission({ profileDirectory: directory, context, expected: context, model_calls: 0 });
     assert.equal(admission.status, "admitted"); assert.equal(admission.authorization, "none"); assert.equal(admission.executable, false); assert.equal(admission.model_calls, 0);
+    const priorCalls = await collectStage6Admission({ profileDirectory: directory, context, expected: context, model_calls: 1 });
+    assert.equal(priorCalls.reason_code, "model-calls-before-admission"); assert.equal(priorCalls.model_calls, 1);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
@@ -45,11 +50,17 @@ test("host admission adapter does not run at import and binds a shared pretransp
 
 test("host collection refuses malformed context before any profile access or getter", async () => {
   let reads = 0;
-  const input = { profileDirectory: "/nonexistent", context, expected: context };
+  const input = { profileDirectory: "/nonexistent", context, expected: context, model_calls: 0 };
   Object.defineProperty(input, "context", { get() { reads++; throw Error("private getter"); } });
   await assert.rejects(collectStage6Admission(input), /stage6-collection-refused/);
-  await assert.rejects(collectStage6Admission({ profileDirectory: "/nonexistent", context: {}, expected: context }), /stage6-admission-refused/);
+  await assert.rejects(collectStage6Admission({ profileDirectory: "/nonexistent", context: {}, expected: context, model_calls: 0 }), /stage6-admission-refused/);
   assert.equal(reads, 0);
+});
+
+test("host seam import is inert and does not trigger fetch or timers", async () => {
+  const url = new URL("./stage6-host-admission.mjs", import.meta.url).href;
+  const result = await exec(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error("fetch");}; globalThis.setTimeout=()=>{throw Error("timer");}; await import(${JSON.stringify(url)}); console.log("imported");`], { env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent", TMPDIR: "/nonexistent" }, shell: false });
+  assert.equal(result.stdout.trim(), "imported"); assert.equal(result.stderr, "");
 });
 
 test("host binding refuses copied admission and non-native sessions", () => {
