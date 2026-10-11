@@ -60,7 +60,7 @@ new global ledger or execution lock.
 
 ## Current preparation evidence and pending boundary
 
-At candidate HEAD `d33636c`, the actual SDK/Node26 matrix completed one native
+At candidate HEAD `d525644`, the actual SDK/Node26 matrix completed one native
 window with 16 intercepted synthetic responses, all eight request-bearing rows
 `decision-valid`, one ninth zero-request budget guard, native read implementation,
 unchanged profile/provenance and injected credential-store attempts with no
@@ -68,7 +68,9 @@ credential-byte reads. Eleven independent negative windows cover semantic/schema
 provider/cancel/timeout/deadline/stream-disconnect/profile-drift/request-guard/
 session-budget/window-budget. This is candidate worktree evidence only;
 source/consumer/Node20 library gates remain separate and no model/bank/default-Pi
-claim follows.
+claim follows. The parent verified `d33636c` is an ancestor of `d525644` and that
+all three native harness modules have identical bytes across those commits, then
+reran the matrix and all eleven fault windows at exact `d525644`.
 
 - [x] Reference matrix: 8 rows, exact four-case × two-arm coverage, deterministic
   oracle and distinct non-success diagnostics with no model calls.
