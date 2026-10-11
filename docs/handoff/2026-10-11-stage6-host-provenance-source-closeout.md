@@ -93,8 +93,9 @@ review-check publisher 还返回 HTTP403。真实异审文本和普通 commit st
 原件位于集成 worktree `tmp/stage6-provenance/`，含 `gate-ready.json`、
 `gate-owner-scope-retry.json`、`gate-merge.json/.stderr`、
 `reconciled-terminal.json`、main CI 和历史 2532 head 快照、回归日志；精确
-849 head/main CI 及逐 run 模型 readback 的共享投影见上述 evidence 文档，原始
-CI JSON 另保留于 closeout worktree `tmp/stage6-closeout/evidence/`。
+849 head/main CI、GitGuardian 和逐 run 模型 readback 的共享投影见上述 evidence
+文档，原始 CI JSON 另保留于 closeout worktree `tmp/stage6-closeout/evidence/`，
+reviewer runtime safe projection 另保留为 `reviewer-runtime-readback.json`。
 
 ## 下一步
 

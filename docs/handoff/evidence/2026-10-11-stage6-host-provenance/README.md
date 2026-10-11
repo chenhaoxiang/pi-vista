@@ -12,11 +12,13 @@ ssot: false
 
 # Stage6 host provenance · public evidence readback
 
-This point-in-time record contains only public GitHub CI and safe parent runtime
-readback metadata. It is not a test rerun, model/vendor authentication, actual host
-or current permission proof. The original JSON readbacks remain test-owned under
-`stage6-provenance-closeout-01a120e4/tmp/stage6-closeout/evidence/`; the authoritative
-GitHub run pages allow independent public verification.
+This point-in-time record contains only public GitHub CI, GitGuardian and safe
+parent runtime readback metadata. It is not a test rerun, model/vendor
+authentication, actual host or current permission proof. The original CI JSON
+readbacks remain test-owned under `stage6-provenance-closeout-01a120e4/tmp/`; the
+reviewer runtime projection is retained separately in
+`reviewer-runtime-readback.json`. The authoritative GitHub run pages allow
+independent public verification.
 
 ## Exact source head CI
 
@@ -31,9 +33,10 @@ GitHub run pages allow independent public verification.
 | Node 22 / POSIX source evidence | completed | success |
 | Node 26 / POSIX source evidence | completed | success |
 
-GitGuardian was separately read as a successful App check on the same head, not
-as a job in this workflow. The ordinary `ai-pair-review` commit status is separate
-from the unavailable configured GitHub App review check (HTTP403).
+GitGuardian was separately read as a successful App check on the same head;
+its safe readback is `head-gitguardian-849.json`, not a job in this workflow. The
+ordinary `ai-pair-review` commit status is separate from the unavailable configured
+GitHub App review check (HTTP403).
 
 ## Exact main CI
 
