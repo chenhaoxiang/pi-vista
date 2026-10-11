@@ -74,9 +74,11 @@ valid paired evaluation or current permission.
 - Invalid source/dirty candidate runs remain refused; no old source hash is used
   as a current runner acceptance claim.
 - The four source regressions cover explicit options, hostile DTOs, source mismatch
-  and inert import without a model or SDK start. Full source/consumer/Node20,
-  independent review, exact CI/main and final source-bound runtime acceptance are
-  still pending for this candidate.
+  and inert import without a model or SDK start. This source candidate now has
+  PR39/main `05fe4c5` delivery, exact head/main CI, layered independent review and
+  Node26 model-free healthy-case acceptance. The scoped handoff/evidence records
+  the precise boundaries; this is not a full paired pilot, current proof or default
+  activation. Larger four-case/error/cancel/drift runtime acceptance remains pending.
 
 The complete four-case baseline/guided matrix, error/cancel/drift runtime scenarios,
 real final request envelope, source/history readback and a new bounded k=1 model

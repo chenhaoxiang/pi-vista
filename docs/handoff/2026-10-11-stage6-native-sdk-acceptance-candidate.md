@@ -17,7 +17,10 @@ ssot: false
 
 [PR39](https://github.com/chenhaoxiang/pi-vista/pull/39) 已普通合入 main：
 reviewed head `48f4c90a7d5f38893f95b455e1ff9c2be40a915b`，merge/main
-`05fe4c5f59b91ea1f702304d8d083b5e17ed45dc`。精确 head CI
+`05fe4c5f59b91ea1f702304d8d083b5e17ed45dc`。该合入使用了已记录的
+`PASS_OWNER_AUTHORIZED` Gate 覆盖；原始失败与缺少 Meta App check 的 HTTP403
+均保留，后继严格只读 reconcile 才按真实 workflow 确认 merge/post-CI，不能把
+它写成普通 Gate PASS。精确 head CI
 `38133601025` 与 main CI `38134183188` 的 Node20/22/26 source/packed-consumer
 检查成功；GitGuardian 作为独立 head check 保持分开。PR39 是源码候选合入，
 不是默认 Pi、生产模型、paired quality、current permission、发布或 bank 接线。
@@ -48,14 +51,18 @@ checkout HEAD、clean tracked/untracked 状态和 runner 字节摘要；Node20 �
   写入和 credential bytes 读取属于 runner 的 declared synthetic scope，不能推导
   真实计费、全局 egress 或 vendor authentication。
 
-安全原件：`tmp/stage6-native/acceptance-48f4.log` 与 runner 生成的
-`tmp/release-contract/stage6-native-sdk-*/report.json` 均为 test-owned ignored
-artifacts；公开摘要 `docs/handoff/evidence/2026-10-11-stage6-native-sdk/`
-只保留精确 CI 与受限 runtime 摘要，不写入真实凭据、raw prompt/output 或路径。
+安全原件：集成 worktree 的 `tmp/stage6-native/acceptance-48f4.log` 与
+`tmp/release-contract/stage6-native-sdk-iBalns/report.json` 均为 test-owned
+ignored artifacts；其余历史 runner 原件按各自 `harness_source_sha` 保留。公开
+摘要 `docs/handoff/evidence/2026-10-11-stage6-native-sdk/` 只保留精确 CI 与
+受限 runtime 摘要，不写入真实凭据、raw prompt/output 或路径。
 
-Node20 actual SDK import 的失败原件保持保全：SDK `1.1.0-fork.1` 在 Node20
-触发 `node:fs.globSync` export 缺失，因此 runner 在 engine gate 之前拒绝；这不
-推翻 Node20 source/consumer contract，也不把 Node20 SDK runtime 称为兼容。
+Node20 actual SDK import 的失败原件保持保全于集成 worktree
+`tmp/stage6-native/run-node20.log`（prototype）及
+`tmp/stage6-native/acceptance-node20-d908.log`（正式 runner）：SDK
+`1.1.0-fork.1` 在 Node20 触发 `node:fs.globSync` export 缺失，因此 runner 在
+engine gate 之前拒绝；这不推翻 Node20 source/consumer contract，也不把 Node20
+SDK runtime 称为兼容。
 
 ## 未完成边界
 
