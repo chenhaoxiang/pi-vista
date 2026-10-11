@@ -54,8 +54,9 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md](openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md): four-case×two-arm one-window model-free matrix, strict reference/failure diagnostics, and pending actual cancellation/drift/error host acceptance
-- [openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md](openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md): one-window four-case×two-arm model-free matrix, independent truth/diagnostic contract and pending cancellation/drift/error host acceptance
+- [openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md](openspec/changes/pi-operational-rollout/stage6-zero-model-matrix-design.md): one-window four-case×two-arm model-free matrix, separate reference and native fault diagnostics; current candidate not model quality or LOCAL history proof
+- [scripts/stage6-synthetic-sdk-host.mjs](scripts/stage6-synthetic-sdk-host.mjs): explicit synthetic SDK host for matrix and independent negative windows; no real model/bank/default Pi
+- [scripts/stage6-native-sdk-matrix.mjs](scripts/stage6-native-sdk-matrix.mjs), [scripts/stage6-native-sdk-faults.mjs](scripts/stage6-native-sdk-faults.mjs): opt-in one-window matrix/budget guard and independent synthetic faults with trace/counter/cleanup assertions
 - [docs/handoff/2026-10-11-stage6-native-sdk-acceptance-candidate.md](docs/handoff/2026-10-11-stage6-native-sdk-acceptance-candidate.md): PR39 source/main/CI and Node26 model-free native SDK candidate; strict decision/read/provenance receipt, Node20 SDK refusal and actual model/default activation boundaries
 - [docs/handoff/evidence/2026-10-11-stage6-native-sdk/README.md](docs/handoff/evidence/2026-10-11-stage6-native-sdk/README.md): exact PR39 head/main CI and sanitized synthetic runtime summary; no vendor/current-proof/model quality claim
 - [openspec/changes/pi-operational-rollout/stage6-native-sdk-acceptance-design.md](openspec/changes/pi-operational-rollout/stage6-native-sdk-acceptance-design.md): explicit installed-SDK model-free candidate, native read/strict terminating decision, bounded synthetic HTTP interception; not paired quality, real model, default Pi or current-proof acceptance
