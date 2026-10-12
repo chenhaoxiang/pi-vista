@@ -17,12 +17,10 @@ verified: 2026-10-12
 执行前置。没有真实模型、真实 bank、凭据字节或日常 profile 修改，也不改变
 primary provider/model/thinking/tools/prompt。
 
-当前候选已在集成 worktree 合并 peer 三个 source commits，脚本集成 HEAD 为
-`2b22cc9e7598af11098e686c912a169fa519c8fc`；后续仅文档提交
-`d14ba2ec30c71ea6d3d5aadaed2159475a68b08f`、测试/文档收口提交
-`2811d6fe4d0449eef2621bf6df1cb3ede60e6339` 是此前的测试/CI证据提交。
-本页自身还有后继 docs-only 收口提交，不在正文自引用“当前 PR head”；交付时
-由 PR/Git 的精确 head/main 回读绑定。本片脚本未因这些测试/文档提交改变。
+当前候选已在集成 worktree 合并 peer 三个 source commits，并完成独立的
+测试/文档收口。本页维护接线合同，不枚举或自引用“当前 PR head”；各次验收
+报告保留各自 producing harness SHA，交付时由 PR/Git 的精确 head/main 回读绑定。
+运行时脚本与测试/文档提交分别核验，测试提交不被称为“脚本未变”。
 父级集成树已实际跑过 host targeted、旧 native matrix、274 release-script cases、
 source/consumer、实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20
 仍是本地事实，
@@ -109,11 +107,11 @@ trusted callback 不是 OS sandbox。JavaScript 等待截止不证明同步/nati
   fixture 准备状态。
 - Node26 与显式安装 SDK 使用 dummy fetch/SSE；Node20 只验证 source/consumer，
   不把不支持的 SDK runtime 判绿。
-- 集成脚本 HEAD `2b22cc9`、docs-only HEAD `d14ba2e` 与测试修正 HEAD
-  `3b4da38` 分别重跑并保留的实际 SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
-  pretransport/fetch、8 agents、request-contract checks=16；stub credential
-  attempts=1696；capacity refusal 与 policy/env mismatch 早拒绝。safe reports
-  位于 `tmp/k1-host-proof/`，harness/source SHA 绑定当前集成 HEAD；scope 是
+- 分别重跑并按 producing harness SHA 保留的实际 SDK1.1.0-fork.1/Node26
+  合成证据：8 rows/16 pretransport/fetch、8 agents、request-contract checks=16；
+  stub credential attempts=1696；capacity refusal 与 policy/env mismatch 早拒绝。
+  safe reports 位于 `tmp/k1-host-proof/`，各次报告的 harness/source SHA 与各自
+  producing HEAD 一致，本页不将不同报告改标为同一“当前集成 HEAD”；scope 是
   synthetic host control-flow/counters，不是任意 callback/OS 副作用证明。
   旧无 callback matrix、旧 678/3bde 原件各自保留，不混入新证据。
 - source/mock、独审、精确 head/main CI、普通合入及 canonical 回读完成后才
