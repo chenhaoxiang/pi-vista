@@ -17,8 +17,8 @@ const sha = value => createHash("sha256").update(value).digest("hex");
 const supported = () => { const [major, minor] = process.versions.node.split(".").map(Number); return major > 22 || major === 22 && minor >= 19; };
 const callback = () => ({ historyReadback: {}, localCompiledContext: {} });
 const canonical = value => value === null || typeof value !== "object" ? JSON.stringify(value) : Array.isArray(value) ? `[${value.map(canonical).join(",")}]` : `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
-export async function localFixture(source = PAIR_SOURCE_SHA) {
-  const binding = { run_id: "history-run", repo: "pi-vista", source_sha: source, policy_version: "fixture-policy", env_fingerprint: sha("fixture-environment") };
+export async function localFixture(source = PAIR_SOURCE_SHA, overrides = {}) {
+  const binding = { run_id: "history-run", repo: "pi-vista", source_sha: source, policy_version: "stage6-synthetic-host-1", env_fingerprint: sha("synthetic-environment"), ...overrides };
   const experience = { ...binding, experience_id: "history-experience", task_type: "metadata-validation", ts: 1,
     script: { task_type: "metadata-validation", description: "inspect fixture metadata", preconditions: [], steps: ["inspect-fixture"], postconditions: [], known_failures: [], applicable_to: [] },
     steps: [{ step_id: "fixture-step", tool: "fixture-reader", action_description: "inspect fixture metadata", check_fn_ids: [], expected_result: "observed", on_failure: "stop", depends_on: [] }] };
@@ -90,11 +90,11 @@ test("K1 second-argument proxies/getters/extra authority reject before source/SD
 });
 test("invalid trusted history/raw/source callback data refuses before source/SDK/profile/session/fetch", async () => {
   if (!supported()) return;
-  const fixture = await localFixture(), wrong = await localFixture("e".repeat(40));
+  const fixture = await localFixture(), wrong = await localFixture("e".repeat(40)), wrongPolicy = await localFixture(PAIR_SOURCE_SHA, { policy_version: "fixture-policy" }), wrongEnv = await localFixture(PAIR_SOURCE_SHA, { env_fingerprint: sha("fixture-environment") });
   const options = { sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 };
   const hostDirectories = async () => { try { return (await readdir(new URL("../tmp/release-contract/", import.meta.url))).filter(name => name.startsWith("stage6-synthetic-host-")).sort(); } catch (error) { if (error.code === "ENOENT") return []; throw error; } };
   const before = await hostDirectories();
-  const cases = [null, { ...fixture, permission: true }, { ...fixture, historyReadback: { ...fixture.historyReadback, authorization: "approved" } }, { ...fixture, localCompiledContext: { ...fixture.localCompiledContext, raw: "PRIVATE" } }, wrong];
+  const cases = [null, { ...fixture, permission: true }, { ...fixture, historyReadback: { ...fixture.historyReadback, authorization: "approved" } }, { ...fixture, localCompiledContext: { ...fixture.localCompiledContext, raw: "PRIVATE" } }, wrong, wrongPolicy, wrongEnv];
   // Isolate fetch interception from other files in the integrated test runner.
   const script = `import assert from 'node:assert/strict'; const {createSyntheticSdkHost}=await import(${JSON.stringify(new URL("./stage6-synthetic-sdk-host.mjs", import.meta.url).href)}); let fetches=0; globalThis.fetch=()=>{fetches++;throw Error('unexpected-fetch')}; for(const value of ${JSON.stringify(cases)}) { await assert.rejects(createSyntheticSdkHost(${JSON.stringify(options)},{prepareK1Plan:()=>value}), error=>error.message==='stage6-k1-host-preview-refused'&&error.k1_phase==='input'&&error.profile_fixture_prepared===false&&error.window_created===false&&error.session_count===0&&error.fetch_count===0); } console.log(JSON.stringify({fetches}));`;
   const result = await promisify(execFile)(process.execPath, ["--input-type=module", "-e", script], { shell: false, timeout: 5000, maxBuffer: 8192 });

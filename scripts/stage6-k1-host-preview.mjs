@@ -97,7 +97,7 @@ export function safeK1RefusalProjection(error, source_sha = null) {
     return descriptor ? descriptor.value : fallback;
   };
   const phase = field("k1_phase", null), reason = field("k1_reason_code", null);
-  if (!["input", "metadata-admission"].includes(phase) || !["stage6-k1-options-refused", "stage6-k1-input-refused", "stage6-k1-subject-source-mismatch", "stage6-k1-preparation-timeout", "stage6-k1-plan-capacity-mismatch", "history-mismatch", "provenance-mismatch", "invalid-input"].includes(reason)) refuse();
+  if (!["input", "metadata-admission"].includes(phase) || !["stage6-k1-options-refused", "stage6-k1-input-refused", "stage6-k1-subject-source-mismatch", "stage6-k1-subject-binding-mismatch", "stage6-k1-preparation-timeout", "stage6-k1-plan-capacity-mismatch", "history-mismatch", "provenance-mismatch", "invalid-input"].includes(reason)) refuse();
   const prepared = phase === "metadata-admission";
   if (field("profile_fixture_prepared", null) !== prepared || field("metadata_fixture_prepared", null) !== prepared || field("window_created", null) !== false || field("session_count", null) !== 0 || field("pretransport_attempts", null) !== 0 || field("fetch_count", null) !== 0) refuse();
   const sdk_version = field("sdk_version", null), node = field("node", process.version), admissionInput = field("admission", null);

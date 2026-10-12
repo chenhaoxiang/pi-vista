@@ -17,6 +17,7 @@ import { ROOT, commandEnvironment, createRunDirectory } from "./release-utils.mj
 
 const hash = value => createHash("sha256").update(value).digest("hex");
 const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
+const K1_WINDOW_BINDING = Object.freeze({ repo: "pi-vista", source_sha: PAIR_SOURCE_SHA, policy_version: "stage6-synthetic-host-1", env_fingerprint: hash("synthetic-environment") });
 export const SYNTHETIC_FAULTS = Object.freeze(["semantic-mismatch", "schema-invalid", "provider-error", "cancelled", "timeout", "deadline", "stream-disconnected", "profile-drift", "request-guard", "session-budget"]);
 const refuse = () => { throw Error("stage6-synthetic-host-refused"); };
 function k1Refusal(phase, reason_code, details = {}) {
@@ -31,6 +32,21 @@ function snapshotK1Ports(input) {
   const descriptor = Object.getOwnPropertyDescriptor(input, "prepareK1Plan");
   if (!descriptor || !Object.hasOwn(descriptor, "value") || typeof descriptor.value !== "function" || types.isProxy(descriptor.value)) throw k1Refusal("input", "stage6-k1-options-refused");
   return Object.freeze({ prepareK1Plan: descriptor.value });
+}
+function snapshotK1SubjectBinding(historyReadback) {
+  try {
+    const document = Object.getOwnPropertyDescriptor(historyReadback, "document")?.value;
+    const content = document && Object.getOwnPropertyDescriptor(document, "content")?.value;
+    if (typeof content !== "string") throw Error();
+    const experience = JSON.parse(content).experience;
+    const result = {};
+    for (const key of ["repo", "source_sha", "policy_version", "env_fingerprint"]) {
+      const descriptor = experience && Object.getOwnPropertyDescriptor(experience, key);
+      if (!descriptor || !Object.hasOwn(descriptor, "value") || typeof descriptor.value !== "string") throw Error();
+      result[key] = descriptor.value;
+    }
+    return Object.freeze(result);
+  } catch { throw k1Refusal("input", "stage6-k1-subject-binding-mismatch"); }
 }
 function snapshotK1CallbackResult(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || types.isProxy(input) ||
@@ -119,11 +135,12 @@ export async function createSyntheticSdkHost(input, k1Options) {
       const prepared = types.isPromise(raw) ? await waitK1Preparation(raw, options.deadline_ms ?? 120_000) : { snapshot: snapshotK1CallbackResult(raw) };
       const snapshot = prepared.snapshot;
       const dto = buildK1HistoryContext({ history: snapshot.historyReadback, context: snapshot.localCompiledContext });
-      if (dto.subject_source_sha !== PAIR_SOURCE_SHA) throw k1Refusal("input", "stage6-k1-subject-source-mismatch");
+      const subject = snapshotK1SubjectBinding(snapshot.historyReadback);
+      if (dto.subject_source_sha !== PAIR_SOURCE_SHA || Object.keys(K1_WINDOW_BINDING).some(key => subject[key] !== K1_WINDOW_BINDING[key])) throw k1Refusal("input", dto.subject_source_sha !== PAIR_SOURCE_SHA ? "stage6-k1-subject-source-mismatch" : "stage6-k1-subject-binding-mismatch");
       k1 = Object.freeze({ history: dto, guidance: Object.getOwnPropertyDescriptor(snapshot.localCompiledContext, "content").value });
     } catch (error) {
       const reason = !types.isProxy(error) && error !== null && typeof error === "object" ? Object.getOwnPropertyDescriptor(error, "k1_reason_code") : null;
-      if (reason && Object.hasOwn(reason, "value") && ["stage6-k1-subject-source-mismatch", "stage6-k1-preparation-timeout"].includes(reason.value)) throw error;
+      if (reason && Object.hasOwn(reason, "value") && ["stage6-k1-subject-source-mismatch", "stage6-k1-subject-binding-mismatch", "stage6-k1-preparation-timeout"].includes(reason.value)) throw error;
       throw k1Refusal("input", "stage6-k1-input-refused");
     }
   }
@@ -135,7 +152,7 @@ export async function createSyntheticSdkHost(input, k1Options) {
   const target = join(profileDirectory, "synthetic-key"); await writeFile(target, "NOT_A_REAL_CREDENTIAL", { mode: 0o600 });
   const command = `cat ${target}`, guidance = k1?.guidance ?? "Synthetic observed-only context: compare source, environment and required metadata; this is not LOCAL history or permission.", historyDigest = k1?.history.content_digest ?? hash(guidance);
   const context = { provider: "stage6-matrix-fixture", model: "fixture", thinking: "high", sdk: observed.version, arm: "baseline", guidance_mode: "none", guidance_digest: null, harness_source_sha: options.source_sha, subject_source_sha: PAIR_SOURCE_SHA, subject_history_digest: historyDigest, broker_digest: hash(command) };
-  const bindings = { run_id: "stage6-synthetic-host", repo: "pi-vista", source_sha: PAIR_SOURCE_SHA, policy_version: "stage6-synthetic-host-1", env_fingerprint: hash("synthetic-environment"), harness_source_sha: options.source_sha, context_digest: null, artifact_digest: runnerDigest };
+  const bindings = { run_id: "stage6-synthetic-host", ...K1_WINDOW_BINDING, harness_source_sha: options.source_sha, context_digest: null, artifact_digest: runnerDigest };
   const provenance = async () => bindStage6Provenance({ sdk: matchSdkContract(await observeSdkInstallation(options.sdk), OBSERVED_INSTALLED_FORK_1_1_0_FORK_1_CONTRACT), broker: await observeReadonlyBrokerMetadata({ profile_directory: profileDirectory, provider: context.provider, command, expected_command_sha256: context.broker_digest }), subject_source_sha: PAIR_SOURCE_SHA, history_digest: historyDigest, bindings });
   const expectedProvenance = await provenance();
   let k1Plan = null;
