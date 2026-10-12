@@ -18,8 +18,9 @@ verified: 2026-10-12
 primary provider/model/thinking/tools/prompt。
 
 当前候选已在集成 worktree 合并 peer 三个 source commits，集成 HEAD 为
-`2b22cc9e7598af11098e686c912a169fa519c8fc`（PR45候选，尚未合入）。父级
-集成树已实际跑过 host targeted、旧 native matrix、273 release-script cases、
+`2b22cc9e7598af11098e686c912a169fa519c8fc`；后续仅文档提交
+`d14ba2ec30c71ea6d3d5aadaed2159475a68b08f` 是首轮 PR45 被审 HEAD（尚未合入）。
+父级集成树已实际跑过 host targeted、旧 native matrix、273 release-script cases、
 source/consumer、实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20
 仍是本地事实，
 不借 peer candidate clean 或旧 main CI 当新 HEAD/main 证据。这里的 positive 使用
@@ -74,7 +75,9 @@ label，不用它冒充 guided 编译文本摘要。
 
 ## 失败与计数分层
 
-- 输入拒绝：未准备测试 profile，未开 window/session，无 pretransport/fetch。
+- 输入拒绝：未准备测试 profile，未开 window/session，无 pretransport/fetch；此时
+  `harness_source_sha` 如由 runner 回填，仅为调用方声明标签，尚未由 `sourceBinding`
+  核验。metadata-admission 阶段的 producing SHA 来自 source pin 已完成后的事实。
 - metadata admission 拒绝：可能已经准备自己的 synthetic fixture 并完成只读
   SDK/broker 观察，但未开 window/session，也无 pretransport/fetch。固定计划
   的容量不匹配也属于这个阶段，不能称为 provider 故障。必须如实保留这一部分
@@ -103,7 +106,8 @@ trusted callback 不是 OS sandbox。JavaScript 等待截止不证明同步/nati
   fixture 准备状态。
 - Node26 与显式安装 SDK 使用 dummy fetch/SSE；Node20 只验证 source/consumer，
   不把不支持的 SDK runtime 判绿。
-- 集成 HEAD `2b22cc9` 上的实际 SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
+- 集成 HEAD `2b22cc9` 及 docs-only `d14ba2e` 分别重跑并保留的实际
+  SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
   pretransport/fetch、8 agents、request-contract checks=16；stub credential
   attempts=1696；capacity refusal 与 policy/env mismatch 早拒绝。safe reports
   位于 `tmp/k1-host-proof/`，harness/source SHA 绑定当前集成 HEAD；scope 是

@@ -10,7 +10,7 @@ import { createLocalEvidenceVerifier } from "@pi-vista/evidence/host";
 import { matchSdkContract, bindStage6Provenance } from "./stage6-sdk-provenance.mjs";
 import { buildK1HistoryContext } from "./stage6-k1-history-context.mjs";
 import { PAIR_SOURCE_SHA } from "./paired-evaluation-data.mjs";
-import { snapshotK1HostPreviewOptions, safeK1HostProjection, safeK1RefusalProjection } from "./stage6-k1-host-preview.mjs";
+import { runK1HostPreview, snapshotK1HostPreviewOptions, safeK1HostProjection, safeK1RefusalProjection } from "./stage6-k1-host-preview.mjs";
 import { snapshotSyntheticHostOptions, SYNTHETIC_FAULTS, createSyntheticSdkHost, admitSyntheticK1Plan } from "./stage6-synthetic-sdk-host.mjs";
 
 const sha = value => createHash("sha256").update(value).digest("hex");
@@ -107,6 +107,16 @@ test("native Promise preparation wait is bounded and late settlement cannot star
   await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => promise }), error => error.k1_reason_code === "stage6-k1-preparation-timeout" && error.window_created === false && error.session_count === 0 && error.fetch_count === 0);
   assert.ok(performance.now() - start >= 900); assert.ok(performance.now() - start < 5000);
   resolve({ historyReadback: {}, localCompiledContext: {} }); await new Promise(done => setImmediate(done));
+});
+test("runK1HostPreview preserves unsupported-runtime or input-refusal results before setup", async () => {
+  let callbacks = 0;
+  const input = { sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000, prepareK1Plan: () => { callbacks++; return null; } };
+  if (!supported()) {
+    await assert.rejects(runK1HostPreview(input), /stage6-synthetic-host-refused/); assert.equal(callbacks, 0); return;
+  }
+  const result = await runK1HostPreview(input);
+  assert.equal(callbacks, 1); assert.equal(result.status, "refused"); assert.equal(result.phase, "input"); assert.equal(result.reason_code, "stage6-k1-input-refused");
+  assert.equal(result.profile_fixture_prepared, false); assert.equal(result.window_created, false); assert.equal(result.session_count, 0); assert.equal(result.pretransport_attempts, 0); assert.equal(result.intercepted_fetch, 0);
 });
 test("K1 preview options are closed and require exactly one trusted callback", () => {
   const good = { sdk: "/synthetic/explicit-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 5000, prepareK1Plan: callback };
