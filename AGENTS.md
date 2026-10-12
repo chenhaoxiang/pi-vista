@@ -54,6 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/stage6-k1-host-preview.md](docs/stage6-k1-host-preview.md): opt-in single-window K1 synthetic SDK preview plan, staged input/metadata refusal and existing issued admission/budget ownership; not real model/history/current-proof or default activation
+- [scripts/stage6-k1-host-preview.mjs](scripts/stage6-k1-host-preview.mjs): explicit synthetic-only runner and safe plan/row/refusal projection; callback remains trusted and source pin is not permission
 - [docs/stage6-k1-history-context.md](docs/stage6-k1-history-context.md): trusted-host public history/context to existing K1 DTO, single-source/identity/non-authorizing boundary and PR43 source/main delivery; current bridge candidate is not actual history or model acceptance
 - [openspec/changes/pi-operational-rollout/stage6-k1-admission-design.md](openspec/changes/pi-operational-rollout/stage6-k1-admission-design.md): source-only metadata K1 envelope, historical-guidance/non-authorizing boundary and pending actual host facts; no model or bank call
 - [scripts/stage6-k1-admission.mjs](scripts/stage6-k1-admission.mjs): closed baseline/guided metadata admission and K1 budget declarations; not a current-proof or default Pi gate
