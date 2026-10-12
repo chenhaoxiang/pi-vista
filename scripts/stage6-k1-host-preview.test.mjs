@@ -88,7 +88,7 @@ test("K1 second-argument proxies/getters/extra authority reject before source/SD
   for (const port of bad) await assert.rejects(createSyntheticSdkHost(options, port), error => error.message === "stage6-k1-host-preview-refused" && error.k1_phase === "input" && error.profile_fixture_prepared === false && error.session_count === 0 && error.fetch_count === 0);
   assert.equal(traps, 0);
 });
-test("invalid trusted history/raw/source callback data refuses before source/SDK/profile/session/fetch", async () => {
+test("invalid trusted history/raw/source callback data or unsupported runtime refuses before setup", async () => {
   if (!supported()) {
     let callbacks = 0;
     await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => { callbacks++; return null; } }), /stage6-synthetic-host-refused/);
@@ -104,7 +104,7 @@ test("invalid trusted history/raw/source callback data refuses before source/SDK
   const result = await promisify(execFile)(process.execPath, ["--input-type=module", "-e", script], { shell: false, timeout: 5000, maxBuffer: 8192 });
   assert.deepEqual(JSON.parse(result.stdout), { fetches: 0 }); assert.equal(result.stderr, ""); assert.deepEqual(await hostDirectories(), before);
 });
-test("native Promise preparation wait is bounded and late settlement cannot start setup", async () => {
+test("native Promise preparation wait or unsupported runtime refuses before setup", async () => {
   if (!supported()) {
     let callbacks = 0;
     await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => { callbacks++; return new Promise(() => undefined); } }), /stage6-synthetic-host-refused/);

@@ -17,9 +17,11 @@ verified: 2026-10-12
 执行前置。没有真实模型、真实 bank、凭据字节或日常 profile 修改，也不改变
 primary provider/model/thinking/tools/prompt。
 
-当前候选已在集成 worktree 合并 peer 三个 source commits，集成 HEAD 为
+当前候选已在集成 worktree 合并 peer 三个 source commits，脚本集成 HEAD 为
 `2b22cc9e7598af11098e686c912a169fa519c8fc`；后续仅文档提交
-`d14ba2ec30c71ea6d3d5aadaed2159475a68b08f` 是首轮 PR45 被审 HEAD（尚未合入）。
+`d14ba2ec30c71ea6d3d5aadaed2159475a68b08f`、测试/文档收口提交
+`2811d6fe4d0449eef2621bf6df1cb3ede60e6339` 尚未合入。当前 PR45 head 是
+`2811d6fe`，源码脚本未因这两次测试/文档提交改变。
 父级集成树已实际跑过 host targeted、旧 native matrix、274 release-script cases、
 source/consumer、实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20
 仍是本地事实，
