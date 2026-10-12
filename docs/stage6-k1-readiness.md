@@ -26,7 +26,12 @@ PR45 使用 SDK1.1.0-fork.1/Node26 的 synthetic transport；credential store �
 真实 K1 paired evaluation 仍未 ready，缺口必须分别核验：
 
 1. **SDK**：paired metric 合同固定 retained public SDK1.0.4。当前 SDK1.1 fork 的
-   model-free host 事实不能改标为 public1.0.4；historical fork 也不等同。
+   model-free host 事实不能改标为 public1.0.4；historical fork 也不等同。当前物理
+   public1.0.4 manifest/entry 已只读回验与现有 pin 一致。其 core loop 的
+   `terminate` 是 tool-batch hint：单一 terminating batch 可停止，混合普通 tool、
+   follow-up 或 after-hook 撤回会继续。父级对公共 core exported API 的四个
+   synthetic-stream 分支实际探针与源码相符，fetch=0；这不是完整 SDK session、
+   实际 provider/model、完整依赖闭包或 vendor 认证。
 2. **Subject/history**：必须有 trusted-host 实际 `GuidanceReadback`、canonical
    document/title/tags/content digest、accepted subject source、四绑定一致性；
    LOCAL import 必须生成新 run/experience，并由真实 trusted verifier fresh verify
@@ -48,19 +53,28 @@ PR45 使用 SDK1.1.0-fork.1/Node26 的 synthetic transport；credential store �
 
 ## Source/mock #19 slice
 
-当前只推进一个纯函数 Usage→paired-metric 适配边界：
-`scripts/stage6-k1-metrics-adapter.mjs`（候选）接受 `{measurement, usage}` 八行，
-拒绝 proxy/accessor/extra/missing/malformed；`measurement` 必须已提供旧
-paired row 的完整字段，adapter 不填零、不推断 decision/identity/elapsed；`usage`
+当前已在集成候选中加入一个纯函数 Usage→paired-metric 适配边界：
+`scripts/stage6-k1-metrics-adapter.mjs` 的 `adaptK1SDKMeasurement` 接受
+一份 `{measurement, usage}`；`aggregateK1SDKMeasurements` 接受八份完整记录。
+它拒绝 proxy/accessor/extra/missing/malformed；`measurement` 必须已提供旧 paired
+row 除 `tokens/sdk_cost/cost_priced` 三个派生字段之外的完整字段，且禁止调用者
+提供这三个字段。adapter 不填零、不推断 decision/identity/elapsed；`usage`
 闭合要求 public SDK Usage 的 required keys `input/output/cacheRead/cacheWrite/
- totalTokens/cost`，允许 `cacheWrite1h` 与 `reasoning` optional。`reasoning` 缺失
-转为 null，显式 0 保留；`cost.total==0` 转为 `sdk_cost:null/cost_priced:false`，
+totalTokens/cost`，允许 `cacheWrite1h` 与 `reasoning` optional。`reasoning` 缺失
+转为 null，显式 0 保留；reasoning 属于 output subset，不另加 total；cacheWrite1h
+属于 cacheWrite subset，旧 paired schema 不新增该拆分字段。`cost.total==0` 转为
+`sdk_cost:null/cost_priced:false`，
 正数只是 SDK configured estimate，不是独立 billing。
 
 适配后直接复用 `snapshotPairMeasurement` 与 `aggregatePairedMeasurements`，不复制
-schema，也不产生 readiness proof、budget、permission 或 ledger。PR45 host rows
+schema，也不产生 readiness proof、budget、permission 或 ledger。旧 aggregator 的
+`evaluation_status:measured` 只表示所供数据可聚合，不证明外部 SDK/model/采集真的
+发生；合成 reference tests 的 measured 输出不能用作实际模型质量。PR45 host rows
 缺少完整 Usage/metric fields，禁止送入该 adapter 伪造 measured 结果。
 
-这片 source/mock 不调用 SDK、provider、bank、broker 或模型；它只能验证输入契约
-与聚合状态分类。真实 k=1 仍需上述事实链、独立审查、CI/main/readback，并且不能
-把 `ready` 标签升级为 current permission、ROI 或 release。
+这片 source/mock 不调用 SDK、provider、bank、broker 或模型；父级当前 targeted
+14/14、release 288、source/consumer/Node20、typecheck/lint/OpenSpec/diff-check
+均通过（首次未bootstrap全仓的失败原件保留，后续正确 npm ci/build 后重跑通过）。
+它只能验证输入契约与聚合状态分类。真实 k=1 仍需上述事实链、独立审查、CI/main/
+readback，并且不能把可聚合或 synthetic 标签升级为 current permission、ROI 或
+release。
