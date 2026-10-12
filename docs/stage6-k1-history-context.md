@@ -46,7 +46,10 @@ verifier 证明。复制/JSON roundtrip 可以携带 metadata，不能带回当�
   `prepareHistoricalGuidance` 回验其 document 原文、title、tags、经验与摘要；
   顶层与 document 的 `content_digest` 必须一致。
 - 本片只转换一份历史与一个 compiled item。多来源不能由单个 history digest
-  代为背书，不截断或伪关联；调用宿主可使用既有 `max_items: 1` 编译。
+  代为背书，不截断或伪关联；调用宿主应先把 `retrieve` 结果收敛到一个
+  verified handle，再使用既有 `compileContext(..., { max_items: 1 })` 编译。
+  `max_items: 1` 不是对多来源选择的替代；若仍有多个 selected handles，编译
+  会产生 `omitted_ids`，桥接会拒绝。
 - compiled item 的 repo/source/policy/environment 必须与历史经验一致，script
   与 steps 必须对应同一历史内容。compiled 计数、预算、selection/provenance
   结构必须与实际内容一致，不能只复制一个 digest 或 `verified` 标签。
@@ -57,7 +60,9 @@ verifier 证明。复制/JSON roundtrip 可以携带 metadata，不能带回当�
   安全 metadata；桥接显式拒绝 compiled run/experience 与历史旧 ID 重用，但不
   输出这些 ID，也不作为权限认证。
 - 来源与当前性仍由 trusted-host 的既有 read/import/verifier/compile 流程负责；
-  此纯转换器不证明外部回调真的执行过，也不认证复制对象的来源。
+  此纯转换器不证明外部回调真的执行过，也不认证复制对象的来源。bridge 的
+  label 校验保持结构和已知凭据签名边界，故意不复制 learning 的完整命令词黑名单；
+  这些标签不进入输出，只参与输入一致性检查，不能作为权限或来源认证。
 
 ## 输出与摘要职责
 
@@ -81,7 +86,7 @@ K1 的 8192 字符上界、每 session 两请求、全窗口最多 16 请求等�
 
 当前源码入口为 `scripts/stage6-k1-history-context.mjs`，只在显式函数调用时
 转换输入；公开 script/task 默认入口均未接线。源码测试使用合成 store/readback，
-`retain` 不执行；报告中的计数不被用来认证外部 source 或 current proof。
+并包含 known-credential、非法 bank/schema/purpose 等输入拒绝回归；`retain` 不执行；报告中的计数不被用来认证外部 source 或 current proof。
 
 ## PR43 已交付与未完成边界
 

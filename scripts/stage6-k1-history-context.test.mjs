@@ -51,7 +51,7 @@ async function actualPublicLocalContext(description = "validate fixture metadata
     assert.equal(observed.status, "observed"); assert.equal(observed.verification, undefined);
     const candidate = library.nominate(observed); const proof = await verifier.verify({ run_id: "run-2", repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env }, { gate: "fixture-gate", test: "fixture-test", guard: "fixture-guard" });
     const verified = library.verifyCandidate(candidate, proof);
-    const compiled = library.compileContext(library.retrieve([verified], { repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env, task_type: "metadata-validation" }));
+    const compiled = library.compileContext(library.retrieve([verified], { repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env, task_type: "metadata-validation" }), { max_items: 1 });
     assert.equal(reads, 1); assert.equal(retains, 0); return compiled;
   } finally { library.shutdown(); verifier.shutdown(); }
 }
@@ -85,6 +85,8 @@ test("history document digest and source binding are checked without creating cu
   const good = buildK1HistoryContext({ history: history(), context: context() }); assert.deepEqual(buildK1HistoryContext({ history: JSON.parse(JSON.stringify(history())), context: JSON.parse(JSON.stringify(context())) }), good);
   for (const bad of [
     history({ content_digest: sha("other") }), history({ idempotency_key: `guidance-${sha("other-key")}` }),
+    history({ bank: "invalid/bank" }), history({ bank: "wrapped_ghp_abcdefghijklmnop_suffix" }),
+    history({ guidance: { ...history().guidance, schema: 2 } }), history({ guidance: { ...history().guidance, purpose: "current-guidance" } }),
     history({ document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha("other-id")}` }),
     history({ document: { ...history().document, content: "different" } }),
     history({ guidance: { ...history().guidance, current_verification: "verified" } }),
