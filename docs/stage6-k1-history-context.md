@@ -61,7 +61,8 @@ verifier 证明。复制/JSON roundtrip 可以携带 metadata，不能带回当�
   输出这些 ID，也不作为权限认证。
 - 来源与当前性仍由 trusted-host 的既有 read/import/verifier/compile 流程负责；
   此纯转换器不证明外部回调真的执行过，也不认证复制对象的来源。bridge 的
-  label 校验保持结构和已知凭据签名边界，故意不复制 learning 的完整命令词黑名单；
+  label 校验保持结构和已知凭据签名边界，故意不复制 learning 的完整 label 黑名单
+  （命令词、保留字及 AKIA/ASIA 前缀规则）；
   这些标签不进入输出，只参与输入一致性检查，不能作为权限或来源认证。
 
 ## 输出与摘要职责

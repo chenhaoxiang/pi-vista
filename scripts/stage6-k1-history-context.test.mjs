@@ -15,10 +15,10 @@ const experience = { experience_id: "experience-1", run_id: "run-1", repo: "pi-v
   script: { task_type: "metadata-validation", description: "validate fixture metadata", preconditions: [], steps: ["inspect-fixture"], postconditions: [], known_failures: [], applicable_to: [] },
   steps: [{ step_id: "fixture-step", tool: "fixture-reader", action_description: "inspect fixture metadata", check_fn_ids: [], expected_result: "observed", on_failure: "stop", depends_on: [] }] };
 const prepared = prepareHistoricalGuidance(experience);
-function history(overrides = {}) {
+function history(overrides = {}, bank = "fixture-bank") {
   const document = { ...prepared };
   const guidance = { schema: 1, purpose: "historical-guidance", current_verification: "not-checked", authorization: "none", executable: false, experience };
-  const bank = "fixture-bank", idempotency_key = `guidance-${sha(canonical({ bank, document }))}`;
+  const idempotency_key = `guidance-${sha(canonical({ bank, document }))}`;
   return { bank, document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha(idempotency_key)}`, current_verification: "not-checked", authorization: "none", executable: false, content_digest: document.content_digest, idempotency_key, document, guidance, ...overrides };
 }
 function context(overrides = {}) {
@@ -85,7 +85,7 @@ test("history document digest and source binding are checked without creating cu
   const good = buildK1HistoryContext({ history: history(), context: context() }); assert.deepEqual(buildK1HistoryContext({ history: JSON.parse(JSON.stringify(history())), context: JSON.parse(JSON.stringify(context())) }), good);
   for (const bad of [
     history({ content_digest: sha("other") }), history({ idempotency_key: `guidance-${sha("other-key")}` }),
-    history({ bank: "invalid/bank" }), history({ bank: "wrapped_ghp_abcdefghijklmnop_suffix" }),
+    history({}, "invalid/bank"), history({}, "wrapped_ghp_abcdefghijklmnop_suffix"),
     history({ guidance: { ...history().guidance, schema: 2 } }), history({ guidance: { ...history().guidance, purpose: "current-guidance" } }),
     history({ document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha("other-id")}` }),
     history({ document: { ...history().document, content: "different" } }),
