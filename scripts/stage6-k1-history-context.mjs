@@ -95,7 +95,8 @@ function readContext(value, history) {
   const omittedIds = list(context.omitted_ids, 16, 0).map(label);
   if (omittedIds.length !== 0) reject();
   const provenance = readProvenance(context.provenance);
-  if (provenance.length !== 1 || selectedIds[0] !== provenance[0].experience_id) reject();
+  if (provenance.length !== 1 || selectedIds[0] !== provenance[0].experience_id ||
+      provenance[0].run_id === history.experience.run_id || provenance[0].experience_id === history.experience.experience_id) reject();
   for (const key of ["repo", "source_sha", "policy_version", "env_fingerprint"]) {
     if (provenance[0][key] !== history.experienceBinding[key]) reject();
   }

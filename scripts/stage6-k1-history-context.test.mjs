@@ -22,8 +22,8 @@ function history(overrides = {}) {
   return { bank, document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha(idempotency_key)}`, current_verification: "not-checked", authorization: "none", executable: false, content_digest: document.content_digest, idempotency_key, document, guidance, ...overrides };
 }
 function context(overrides = {}) {
-  const provenance = [{ run_id: "run-2", repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env, experience_id: "experience-1", status: "verified", scope: "fixture-scope", observation_digests: [sha("observation")] }];
-  const value = { mode: "local-script-step-context", authorization: "none", executable: false, budget_unit: "characters", max_characters: 16_384, item_count: 1, selected_ids: ["experience-1"], omitted_ids: [], provenance, ...overrides };
+  const provenance = [{ run_id: "run-2", repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env, experience_id: "experience-current", status: "verified", scope: "fixture-scope", observation_digests: [sha("observation")] }];
+  const value = { mode: "local-script-step-context", authorization: "none", executable: false, budget_unit: "characters", max_characters: 16_384, item_count: 1, selected_ids: ["experience-current"], omitted_ids: [], provenance, ...overrides };
   if (!Object.hasOwn(overrides, "content")) value.content = `${contextHeader}${canonical({ authorization: "none", executable: false, provenance: value.provenance[0], script: experience.script, steps: experience.steps })}\n`;
   if (!Object.hasOwn(overrides, "character_count")) value.character_count = value.content.length;
   return value;
@@ -70,6 +70,12 @@ test("positive input uses the public LOCAL compileContext contract while keeping
   assert.equal(compiled.provenance.length, 1); assert.equal(compiled.provenance[0].run_id, "run-2"); assert.notEqual(compiled.provenance[0].run_id, experience.run_id);
   const result = buildK1HistoryContext({ history: history(), context: compiled });
   assert.equal(result.schema, "stage6-history-context/1"); assert.equal(result.subject_source_sha, source); assert.equal(result.authorization, "none"); assert.equal(result.executable, false);
+});
+test("current compilation cannot reuse the historical run or experience identity", () => {
+  for (const changed of [{ run_id: experience.run_id }, { experience_id: experience.experience_id }]) {
+    const p = { ...context().provenance[0], ...changed };
+    assert.throws(() => buildK1HistoryContext({ history: history(), context: context({ provenance: [p], selected_ids: [p.experience_id] }) }), /stage6-k1-history-context-refused/);
+  }
 });
 test("public LOCAL compiled script substitution is rejected rather than silently relabeled", async () => {
   const compiled = await actualPublicLocalContext("tampered compiled guidance");
