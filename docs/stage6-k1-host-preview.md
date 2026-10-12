@@ -18,9 +18,10 @@ verified: 2026-10-12
 primary provider/model/thinking/tools/prompt。
 
 当前候选已在集成 worktree 合并 peer 三个 source commits，集成 HEAD 为
-`05c0284bb997229b8592ec561ab1af76711510cd`（尚未创建 PR）。父级集成树已实际
-跑过 host targeted、旧 native matrix、273 release-script cases、source/consumer、
-实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20 仍是本地事实，
+`2b22cc9e7598af11098e686c912a169fa519c8fc`（PR45候选，尚未合入）。父级
+集成树已实际跑过 host targeted、旧 native matrix、273 release-script cases、
+source/consumer、实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20
+仍是本地事实，
 不借 peer candidate clean 或旧 main CI 当新 HEAD/main 证据。这里的 positive 使用
 真实公共 LOCAL factory 的合成 read/import/fresh verify/compile 链，不是实际 bank
 或历史来源验收。源码、mock、实际 SDK 的合成响应、独审、CI/main 与后续真实历史/
@@ -102,7 +103,7 @@ trusted callback 不是 OS sandbox。JavaScript 等待截止不证明同步/nati
   fixture 准备状态。
 - Node26 与显式安装 SDK 使用 dummy fetch/SSE；Node20 只验证 source/consumer，
   不把不支持的 SDK runtime 判绿。
-- 集成 HEAD `05c0284` 上的实际 SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
+- 集成 HEAD `2b22cc9` 上的实际 SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
   pretransport/fetch、8 agents、request-contract checks=16；stub credential
   attempts=1696；capacity refusal 与 policy/env mismatch 早拒绝。safe reports
   位于 `tmp/k1-host-proof/`，harness/source SHA 绑定当前集成 HEAD；scope 是
