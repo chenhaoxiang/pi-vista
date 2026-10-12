@@ -17,13 +17,14 @@ verified: 2026-10-12
 执行前置。没有真实模型、真实 bank、凭据字节或日常 profile 修改，也不改变
 primary provider/model/thinking/tools/prompt。
 
-当前为实施候选。peer source candidate 最终 commit 为
-`33e2dbe7965d7724ab91d555ff594a47d9efa5fc`（基线 main
-`dc8fbe02a6defcad8d32bb4597524067eaf0b455`，仅修改既定三份脚本）。父级
-集成树尚未把该 candidate 提交/推送；以下实际 SDK 证据仍绑定 peer producing
-harness SHA，不等同于共享 main 或本页已交付。
-源码、mock、实际 SDK 的合成响应、独审、CI/main 与后续真实历史/模型窗口分别
-验收；本页没有把未来窗口写成完成。
+当前候选已在集成 worktree 合并 peer 三个 source commits，集成 HEAD 为
+`05c0284bb997229b8592ec561ab1af76711510cd`（尚未创建 PR）。父级集成树已实际
+跑过 host targeted、旧 native matrix、273 release-script cases、source/consumer、
+实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20 仍是本地事实，
+不借 peer candidate clean 或旧 main CI 当新 HEAD/main 证据。这里的 positive 使用
+真实公共 LOCAL factory 的合成 read/import/fresh verify/compile 链，不是实际 bank
+或历史来源验收。源码、mock、实际 SDK 的合成响应、独审、CI/main 与后续真实历史/
+模型窗口分别验收；本页没有把未来窗口写成完成。
 
 已有能力分别是：
 
@@ -101,10 +102,12 @@ trusted callback 不是 OS sandbox。JavaScript 等待截止不证明同步/nati
   fixture 准备状态。
 - Node26 与显式安装 SDK 使用 dummy fetch/SSE；Node20 只验证 source/consumer，
   不把不支持的 SDK runtime 判绿。
-- peer candidate 的 producing-head 证据（Node26 实际 SDK1.1.0-fork.1：8 rows/
-  16 pretransport/fetch、8 agents；stub credential attempts 1696；capacity refusal
-  与 policy/env mismatch 早拒绝）只能作为 candidate 分层证据。旧无 callback
-  matrix、旧 678/3bde 原件各自保留，不能改标为 33e2 或 shared main 证据。
+- 集成 HEAD `05c0284` 上的实际 SDK1.1.0-fork.1/Node26 合成证据：8 rows/16
+  pretransport/fetch、8 agents、request-contract checks=16；stub credential
+  attempts=1696；capacity refusal 与 policy/env mismatch 早拒绝。safe reports
+  位于 `tmp/k1-host-proof/`，harness/source SHA 绑定当前集成 HEAD；scope 是
+  synthetic host control-flow/counters，不是任意 callback/OS 副作用证明。
+  旧无 callback matrix、旧 678/3bde 原件各自保留，不混入新证据。
 - source/mock、独审、精确 head/main CI、普通合入及 canonical 回读完成后才
   声明本片源码交付。后续真实 K1/质量/ROI/费用与发行仍需各自事实链，不把旧
   16-call `INVALID` 或历史相容记录改标成当前成功。
