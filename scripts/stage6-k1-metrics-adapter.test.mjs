@@ -43,7 +43,7 @@ test("zero pricing is unpriced; positive SDK estimate is retained without billin
   const priced = adaptK1SDKMeasurement({ measurement: measurement("healthy-metadata", "baseline"), usage: usage({ costTotal: 0.0125 }) });
   assert.equal(priced.sdk_cost, 0.0125); assert.equal(priced.cost_priced, true);
 });
-test("caller cannot provide derived fields, lifecycle-only rows, raw fields or zero-fill Usage", () => {
+test("caller cannot provide derived fields, lifecycle-only rows, raw fields or invent missing Usage/cost", () => {
   for (const key of ["tokens", "sdk_cost", "cost_priced"]) assert.throws(() => adaptK1SDKMeasurement({ measurement: { ...measurement("healthy-metadata", "baseline"), [key]: key === "tokens" ? {} : 0 }, usage: usage() }), /stage6-k1-metrics-refused/);
   assert.throws(() => adaptK1SDKMeasurement({ measurement: { status: "decision-valid", intercepted_fetch: 2 }, usage: usage() }), /stage6-k1-metrics-refused/);
   assert.throws(() => adaptK1SDKMeasurement({ measurement: measurement("healthy-metadata", "baseline"), usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 } }), /stage6-k1-metrics-refused/);
@@ -106,10 +106,11 @@ test("pair mismatch, unsafe identity, retries and arithmetic overflow cannot bec
 test("adapter has only paired-data imports and import performs no fetch", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("./stage6-k1-metrics-adapter.mjs", import.meta.url), "utf8");
-  const imports = [...source.matchAll(/^import[^\n]+from "([^"\n]+)";/gmu)].map(match => match[1]);
+  const imports = [...source.matchAll(/(?:^|\n)\s*import\s+(?:[\s\S]*?\sfrom\s+)?["']([^"'\n]+)["']\s*;?/gmu)].map(match => match[1]);
   assert.deepEqual(imports, ["node:util", "./paired-evaluation-data.mjs"]);
+  assert.doesNotMatch(source, /(?:^|\n)\s*export\s[\s\S]*?\sfrom\s+["']|\bimport\s*\(/mu);
   const { execFile } = await import("node:child_process"); const { promisify } = await import("node:util");
   const run = promisify(execFile); const module = new URL("./stage6-k1-metrics-adapter.mjs", import.meta.url).href;
-  const result = await run(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error('fetch')}; await import(${JSON.stringify(module)}); console.log('imported')`], { shell: false, timeout: 5000 });
+  const result = await run(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error('fetch')}; globalThis.setTimeout=()=>{throw Error('timer')}; await import(${JSON.stringify(module)}); console.log('imported')`], { env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent", TMPDIR: "/nonexistent" }, shell: false, timeout: 5000 });
   assert.equal(result.stdout.trim(), "imported"); assert.equal(result.stderr, "");
 });
