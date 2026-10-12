@@ -18,10 +18,12 @@ verified: 2026-10-12
 转换器不读取 store、bank、文件或凭据，不调用模型；失败只表示这份 K1 评测
 数据不可用，不能取消或改变正常 native Pi 任务。
 
-当前是源码集成候选，集成了 peer 的两个新增脚本；父级在集成 worktree 已实际
-跑过 16 个定向方法、264 个 release-script cases、source/packed-consumer、实际
-Node20/typecheck/OpenSpec/diff-check。这里的 positive 使用真实公共 LOCAL
-factory 的合成 read/import/fresh verify/compile 链，不是实际 bank 或历史来源验收。
+桥接源码已通过 PR44 普通合入 main `dc8fbe02`，reviewed head 为 `a0409b3`。
+父级在集成 worktree 已实际跑过 16 个定向方法、264 个 release-script cases、
+source/packed-consumer、实际 Node20/typecheck/OpenSpec/diff-check；精确 head CI
+`38192928031` 与 main CI `38193866155` 三 Node source/consumer 均成功，
+head 另有 GitGuardian 成功。这里的 positive 使用真实公共 LOCAL factory 的
+合成 read/import/fresh verify/compile 链，不是实际 bank 或历史来源验收。
 桥接 source/mock、独审、CI/main 与真实历史读取、实际 K1 模型窗口分别验收；
 本页不声称后两项已完成。仍沿用同一
 `openspec/changes/pi-operational-rollout/`，不启动竞争性 Change。
@@ -109,5 +111,6 @@ PR43 的 source-only K1 admission 已普通合入：
 得到 merge `ok/already-merged` 与 postCI `ok/ci-success`，gate 行保持
 `unknown/not-evaluated`。没有重放 merge 或把 reconcile 变成新授权。
 
-这些事实不证明本片 bridge 已合入，不证明 actual history/K1、通用能力提升、
-ROI、费用、默认 Pi 安装或发行。旧 16-call `INVALID` 草稿与原失败继续保留。
+上述 PR43 事实本身不证明 bridge；PR44 源码交付与精确 CI/main 独立记录在本页
+开头。两项 source delivery 均不证明 actual history/K1、通用能力提升、ROI、费用、
+默认 Pi 安装或发行。旧 16-call `INVALID` 草稿与原失败继续保留。
