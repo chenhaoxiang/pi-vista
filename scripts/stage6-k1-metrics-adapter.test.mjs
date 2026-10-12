@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { aggregateK1SDKMeasurements, adaptK1SDKMeasurement } from "./stage6-k1-metrics-adapter.mjs";
-import { PAIR_CASES, PAIR_HISTORY_DIGEST, PAIR_ROUND_BUDGET, PAIR_SOURCE_SHA, PAIR_TIMEOUT_MS, pairedOrder } from "./paired-evaluation-data.mjs";
+import { PAIR_HISTORY_DIGEST, PAIR_ROUND_BUDGET, PAIR_SOURCE_SHA, PAIR_TIMEOUT_MS, pairedOrder } from "./paired-evaluation-data.mjs";
 
 const sha = value => createHash("sha256").update(value).digest("hex");
 function measurement(case_id, arm, success = true, offset = 0) {
@@ -103,7 +103,11 @@ test("pair mismatch, unsafe identity, retries and arithmetic overflow cannot bec
   const data = records(); data[1].measurement = { ...data[1].measurement, runtime_digest: sha("different-runtime") }; assert.throws(() => aggregateK1SDKMeasurements(data), /stage6-k1-metrics-refused/);
   assert.throws(() => aggregateK1SDKMeasurements(records().map(record => ({ ...record, usage: usage({ costTotal: Number.MAX_VALUE }) }))), /stage6-k1-metrics-refused/);
 });
-test("adapter is inert and does not import SDK, profile, bank or model paths", async () => {
+test("adapter has only paired-data imports and import performs no fetch", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("./stage6-k1-metrics-adapter.mjs", import.meta.url), "utf8");
+  const imports = [...source.matchAll(/^import[^\n]+from "([^"\n]+)";/gmu)].map(match => match[1]);
+  assert.deepEqual(imports, ["node:util", "./paired-evaluation-data.mjs"]);
   const { execFile } = await import("node:child_process"); const { promisify } = await import("node:util");
   const run = promisify(execFile); const module = new URL("./stage6-k1-metrics-adapter.mjs", import.meta.url).href;
   const result = await run(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error('fetch')}; await import(${JSON.stringify(module)}); console.log('imported')`], { shell: false, timeout: 5000 });
