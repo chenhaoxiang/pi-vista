@@ -142,7 +142,13 @@ export async function createSyntheticSdkHost(input, k1Options) {
   if (k1) {
     k1Plan = admitSyntheticK1Plan(k1.history, context, expectedProvenance, options.max_requests, options.deadline_ms ?? 120_000);
     const rejected = k1Plan.find(row => row.admission.status !== "metadata-admitted");
-    if (rejected) throw k1Refusal("metadata-admission", rejected.admission.reason_code, { profile_fixture_prepared: true, metadata_fixture_prepared: true, window_created: false, session_count: 0, pretransport_attempts: 0, fetch_count: 0, admission: safeK1Admission(rejected.admission) });
+    const reason = rejected?.admission.reason_code ?? (options.max_requests !== k1Plan.length * 2 ? "stage6-k1-plan-capacity-mismatch" : null);
+    if (reason) {
+      const details = { profile_fixture_prepared: true, metadata_fixture_prepared: true, broker_observed: true, window_created: false, session_count: 0, pretransport_attempts: 0, fetch_count: 0,
+        admission: rejected ? safeK1Admission(rejected.admission) : null, harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version };
+      await writeFile(join(output, "k1-refusal.json"), JSON.stringify({ phase: "metadata-admission", reason_code: reason, ...details, observation_scope: "host-control-flow-not-callback-or-OS-effects", verification: "metadata-only", authorization: "none", executable: false }, null, 2) + "\n");
+      throw k1Refusal("metadata-admission", reason, details);
+    }
   }
   const window = await openStage6Pilot({ profileDirectory, context, expected: context, bindings, expectedProvenance, model_calls: 0, max_requests: options.max_requests, deadline_ms: options.deadline_ms ?? 120_000 }, { captureProfile: null, collectProvenance: provenance }); assert.equal(window.status, "admitted");
   const sdk = await import(pathToFileURL(join(options.sdk, "dist/index.js")).href), nativeRead = sdk.createReadTool(output);
@@ -153,6 +159,13 @@ export async function createSyntheticSdkHost(input, k1Options) {
   globalThis.fetch = async (url, init) => {
     assert.equal(String(url), "http://127.0.0.1:1/chat/completions"); assert.ok(active && !closed);
     fetchCount++; active.fetches++; const payload = JSON.parse(init.body); assert.equal(payload.model, context.model); assert.deepEqual(payload.tools.map(tool => tool.function.name).sort(), ["paired_inspect_metadata", "stage6_decision"]);
+    if (k1) {
+      const user = payload.messages.filter(message => message.role === "user").at(-1);
+      const text = typeof user?.content === "string" ? user.content : user?.content?.filter(part => part.type === "text").map(part => part.text).join("");
+      const task = `Inspect synthetic metadata case ${active.case_id} and emit stage6_decision.`;
+      assert.equal(typeof text, "string"); assert.equal(hash(text), hash(active.arm === "guided" ? `${task}\n${guidance}` : task));
+      active.requestContractChecks++;
+    }
     if (["cancelled", "timeout", "deadline"].includes(active.fault)) {
       assert.ok(init.signal); active.fetchSignal = init.signal;
       const row = active;
@@ -182,7 +195,7 @@ export async function createSyntheticSdkHost(input, k1Options) {
       }
       rowRunning = true;
       const metadata = pairedFixture(case_id, PAIR_SOURCE_SHA, bindings.env_fingerprint), expected = expectedFixtureContract(PAIR_SOURCE_SHA, bindings.env_fingerprint), metadataFile = join(output, `row-${rows.length}.json`); await writeFile(metadataFile, JSON.stringify(metadata));
-      active = { case_id, fault, expected, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), abortBarrier: deferred(), abortResponseResolve: null, messageEnds: 0, toolEnds: 0 };
+      active = { case_id, arm, fault, expected, requestContractChecks: 0, fetches: 0, inspected: null, invocation: null, inspectorExecutions: 0, decisionExecutions: 0, abortObserved: false, started: deferred(), abortBarrier: deferred(), abortResponseResolve: null, messageEnds: 0, toolEnds: 0 };
       const row = active, attemptsBefore = window.statusSnapshot().pretransport_attempts;
       const runtime = await sdk.ModelRuntime.create({ modelsPath: null, allowModelNetwork: false, refreshOnCreate: false, credentials: { async read() { credentialReads++; return undefined; }, async list() { return []; }, async modify() { assert.fail("credential write"); }, async delete() { assert.fail("credential delete"); } }, modelsStore: { async read() { return undefined; }, async write() {}, async delete() {} } });
       runtime.registerProvider(context.provider, { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic-no-network", models: [{ id: context.model, name: context.model, reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
@@ -227,14 +240,14 @@ export async function createSyntheticSdkHost(input, k1Options) {
       if (fault === null || fault === "profile-drift") { assert.ok(row.messageEnds >= 2); assert.equal(row.toolEnds, 2); }
       const failureOrigin = ["request-guard", "session-budget", "window-budget"].includes(fault) ? "local-coordinator-rejection" : fault === "stream-disconnected" ? "provider-stream-disconnected" : fault === "provider-error" ? "provider-error" : fault;
       const result = Object.freeze({ case_id, arm, fault, failure_origin: failureOrigin, outcome: fault === "request-guard" ? "request-guard-rejected" : fault === "session-budget" ? "session-budget-exhausted" : fault === "window-budget" ? "window-budget-exhausted" : decision.outcome, decision_outcome: failureOrigin === "local-coordinator-rejection" ? null : decision.outcome, decision_parsed: failureOrigin === "local-coordinator-rejection" ? false : decision.decision_parsed, execution_stop: stopped, pretransport_attempts: binding.status().session_attempts, intercepted_fetch: row.fetches, inspector_executions: row.inspectorExecutions, decision_executions: row.decisionExecutions, message_end_events: row.messageEnds, tool_execution_end_events: row.toolEnds, abort_signal_observed: row.abortObserved, late_sse_body_sent: row.lateBodySent === true, task_digest: hash(task), guidance_scope: arm === "guided" ? k1 ? "synthetic-LOCAL-fixture-not-actual-history" : "synthetic-guided-arm-not-LOCAL-readback" : "none", guidance_digest: arm === "guided" ? k1?.history.context_digest ?? historyDigest : null,
-        ...(preparedK1 ? { k1_admission: safeK1Admission(preparedK1.admission) } : {}) });
+        ...(preparedK1 ? { k1_admission: safeK1Admission(preparedK1.admission), request_contract_checks: row.requestContractChecks } : {}) });
       rows.push(result); rowRunning = false; return result;
     },
     finish() {
       if (finishPromise) return finishPromise;
       closed = true; globalThis.fetch = savedFetch;
       finishPromise = (async () => {
-        try { const receipt = await window.finalize(); for (const entry of streams) assert.equal(entry.session.agent.streamFunction, entry.original); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, ...(k1Plan ? { k1_plan: Object.freeze(k1Plan.map(row => Object.freeze({ case_id: row.case_id, arm: row.arm, history_status: row.admission.history_status, history_digest: row.admission.history?.content_digest ?? null, context_digest: row.admission.history?.context_digest ?? null, admission: safeK1Admission(row.admission) }))) } : {}), evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
+        try { const receipt = await window.finalize(); for (const entry of streams) assert.equal(entry.session.agent.streamFunction, entry.original); assert.equal(await sourceBinding(options.source_sha), runnerDigest); const result = Object.freeze({ schema: "stage6-synthetic-sdk-host/1", harness_source_sha: options.source_sha, host_sha256: runnerDigest, sdk_version: observed.version, node: process.version, rows: Object.freeze(rows), fresh_agents: nativeAgents.size, intercepted_fetch: fetchCount, synthetic_responses: responses, credential_store_read_attempts: credentialReads, receipt, ...(k1Plan ? { observation_scope: "synthetic-transport-and-host-counters-not-callback-effects", k1_plan: Object.freeze(k1Plan.map(row => Object.freeze({ case_id: row.case_id, arm: row.arm, history_status: row.admission.history_status, history_digest: row.admission.history?.content_digest ?? null, context_digest: row.admission.history?.context_digest ?? null, admission: safeK1Admission(row.admission) }))) } : {}), evaluation_status: "not-evaluated", declared_scope: { real_model_calls: 0, bank_calls: 0, credential_bytes_read: false }, authorization: "none", executable: false }); await writeFile(join(output, "report.json"), JSON.stringify(result, null, 2)+"\n"); return result; }
         finally { for (const session of sessions) { try { if (!session.isIdle) await session.abort(); } finally { session.dispose(); } } }
       })();
       return finishPromise;
