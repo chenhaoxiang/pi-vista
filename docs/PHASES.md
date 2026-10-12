@@ -318,8 +318,16 @@ underlying P0 source slice adds metadata-only admission/provenance classificatio
 closed structured `stage6_decision` contract, a deterministic reference/mock
 oracle and an explicit readonly host seam. It is not imported by the planner or
 default Pi, does not read credential bytes or call models, and does not establish
-current permission/proof. Source/main/CI evidence is bound in the closeout; actual
-SDK/broker/source/history collection and pilot-wide transport budget remain pending.
+current permission/proof. Source/main/CI evidence is bound in the closeout. Later PR43/44/45 delivered K1
+metadata admission, public history-context bridge and an opt-in synthetic SDK host
+preview. PR45 reviewed head `8b7b460` is included by ordinary merge/main `34df206`,
+with exact head CI `38211829514` (initial Node20 failure retained, one bounded
+failed-job rerun passed) and main CI `38214349639`. The existing single window,
+issued admissions and transport counters were exercised on SDK1.1.0-fork.1/Node26
+using synthetic LOCAL data and intercepted SSE, not an actual quality pilot.
+Actual public1.0.4/model/history/broker facts, current subject evidence and complete
+paired Usage/latency/cost measurements remain pending; no copied metadata becomes
+current proof or primary-task permission.
 
 Within any future pair, source, model, SDK, thinking, tool definitions and budget
 must be equal; only fresh-verified historical guidance context differs. The

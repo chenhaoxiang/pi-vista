@@ -17,9 +17,11 @@ verified: 2026-10-12
 执行前置。没有真实模型、真实 bank、凭据字节或日常 profile 修改，也不改变
 primary provider/model/thinking/tools/prompt。
 
-当前候选已在集成 worktree 合并 peer 三个 source commits，并完成独立的
-测试/文档收口。本页维护接线合同，不枚举或自引用“当前 PR head”；各次验收
-报告保留各自 producing harness SHA，交付时由 PR/Git 的精确 head/main 回读绑定。
+本片 source 已经 PR45 普通合入 main `34df206`，reviewed head 为 `8b7b460`。
+Head CI `38211829514` 初次 Node20 release-script 失败原件保留，一次有界重跑后
+成功；main CI `38214349639` 三 Node source/consumer 成功。它不是 first-pass，
+也没有证明初次失败的根因已消除。本页维护接线合同，不自引用自身文档提交；
+各次验收报告保留各自 producing harness SHA，交付由 PR/Git 精确 head/main 回读绑定。
 运行时脚本与测试/文档提交分别核验，测试提交不被称为“脚本未变”。
 父级集成树已实际跑过 host targeted、旧 native matrix、274 release-script cases、
 source/consumer、实际 Node20、typecheck/OpenSpec/diff-check；source/consumer/Node20
@@ -114,8 +116,8 @@ trusted callback 不是 OS sandbox。JavaScript 等待截止不证明同步/nati
   producing HEAD 一致，本页不将不同报告改标为同一“当前集成 HEAD”；scope 是
   synthetic host control-flow/counters，不是任意 callback/OS 副作用证明。
   旧无 callback matrix、旧 678/3bde 原件各自保留，不混入新证据。
-- source/mock、独审、精确 head/main CI、普通合入及 canonical 回读完成后才
-  声明本片源码交付。后续真实 K1/质量/ROI/费用与发行仍需各自事实链，不把旧
+- source/mock、独审、精确 head/main CI、普通合入及 canonical 回读已对本片
+  source delivery 分别完成；实际真实 K1/质量/ROI/费用与发行仍需各自事实链，不把旧
   16-call `INVALID` 或历史相容记录改标成当前成功。
 
 此预演不会自动注入历史、重试真实模型、写 bank、修改 gate/guard、创建账号/

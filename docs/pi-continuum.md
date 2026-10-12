@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-10
-verified: 2026-10-11
+verified: 2026-10-12
 ssot: true
 ---
 
@@ -78,7 +78,7 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 
 ### P0：先修 harness，再调用模型
 
-1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。Stage6 P0 admission/decision/planner source 已通过 PR35 合入 main `d2abf0c1`（包含 PR32 `a42ff57` 的 source-only 祖先）；旧16-call draft仍 INVALID。另有只读 host seam（`scripts/stage6-host-admission.mjs`），只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。当前候选继续补充 `scripts/stage6-pilot-coordinator.mjs`：由受信宿主显式提供 SDK/broker/source/history metadata，围绕整轮 profile/provenance bracket 和共享 pretransport budget 生成 `metadata-only`、`authorization:none`、`executable:false` 结果；仍是 source/mock candidate，不代表实际 SDK、默认 Pi 或有效 pilot。
+1. Runtime admission/provenance：profile before/after、protected/volatile drift分类、SDK/broker/harness/subject/history摘要、明确工具/模型/思考配置和mock/reference solver。admitted 时不得已有模型调用；拒绝结果如实保留观测到的 `model_calls`（invalid-input 为 null），由本模块自身启动的 `started_model_calls` 恒为 0。漂移原件不反写，无法归因不猜测。Stage6 P0 admission/decision/planner source 已通过 PR35 合入 main `d2abf0c1`（包含 PR32 `a42ff57` 的 source-only 祖先）；旧16-call draft仍 INVALID。另有只读 host seam（`scripts/stage6-host-admission.mjs`），只摘要 profile metadata、不读凭据字节、不启动模型，也未接 planner/default Pi。当前 `scripts/stage6-pilot-coordinator.mjs` 与 PR43 K1 admission、PR44 history bridge、PR45 synthetic host preview 已进入 main：由受信宿主显式提供 SDK/broker/source/history metadata，围绕整轮 profile/provenance bracket 和共享 pretransport budget 生成 `metadata-only`、`authorization:none`、`executable:false` 结果；PR45仅用SDK1.1 fork与合成LOCAL/截获SSE，未满足paired metric冻结的public1.0.4/真实history/model/broker事实，不代表实际质量、默认Pi或有效pilot。
 2. Strict decision：使用固定 decision tool（case_id、decision、reason enum，additionalProperties=false），区分 tool-not-called/schema-invalid/refusal/provider-error/semantic-mismatch；不把自由文本JSON或 aggregation-completed当有效semantic结果。当前 source candidate 通过固定 synthetic reference/mock，不代表实际模型决策。
 
 ### P1：逐步测效益
@@ -97,6 +97,7 @@ Timeline/trace assertions、run→regression promotion、pass^k、observability�
 - Vista Stage1–5源码/明确scoped运行已交付；不是默认日常Pi或生产bank验收。
 - Stage6 source-only P0 admission/decision/planner 已由 PR35 合入 main `d2abf0c1`，并包含 PR32/a42ff57 的 source-only 祖先；旧私有runtime草稿16调用/8session/0bank为 **INVALID**：严格决定未满足、profile drift未归因。原报告和INVALID assessment都保留，不借为质量、ROI、成本、current proof或发布。
 - Meta PR551样本Node20/26 closed-row相容只证明样本消费，gate仍unknown/not-evaluated；不是Stage6/default activation/current permission。
+- PR43/44/45已分别交付K1 admission、只读history bridge和synthetic host preview；实际public1.0.4 paired measurement、真实history/current verifier、provider/model/broker facts仍未闭合。
 - Meta独立build/typecheck仍是真实缺口，不把governance/inventory冒称构建或完整语义检查。原signed route/key来源、完整SDK declaration health与Mac个人认证broker只在相应路线使用时独立核验，不变成LOCAL当前前置。
 - 发布须落定account/channel/version/启用与rollback范围，并遵循真实授权、资金/平台/生产边界；本架构不自行发布。
 
