@@ -89,7 +89,11 @@ test("K1 second-argument proxies/getters/extra authority reject before source/SD
   assert.equal(traps, 0);
 });
 test("invalid trusted history/raw/source callback data refuses before source/SDK/profile/session/fetch", async () => {
-  if (!supported()) return;
+  if (!supported()) {
+    let callbacks = 0;
+    await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => { callbacks++; return null; } }), /stage6-synthetic-host-refused/);
+    assert.equal(callbacks, 0); return;
+  }
   const fixture = await localFixture(), wrong = await localFixture("e".repeat(40)), wrongPolicy = await localFixture(PAIR_SOURCE_SHA, { policy_version: "fixture-policy" }), wrongEnv = await localFixture(PAIR_SOURCE_SHA, { env_fingerprint: sha("fixture-environment") });
   const options = { sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 };
   const hostDirectories = async () => { try { return (await readdir(new URL("../tmp/release-contract/", import.meta.url))).filter(name => name.startsWith("stage6-synthetic-host-")).sort(); } catch (error) { if (error.code === "ENOENT") return []; throw error; } };
@@ -101,7 +105,11 @@ test("invalid trusted history/raw/source callback data refuses before source/SDK
   assert.deepEqual(JSON.parse(result.stdout), { fetches: 0 }); assert.equal(result.stderr, ""); assert.deepEqual(await hostDirectories(), before);
 });
 test("native Promise preparation wait is bounded and late settlement cannot start setup", async () => {
-  if (!supported()) return;
+  if (!supported()) {
+    let callbacks = 0;
+    await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => { callbacks++; return new Promise(() => undefined); } }), /stage6-synthetic-host-refused/);
+    assert.equal(callbacks, 0); return;
+  }
   let resolve; const promise = new Promise(done => { resolve = done; });
   const start = performance.now();
   await assert.rejects(createSyntheticSdkHost({ sdk: "/nonexistent-sdk", source_sha: "a".repeat(40), max_requests: 16, deadline_ms: 1000 }, { prepareK1Plan: () => promise }), error => error.k1_reason_code === "stage6-k1-preparation-timeout" && error.window_created === false && error.session_count === 0 && error.fetch_count === 0);
