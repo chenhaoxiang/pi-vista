@@ -16,10 +16,11 @@ const experience = { experience_id: "experience-1", run_id: "run-1", repo: "pi-v
   steps: [{ step_id: "fixture-step", tool: "fixture-reader", action_description: "inspect fixture metadata", check_fn_ids: [], expected_result: "observed", on_failure: "stop", depends_on: [] }] };
 const prepared = prepareHistoricalGuidance(experience);
 function history(overrides = {}, bank = "fixture-bank") {
+  const alias = overrides.bank ?? bank;
   const document = { ...prepared };
   const guidance = { schema: 1, purpose: "historical-guidance", current_verification: "not-checked", authorization: "none", executable: false, experience };
-  const idempotency_key = `guidance-${sha(canonical({ bank, document }))}`;
-  return { bank, document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha(idempotency_key)}`, current_verification: "not-checked", authorization: "none", executable: false, content_digest: document.content_digest, idempotency_key, document, guidance, ...overrides };
+  const idempotency_key = `guidance-${sha(canonical({ bank: alias, document }))}`;
+  return { bank: alias, document_id: `vista-guidance-v1-${"b".repeat(16)}-${sha(idempotency_key)}`, current_verification: "not-checked", authorization: "none", executable: false, content_digest: document.content_digest, idempotency_key, document, guidance, ...overrides };
 }
 function context(overrides = {}) {
   const provenance = [{ run_id: "run-2", repo: "pi-vista", source_sha: source, policy_version: "stage5-policy", env_fingerprint: env, experience_id: "experience-current", status: "verified", scope: "fixture-scope", observation_digests: [sha("observation")] }];
