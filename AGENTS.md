@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-12
+verified: 2026-10-13
 ---
 
 # Repository-local contributor contract
@@ -54,7 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): actual K1 fact gaps and complete Usage-backed paired metrics boundary; source/mock only, no synthetic readiness proof or execution permission
+- [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): actual K1 fact gaps, supplied-facts metadata consistency and complete Usage-backed paired metrics boundary; source/mock only, ready labels are not actual evidence or execution permission
+- [scripts/stage6-k1-facts.mjs](scripts/stage6-k1-facts.mjs): closed supplied-metadata consistency using existing SDK/broker/history validators and paired pins; no source IO, proof, budget, window or default-Pi admission
 - [docs/stage6-k1-host-preview.md](docs/stage6-k1-host-preview.md): PR45 delivered opt-in single-window K1 synthetic SDK preview, staged input/metadata refusal and existing issued admission/budget ownership; not real model/history/current-proof or default activation
 - [scripts/stage6-k1-host-preview.mjs](scripts/stage6-k1-host-preview.mjs): explicit synthetic-only runner and safe plan/row/refusal projection; callback remains trusted and source pin is not permission
 - [docs/stage6-k1-history-context.md](docs/stage6-k1-history-context.md): trusted-host public history/context to existing K1 DTO, single-source/identity/non-authorizing boundary and PR43 source/main delivery; delivered PR44 bridge is not actual history or model acceptance

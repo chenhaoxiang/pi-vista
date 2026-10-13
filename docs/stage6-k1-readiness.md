@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-12
-verified: 2026-10-12
+verified: 2026-10-13
 ---
 
 # Stage6 K1 真实窗口事实链与指标兼容性
@@ -78,3 +78,30 @@ schema，也不产生 readiness proof、budget、permission 或 ledger。旧 agg
 它只能验证输入契约与聚合状态分类。真实 k=1 仍需上述事实链、独立审查、CI/main/
 readback，并且不能把可聚合或 synthetic 标签升级为 current permission、ROI 或
 release。
+
+## #20 supplied-facts metadata consistency（source/mock 候选）
+
+`scripts/stage6-k1-facts.mjs` 显式复用 `validateSdkContractMatch`、
+`validateReadonlyBrokerMetadata`、`snapshotHistoryContext` 和原 paired pins，检查
+闭合的 SDK/broker/subject/history/current-verifier/model/budget/metrics metadata。
+输出 `ready/not-ready` 只表示传入 metadata 的完整性与一致性；它不读取任何实际来源，
+也不认证 `fresh/accepted/usage_complete/aggregate` 等调用方声明。synthetic 正例可以
+返回 ready，不能凭该结果启动模型、恢复 opaque proof 或宣称 actual K1 ready。
+
+输入是 closed own-data DTO，拒绝 proxy/accessor/extra/missing、错误 public SDK pin、
+fork 改标、history/source 漂移、verifier关联不一致、模型/thinking/tool/retry 变化、
+窗口预算变化、缺 Usage/metrics。拒绝为固定 reason code，不回显 raw/credential/path。
+输出是 copyable metadata，恒 `verification=metadata-only / authorization=none /
+executable=false`，不创建预算、ledger、执行 window 或默认 Pi 前置要求。
+
+subject 的 repo/policy/env 是安全标签，不由该摘要函数与 history 再造关联；真实 host
+仍须通过已交付 public history/context bridge、actual provenance 和 fresh verifier
+建立实际来源、四绑定、当前 evidence/expiry，再用一个 coordinator 管真实请求。
+本函数对 current-verifier 的 fresh/accepted 声明仅做形状/关联判定；不能替代 isCurrent
+检查或证明读取发生。metrics 完整性声明不生成 Usage、decision、elapsed 或 aggregate。
+
+12 项 synthetic 定向和 release-script 300/300 已通过，0 skip/cancel/todo；首次未完成
+worktree bootstrap 的 ERR_MODULE_NOT_FOUND 保留，正确 offline npm-ci/build 后重跑通过。
+源码独审、完整 source/consumer、Node20、CI/main 与 actual K1 的事实验收分别 pending。
+同时只读复核 retained public SDK root 的 manifest/entry 与 frozen public1.0.4 pin 一致，
+这一双文件事实仍不是完整 SDK依赖、history/verifier/broker/provider或 actual质量证明。
