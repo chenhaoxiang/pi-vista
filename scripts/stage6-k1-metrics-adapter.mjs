@@ -1,6 +1,7 @@
 import { types } from "node:util";
 import { snapshotPairMeasurement, aggregatePairedMeasurements } from "./paired-evaluation-data.mjs";
 
+export const K1_METRICS_ADAPTER_ID = "public-usage-to-paired";
 const DERIVED = ["tokens", "sdk_cost", "cost_priced"];
 const USAGE_REQUIRED = ["input", "output", "cacheRead", "cacheWrite", "totalTokens", "cost"];
 const USAGE_OPTIONAL = ["cacheWrite1h", "reasoning"];

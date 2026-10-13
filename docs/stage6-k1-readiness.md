@@ -102,6 +102,6 @@ subject 的 repo/policy/env 是安全标签，不由该摘要函数与 history �
 
 12 项 synthetic 定向和 release-script 300/300 已通过，0 skip/cancel/todo；首次未完成
 worktree bootstrap 的 ERR_MODULE_NOT_FOUND 保留，正确 offline npm-ci/build 后重跑通过。
-源码独审、完整 source/consumer、Node20、CI/main 与 actual K1 的事实验收分别 pending。
+本轮完整 source/consumer、实际 Node20 source/consumer、typecheck/lint 已记录 PASS；独立源码终审、CI/main 与 actual K1 的事实验收分别收口，不由本地通过推导。
 同时只读复核 retained public SDK root 的 manifest/entry 与 frozen public1.0.4 pin 一致，
 这一双文件事实仍不是完整 SDK依赖、history/verifier/broker/provider或 actual质量证明。

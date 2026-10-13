@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { assessK1Readiness, validateK1Readiness } from "./stage6-k1-facts.mjs";
 import { PUBLIC_1_0_4_CONTRACT, matchSdkContract } from "./stage6-sdk-provenance.mjs";
 import { PAIR_SOURCE_SHA, PAIR_HISTORY_DIGEST, PAIR_TIMEOUT_MS } from "./paired-evaluation-data.mjs";
@@ -107,9 +107,11 @@ test("facts module imports only existing pure contracts and performs no startup 
   const url = new URL("./stage6-k1-facts.mjs", import.meta.url);
   const source = await readFile(url, "utf8");
   const imports = [...source.matchAll(/from\s+["']([^"']+)["']/gu)].map(m => m[1]);
-  assert.deepEqual(imports, ["node:util", "@pi-vista/core", "./stage6-k1-admission.mjs", "./stage6-sdk-provenance.mjs", "./paired-evaluation-data.mjs"]);
+  assert.deepEqual(imports, ["node:util", "@pi-vista/core", "./stage6-k1-admission.mjs", "./stage6-k1-metrics-adapter.mjs", "./stage6-sdk-provenance.mjs", "./paired-evaluation-data.mjs"]);
   assert.equal(/import\s*\(|export[^;]*from/gu.test(source), false);
-  const output = execFileSync(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error('network')};globalThis.setTimeout=()=>{throw Error('timer')};await import(${JSON.stringify(url.href)});console.log('imported');`],
-    { encoding: "utf8", timeout: 5000, env: { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR } });
-  assert.equal(output, "imported\n");
+  const output = spawnSync(process.execPath, ["--input-type=module", "-e", `globalThis.fetch=()=>{throw Error('network')};globalThis.setTimeout=()=>{throw Error('timer')};await import(${JSON.stringify(url.href)});console.log('imported');`],
+    { encoding: "utf8", timeout: 5000, env: { PATH: process.env.PATH, HOME: "/nonexistent", TMPDIR: "/nonexistent" } });
+  assert.equal(output.status, 0);
+  assert.equal(output.stdout, "imported\n");
+  assert.equal(output.stderr, "");
 });

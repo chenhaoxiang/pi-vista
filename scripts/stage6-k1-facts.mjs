@@ -1,6 +1,7 @@
 import { types } from "node:util";
 import { hasKnownCredential } from "@pi-vista/core";
 import { snapshotHistoryContext } from "./stage6-k1-admission.mjs";
+import { K1_METRICS_ADAPTER_ID } from "./stage6-k1-metrics-adapter.mjs";
 import {
   PUBLIC_1_0_4_CONTRACT,
   validateReadonlyBrokerMetadata,
@@ -112,7 +113,7 @@ function budgetSnapshot(value) {
 }
 function metricsSnapshot(value) {
   const metrics = own(value, METRICS_KEYS);
-  if (metrics.rows !== 8 || metrics.source_sha !== PAIR_SOURCE_SHA || metrics.adapter !== "public-usage-to-paired" ||
+  if (metrics.rows !== 8 || metrics.source_sha !== PAIR_SOURCE_SHA || metrics.adapter !== K1_METRICS_ADAPTER_ID ||
       metrics.aggregate !== true || metrics.usage_complete !== true) throw Error("metrics-mismatch");
   return Object.freeze({ ...metrics, source_sha: source(metrics.source_sha) });
 }
