@@ -54,7 +54,9 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): actual K1 fact gaps, supplied-facts metadata consistency and complete Usage-backed paired metrics boundary; source/mock only, ready labels are not actual evidence or execution permission
+- [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): supplied-facts metadata consistency and Usage-backed paired metrics boundaries; ready labels do not authorize execution
+- [docs/handoff/2026-10-13-k1-actual-window-closeout.md](docs/handoff/2026-10-13-k1-actual-window-closeout.md): first actual8session/16request paired window, strict8/8, unchanged profile/provenance and context cost observation; not default guidance/ROI/release
+- [docs/handoff/evidence/2026-10-13-k1-actual/README.md](docs/handoff/evidence/2026-10-13-k1-actual/README.md): sanitized actual K1 report projection, original SHA and scope limits
 - [docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md](docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md): PR49 actual-runner source/main/CI delivery, retained review layers and live 0.10.3-vs-0.10.2 history preflight block; no real model/bank quality claim
 - [docs/hindsight-k1-read-compat.md](docs/hindsight-k1-read-compat.md): Owner-selected current API1.0.0/distribution1.0.0 read compatibility, old0.10.2/0.10.3 evidence retained, actual original-read scope and no write/model/default activation
 - [scripts/stage6-k1-service-compat.mjs](scripts/stage6-k1-service-compat.mjs): explicit fixed current-service public-file fingerprint/API reader; old0.10.2 default unchanged and no service/bank writes
