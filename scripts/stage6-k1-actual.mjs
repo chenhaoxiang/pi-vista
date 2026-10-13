@@ -22,6 +22,7 @@ const exec = promisify(execFile), sha = x => createHash("sha256").update(x).dige
 const ENDPOINT = "http://127.0.0.1:8888", BANK = "pi-vista-local-test-01a114ab", ALIAS = "stage5-isolated-test", SCOPE = "fixed-local-learning-command-plan-v1";
 const PLAN = Object.freeze(["source-contract", "learning-native", "packed-consumer-contract"]);
 const ARG_KEYS = ["sdk", "profile-dir", "broker-pin", "history-reference", "credential-config", "service-fingerprint", "subject-root", "harness-source-sha"];
+let armTerminalWatchdog; // CLI-only host hook; imports and programmatic use install none.
 const refused = () => { throw Error("stage6-k1-actual-options-refused"); };
 export function parseK1ActualOptions(args) {
   if (types.isProxy(args) || !Array.isArray(args) || Object.getPrototypeOf(args) !== Array.prototype || args.length !== 9 || Reflect.ownKeys(args).length !== 10) refused();
@@ -135,6 +136,7 @@ export async function runK1Actual(options) {
     const provenance = await collectProvenance();
     factory = createK1NativeFactory({ sdkRoot: c.sdk, profileDirectory: c["profile-dir"], brokerPin: c["broker-pin"], outputDirectory: directory });
     report.phase = "model-window";
+    armTerminalWatchdog?.(directory);
     report.pilot = await runK1Pilot({ profileDirectory: c["profile-dir"], context, bindings, provenance, preparedHistory: history },
       { createSession: factory.createSession, collectProvenance, captureProfile: captureStage6Profile, checkSource: async () => { await sourceCheck(ROOT, c["harness-source-sha"]); await sourceCheck(c["subject-root"], PAIR_SOURCE_SHA); } });
     report.status = report.pilot.status; report.model_calls = report.pilot.receipt.pretransport_attempts; captured = report.model_calls;
@@ -165,10 +167,15 @@ if (isMain(import.meta.url)) {
   const stdout = process.stdout.write.bind(process.stdout), stderr = process.stderr.write.bind(process.stderr);
   process.stdout.write = () => true; process.stderr.write = () => true;
   let report;
-  const terminalDeadline = setTimeout(() => {
-    stdout(JSON.stringify({ schema: "stage6-k1-actual/1", status: "unknown", failure: "stage6-k1-actual-deadline", model_calls: null, authorization: "none", executable: false }) + "\n");
-    process.exit(1);
-  }, PAIR_TIMEOUT_MS + 5000);
+  let terminalDeadline;
+  armTerminalWatchdog = directory => {
+    terminalDeadline = setTimeout(() => {
+      const unknown = { schema: "stage6-k1-actual/1", status: "unknown", failure: "stage6-k1-actual-deadline", model_calls: null, authorization: "none", executable: false };
+      const body = JSON.stringify(unknown) + "\n";
+      writeFile(join(directory, "deadline-report.json"), body, { mode: 0o600, flag: "wx" })
+        .catch(() => undefined).finally(() => { stdout(body); process.exit(1); });
+    }, PAIR_TIMEOUT_MS + 5000);
+  };
   try { report = await runK1Actual(parseK1ActualOptions(process.argv.slice(2))); }
   catch { report = { schema: "stage6-k1-actual/1", status: "unknown", failure: "stage6-k1-actual-unavailable", model_calls: null, authorization: "none", executable: false }; }
   clearTimeout(terminalDeadline);

@@ -169,6 +169,7 @@ export async function runK1Pilot(input, portsInput) {
   let aggregate = null;
   if (records.length === 8 && receipt.integrity_status === "unchanged") { try { aggregate = aggregateK1SDKMeasurements(records); } catch { stopped ??= "metric-contract-refused"; } }
   if (records.length !== 8) stopped ??= "metric-incomplete";
+  if (aggregate?.evaluation_status !== "measured") stopped ??= "evaluation-not-measured";
   return Object.freeze({ schema: "stage6-k1-pilot/1", status: aggregate?.evaluation_status === "measured" ? "measured" : "unknown",
     reason_code: stopped, rows: Object.freeze(rows), aggregate, receipt, fresh_sessions: sessions.size,
     verification: "metadata-only", authorization: "none", executable: false });

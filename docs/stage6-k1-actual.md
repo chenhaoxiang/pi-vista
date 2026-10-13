@@ -26,9 +26,10 @@ pins; there is no fallback, silent retry, extra judge or model switch.
    `846b9a0...8216f3` subject. Native report counters and fixed command admissions
    produce scoped observations. This is not OS/Meta/global guard coverage.
 3. The current host environment binding (Node/platform/arch/plan scope) must equal
-   the accepted history environment label before the window. Only the original accepted Stage5 document GET is allowed at localhost8888 /
-
-   `pi-vista-local-test-01a114ab`. No retain, recall, reconcile, new namespace,
+   the accepted history environment label before the window. Bank I/O is limited
+   to baseline/final config GET and the original accepted Stage5 document GET at
+   localhost8888 / `pi-vista-local-test-01a114ab`. Counters record requests,
+   not completed reads. No retain, recall, reconcile, new namespace,
    bank config change or service restart. Prior saved projections supply the
    expected reference/content only; stored proof/handle/plan is not restored.
 4. `prepareK1ActualHistory` creates a new LOCAL library, reads canonical history,
@@ -42,7 +43,9 @@ pins; there is no fallback, silent retry, extra judge or model switch.
    catalog/settings/session/resource controls, no default discovery or config shell.
 6. The envelope guard counts every pretransport request and requires a matching
    pretransport attempt for each recorded provider request; missing envelope hooks
-   cannot be reported as measured. Baseline/guided share model/thinking/tools/system/task/budget; guided adds the
+   cannot be reported as measured. The CLI terminal watchdog starts at the model
+   window, not process startup, and preserves a fixed deadline report if graceful
+   cleanup does not settle. Baseline/guided share model/thinking/tools/system/task/budget; guided adds the
    actual compiled historical block to its isolated user input, no extra request.
    Strict decision is a tool call, not free text JSON. Tool-batch terminate is
    only a hint; the request cap still prevents a third session request.
