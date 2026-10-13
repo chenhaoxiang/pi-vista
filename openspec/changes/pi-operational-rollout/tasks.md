@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-11
+verified: 2026-10-13
 ---
 
 # Sequential tasks
@@ -59,8 +59,8 @@ verified: 2026-10-11
 - [x] Stage6 K1 source/mock metrics adapter candidate: public SDK Usage (required6/optional2) maps to complete paired rows, then existing `snapshotPairMeasurement`/`aggregatePairedMeasurements`; no zero-fill/lifecycle-row promotion, no SDK/model/bank/profile call. Parent targeted14/14, release288, source/consumer/Node20/typecheck/lint/OpenSpec/diff-check passed; source/main/review remain separate.
 - [x] K1 supplied-facts source/mock consistency delivered by PR47 reviewed e8eb64b/main547ad391; targeted26/release300/source/consumer/actualNode20 and headCI38455065818/mainCI38458803844 passed. Reuses SDK/broker/history validators and frozen paired pins; metadata-ready never authenticates freshness or external collection. Gate PASS_ESCALATED retained missing-App tier2 rather than claiming App restored; no model/bank/profile/default call. Supplemental handoff itself requires independent docs inclusion.
 - [x] Actual K1 runner source delivered by PR49 reviewed601a648/main7249197; targeted19/release319/source/consumer/actualNode20/headCI38475931423/mainCI38476828139 passed. New history host/pilot/native/operator child remains non-authorizing and zero-model/bank in source/mock. Live history preflight refused actual service0.10.3 against accepted0.10.2 contract before bank/model access; actual quality remains pending. This handoff itself needs independent docs inclusion.
-- [ ] Owner-selected current Hindsight READ compatibility: original0.10.2 refused live0.10.3, later API1.0.0/distribution1.0.0 explicitly selected; fixed fingerprint/API metadata + exact accepted original read, no bank write/restart/model/default changes. Source/review/CI/main/actual K1 remain separate.
-- [ ] Next actual K1 slice: establish current facts for the frozen public1.0.4/model/history/subject/broker/window and complete metric collection through existing paired validators. PR45 fork1.1 synthetic rows do not satisfy the public1.0.4 measured profile; missing actual facts remain unknown, not copied metadata `ready` flags or new primary-task gates.
+- [x] Owner-selected current Hindsight READ compatibility delivered PR51 head8a122c4/main eec33523, headCI38482482091/mainCI38483742410 allNode SUCCESS. Old0.10.2/0.10.3 evidence preserved; currentAPI1.0.0/distribution1.0.0 explicit fingerprint and exact accepted original read, no bank writes/restart/default changes.
+- [x] First bounded actual K1 window on clean harness eec33523/publicSDK1.0.4/codex-local-8319 gpt-6.1-sol max: real accepted history read/newrun import/fresh scoped native verifier/one item context,8freshsessions/16pretransport/16envelopechecks/strict8of8/0retry/0write/profile+provenanceunchanged. Baseline4of4/guided4of4; tokens6415→10251, elapsed26814.3→22711.6ms, costunpriced/null. Single four-case window notgeneralROI/release/defaultactivation; new runtime handoff itself requires independent docs inclusion.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
