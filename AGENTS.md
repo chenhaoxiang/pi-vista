@@ -56,6 +56,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 - [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): actual K1 fact gaps, supplied-facts metadata consistency and complete Usage-backed paired metrics boundary; source/mock only, ready labels are not actual evidence or execution permission
 - [docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md](docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md): PR49 actual-runner source/main/CI delivery, retained review layers and live 0.10.3-vs-0.10.2 history preflight block; no real model/bank quality claim
+- [docs/hindsight-k1-read-compat.md](docs/hindsight-k1-read-compat.md): Owner-selected current API1.0.0/distribution1.0.0 read compatibility, old0.10.2/0.10.3 evidence retained, actual original-read scope and no write/model/default activation
+- [scripts/stage6-k1-service-compat.mjs](scripts/stage6-k1-service-compat.mjs): explicit fixed current-service public-file fingerprint/API reader; old0.10.2 default unchanged and no service/bank writes
 - [docs/handoff/2026-10-13-k1-facts-source-closeout.md](docs/handoff/2026-10-13-k1-facts-source-closeout.md): PR47 source/main/CI and readonly reconcile snapshot; supplied-facts readiness remains non-authorizing and actual K1 facts remain pending
 - [scripts/stage6-k1-facts.mjs](scripts/stage6-k1-facts.mjs): closed supplied-metadata consistency using existing SDK/broker/history validators and paired pins; no source IO, proof, budget, window or default-Pi admission
 - [scripts/stage6-k1-history-host.mjs](scripts/stage6-k1-history-host.mjs): explicit host-only re-read/import/fresh local verification/one-item compile bridge; injected read and verifier are required, old proof/handle/plan copies are rejected

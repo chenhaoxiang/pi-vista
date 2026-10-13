@@ -17,6 +17,7 @@ import { readGuidanceMetadata, readGuidanceBankPreflight } from "./guidance-acce
 import { privateRead } from "./pi-agent-canary-support.mjs";
 import { ROOT, commandEnvironment, isMain, listFiles, readJson } from "./release-utils.mjs";
 import { PAIR_SOURCE_SHA, PAIR_HISTORY_DIGEST, PAIR_TIMEOUT_MS } from "./paired-evaluation-data.mjs";
+import { K1_READ_SERVICE_CONTRACT, checkK1ReadServiceFingerprint, readK1ReadServiceMetadata } from "./stage6-k1-service-compat.mjs";
 
 const exec = promisify(execFile), sha = x => createHash("sha256").update(x).digest("hex");
 const ENDPOINT = "http://127.0.0.1:8888", BANK = "pi-vista-local-test-01a114ab", ALIAS = "stage5-isolated-test", SCOPE = "fixed-local-learning-command-plan-v1";
@@ -25,14 +26,16 @@ const ARG_KEYS = ["sdk", "profile-dir", "broker-pin", "history-reference", "cred
 let armTerminalWatchdog; // CLI-only host hook; imports and programmatic use install none.
 const refused = () => { throw Error("stage6-k1-actual-options-refused"); };
 export function parseK1ActualOptions(args) {
-  if (types.isProxy(args) || !Array.isArray(args) || Object.getPrototypeOf(args) !== Array.prototype || args.length !== 9 || Reflect.ownKeys(args).length !== 10) refused();
+  if (types.isProxy(args) || !Array.isArray(args) || Object.getPrototypeOf(args) !== Array.prototype || ![9, 10].includes(args.length) || Reflect.ownKeys(args).length !== args.length + 1) refused();
   const out = Object.create(null);
   for (let i = 0; i < args.length; i++) {
     const p = Object.getOwnPropertyDescriptor(args, String(i)); if (!p || !Object.hasOwn(p, "value") || typeof p.value !== "string") refused();
     if (p.value === "--allow-live" && !Object.hasOwn(out, "allow-live")) { out["allow-live"] = true; continue; }
-    const match = /^--([a-z-]+)=(.+)$/u.exec(p.value); if (!match || !ARG_KEYS.includes(match[1]) || Object.hasOwn(out, match[1])) refused(); out[match[1]] = match[2];
+    const match = /^--([a-z-]+)=(.+)$/u.exec(p.value); if (!match || ![...ARG_KEYS, "service-contract"].includes(match[1]) || Object.hasOwn(out, match[1])) refused(); out[match[1]] = match[2];
   }
   if (out["allow-live"] !== true || ARG_KEYS.some(k => !Object.hasOwn(out, k))) refused();
+  out["service-contract"] ??= "api-0.10.2-accepted";
+  if (!["api-0.10.2-accepted", K1_READ_SERVICE_CONTRACT].includes(out["service-contract"])) refused();
   for (const k of ["sdk", "profile-dir", "history-reference", "credential-config", "service-fingerprint", "subject-root"]) if (!isAbsolute(out[k]) || normalize(out[k]) !== out[k] || /[\x00-\x1f\x7f]/u.test(out[k])) refused();
   if (!/^[a-f0-9]{64}$/u.test(out["broker-pin"]) || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u.test(out["harness-source-sha"])) refused();
   const [major, minor] = process.versions.node.split(".").map(Number); if (!(major > 22 || major === 22 && minor >= 19)) refused();
@@ -54,7 +57,7 @@ function safeFailure(error) {
  * readonly credential sources; does not retain/recall/reconcile or mutate bank.
  */
 export async function runK1Actual(options) {
-  const keys = [...ARG_KEYS, "allow-live"];
+  const keys = [...ARG_KEYS, "allow-live", "service-contract"];
   if (types.isProxy(options) || !options || typeof options !== "object" || Array.isArray(options) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(options)) || Reflect.ownKeys(options).length !== keys.length) refused();
   const selected = Object.create(null);
@@ -63,7 +66,9 @@ export async function runK1Actual(options) {
     if (!p || !Object.hasOwn(p, "value") || (key === "allow-live" ? p.value !== true : typeof p.value !== "string")) refused();
     selected[key] = p.value;
   }
-  const c = parseK1ActualOptions([...ARG_KEYS.map(k => `--${k}=${selected[k]}`), "--allow-live"]);
+  const c = parseK1ActualOptions([...ARG_KEYS.map(k => `--${k}=${selected[k]}`), `--service-contract=${selected["service-contract"]}`, "--allow-live"]);
+  const fingerprintCheck = c["service-contract"] === K1_READ_SERVICE_CONTRACT ? checkK1ReadServiceFingerprint : checkGuidanceServiceFingerprint;
+  const metadataCheck = c["service-contract"] === K1_READ_SERVICE_CONTRACT ? readK1ReadServiceMetadata : readGuidanceMetadata;
   const outputRoot = join(ROOT, "tmp", "k1-actual"); await mkdir(outputRoot, { recursive: true, mode: 0o700 });
   const directory = await mkdtemp(join(outputRoot, "run-")), run = `k1-${randomUUID()}`;
   let verifier, history, factory, captured = 0;
@@ -112,8 +117,8 @@ export async function runK1Actual(options) {
         checks: PLAN.map(name => ({ name, outcome: "pass" })) } : kind === "test" ? { suites: [suite] } : ledger.details() }]));
     verifier = createLocalEvidenceVerifier({ mode: "local-host", scope: SCOPE, gate_checks: PLAN, gate_version: PAIR_SOURCE_SHA, gate_config_digest: configDigest, test_suites: [suite.name], now: Date.now, max_age_ms: PAIR_TIMEOUT_MS, timeout_ms: 10_000,
       sources: ["gate", "test", "guard"].map(kind => ({ subject: kind, kind, producer: `k1-${kind}`, collect: async () => { await sourceCheck(c["subject-root"], PAIR_SOURCE_SHA); return observations[kind]; } })) });
-    await checkGuidanceServiceFingerprint(c["service-fingerprint"]);
-    await readGuidanceMetadata(await fetch(ENDPOINT + "/openapi.json", { signal: AbortSignal.timeout(5000), credentials: "omit", redirect: "error", cache: "no-store" }));
+    report.service_fingerprint = await fingerprintCheck(c["service-fingerprint"]);
+    await metadataCheck(await fetch(ENDPOINT + "/openapi.json", { signal: AbortSignal.timeout(5000), credentials: "omit", redirect: "error", cache: "no-store" }));
     const token = await readGuidanceCredential(c["credential-config"]);
     report.bank_read_calls++;
     const bankBaseline = await readGuidanceBankPreflight(await fetch(`${ENDPOINT}/v1/default/banks/${BANK}/config`, { method: "GET", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000), credentials: "omit", redirect: "error", cache: "no-store" }));
@@ -144,7 +149,8 @@ export async function runK1Actual(options) {
     if (report.status === "measured" && report.native.request_contract_checks !== report.model_calls) {
       report.status = "unknown"; report.failure = "stage6-k1-request-envelope-unconfirmed";
     }
-    await checkGuidanceServiceFingerprint(c["service-fingerprint"]);
+    const fingerprintAfter = await fingerprintCheck(c["service-fingerprint"]);
+    if (JSON.stringify(fingerprintAfter) !== JSON.stringify(report.service_fingerprint)) throw Error("stage6-k1-service-fingerprint-drift");
     report.bank_read_calls++;
     const bankAfter = await readGuidanceBankPreflight(await fetch(`${ENDPOINT}/v1/default/banks/${BANK}/config`, { method: "GET", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000), credentials: "omit", redirect: "error", cache: "no-store" }));
     if (bankBaseline.bank_state_sha256 !== bankAfter.bank_state_sha256) throw Error("stage6-k1-bank-state-drift");
