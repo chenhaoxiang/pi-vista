@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rename, symlink, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "./release-utils.mjs";
 import { checkK1ReadServiceFingerprint, readK1ReadServiceMetadata, K1_READ_SERVICE_CONTRACT } from "./stage6-k1-service-compat.mjs";
@@ -28,6 +28,11 @@ test("fingerprint drift, wrong pins, duplicate paths or authority fields refuse"
   for (const change of [v => { v.api_metadata_version = "0.10.2"; }, v => { v.distribution.version = "0.10.3"; }, v => { v.bank = "other"; }, v => { v.files[0].git_blob = "f".repeat(40); }, v => { v.files[1] = v.files[0]; }, v => { v.approved = true; }]) {
     const f = await fixture(); try { change(f.value); await writeFile(f.path, JSON.stringify(f.value)); await assert.rejects(checkK1ReadServiceFingerprint(f.path), /stage6-k1-service-compat-refused/); } finally { await f.close(); }
   }
+});
+test("private file, symlink, malformed JSON and metadata drift refuse", async () => {
+  const mode = await fixture(); try { await chmod(mode.path, 0o644); await assert.rejects(checkK1ReadServiceFingerprint(mode.path), /stage6-k1-service-compat-refused/); } finally { await mode.close(); }
+  const link = await fixture(); try { const source = link.value.files[0].path, moved = source + ".moved"; await rename(source, moved); await symlink(moved, source); await assert.rejects(checkK1ReadServiceFingerprint(link.path), /stage6-k1-service-compat-refused/); } finally { await link.close(); }
+  for (const bytes of [Buffer.from("{"), Buffer.from([0xff, 0xfe])]) { const malformed = await fixture(); try { await writeFile(malformed.path, bytes); await assert.rejects(checkK1ReadServiceFingerprint(malformed.path), /stage6-k1-service-compat-refused/); } finally { await malformed.close(); } }
 });
 test("bad input refuses without proxy/coercion hooks", async () => {
   let calls = 0; for (const value of [null, "relative", new Proxy({}, { get() { calls++; throw Error(); } }), { toString() { calls++; throw Error(); } }]) await assert.rejects(checkK1ReadServiceFingerprint(value)); assert.equal(calls, 0);

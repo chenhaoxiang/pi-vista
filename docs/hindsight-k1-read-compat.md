@@ -12,7 +12,7 @@ verified: 2026-10-13
 
 Owner selected a current-service READ compatibility scope after the accepted
 0.10.2 reader refused. First live metadata observation0.10.3 was preserved; later
-same-listener/PID reads consistently reported1.0.0, matching the installed
+consecutive live API reads reported1.0.0, matching the installed
 `hindsight-api` distribution1.0.0. Owner then explicitly selected API1.0.0 /
 distribution1.0.0. Old0.10.2 source/runtime evidence and original0.10.3/failed
 observations remain historical; none is relabelled as current1.0.0.

@@ -21,7 +21,10 @@ pins; there is no fallback, silent retry, extra judge or model switch.
 1. `stage6-k1-actual.mjs` accepts a closed explicit CLI: SDK root, profile root,
    readonly broker command pin, accepted history reference, existing test-bank
    credential config/service fingerprint, exact subject checkout and harness SHA,
-   plus `--allow-live`. Unknown/missing/duplicate options refuse before effects.
+   plus `--allow-live`. Optional `--service-contract=api-0.10.2-accepted` keeps the
+   historical default; the Owner-selected current compatibility contract is an
+   explicit `api-1.0.0-dist-1.0.0` value. Unknown/missing/duplicate options refuse
+   before effects.
 2. Fixed source/learning-native/consumer commands run against clean exact
    `846b9a0...8216f3` subject. Native report counters and fixed command admissions
    produce scoped observations. This is not OS/Meta/global guard coverage.

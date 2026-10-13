@@ -3,11 +3,17 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { parseK1ActualOptions } from "./stage6-k1-actual.mjs";
 import { createK1NativeFactory } from "./stage6-k1-native.mjs";
+import { K1_READ_SERVICE_CONTRACT } from "./stage6-k1-service-compat.mjs";
 
 const args = () => ["--sdk=/fixture/sdk", "--profile-dir=/fixture/profile", `--broker-pin=${"a".repeat(64)}`, "--history-reference=/fixture/reference.json", "--credential-config=/fixture/config.json", "--service-fingerprint=/fixture/fingerprint.json", "--subject-root=/fixture/subject", `--harness-source-sha=${"b".repeat(40)}`, "--allow-live"];
 const supported = () => { const [a, b] = process.versions.node.split(".").map(Number); return a > 22 || a === 22 && b >= 19; };
 test("actual runner options are closed and explicit; unsupported Node never invokes SDK", () => {
-  if (supported()) assert.equal(parseK1ActualOptions(args())["allow-live"], true);
+  if (supported()) {
+    assert.equal(parseK1ActualOptions(args())["allow-live"], true);
+    assert.equal(parseK1ActualOptions(args())["service-contract"], "api-0.10.2-accepted");
+    assert.equal(parseK1ActualOptions([...args(), `--service-contract=${K1_READ_SERVICE_CONTRACT}`])["service-contract"], K1_READ_SERVICE_CONTRACT);
+    assert.throws(() => parseK1ActualOptions([...args(), "--service-contract=api-0.10.3"]), /stage6-k1-actual-options-refused/);
+  }
   else assert.throws(() => parseK1ActualOptions(args()), /stage6-k1-actual-options-refused/);
   for (const value of [args().slice(0, 8), [...args(), "--retry=1"], [...args().slice(0, 8), "--allow-bank-write"], args().map(a => a.startsWith("--sdk=") ? "--sdk=relative" : a)]) assert.throws(() => parseK1ActualOptions(value), /stage6-k1-actual-options-refused/);
 });
