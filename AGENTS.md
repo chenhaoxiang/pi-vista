@@ -55,6 +55,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 ## Public document map
 
 - [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): actual K1 fact gaps, supplied-facts metadata consistency and complete Usage-backed paired metrics boundary; source/mock only, ready labels are not actual evidence or execution permission
+- [docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md](docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md): PR49 actual-runner source/main/CI delivery, retained review layers and live 0.10.3-vs-0.10.2 history preflight block; no real model/bank quality claim
 - [docs/handoff/2026-10-13-k1-facts-source-closeout.md](docs/handoff/2026-10-13-k1-facts-source-closeout.md): PR47 source/main/CI and readonly reconcile snapshot; supplied-facts readiness remains non-authorizing and actual K1 facts remain pending
 - [scripts/stage6-k1-facts.mjs](scripts/stage6-k1-facts.mjs): closed supplied-metadata consistency using existing SDK/broker/history validators and paired pins; no source IO, proof, budget, window or default-Pi admission
 - [scripts/stage6-k1-history-host.mjs](scripts/stage6-k1-history-host.mjs): explicit host-only re-read/import/fresh local verification/one-item compile bridge; injected read and verifier are required, old proof/handle/plan copies are rejected
