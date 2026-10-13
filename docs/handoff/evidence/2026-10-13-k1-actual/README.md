@@ -10,9 +10,11 @@ verified: 2026-10-13
 
 # Actual K1 sanitized evidence
 
-`actual-pilot.json` is a field-preserving safe projection of the one operator
+`actual-pilot.json` is a value-preserving safe subset of the one operator
 report, SHA256 `3e9e3bce634e39c3b450f560c5700af87d39bb2acf76d9f6b60427b1600c43c8`.
-It contains strict outcome rows, Usage aggregates, profile/provenance digests and
+Bank counters are renamed from `*_calls` to `*_requests`; the projection omits
+raw runner failure/phase and nested pilot status fields. Service fingerprint is
+a path-free projection. It contains strict outcome rows, Usage aggregates, profile/provenance digests and
 counters, not raw prompts/model responses, credentials, command strings, paths,
 portable proof, permission or executable guidance. Source/harness identity,
 metadata-only receipt and measured quality aggregation are separate fields.

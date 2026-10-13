@@ -8,7 +8,7 @@ created: 2026-10-13
 verified: 2026-10-13
 ---
 
-# First accepted bounded actual K1 window
+# First bounded actual K1 window over accepted artifacts
 
 This records one four-case×two-arm actual model window, not generalized benefit,
 publication, current permission or default activation. The old16-call INVALID
@@ -65,8 +65,8 @@ outputs were retained; output is only strict outcome/counters/digests/SDK Usage.
 
 Guidance did not improve success on these already-solved cases and used more
 tokens. The timing observation is one ordered window, not a statistical speedup
-or broad ROI conclusion. Cost is SDK configured estimate only; null is not free
-or independent billing. No default guidance injection, k3 expansion or release
+or broad ROI conclusion. No SDK cost was priced, so no cost figure exists; null
+is not free. Any later SDK figure would be an estimate, not independent billing. No default guidance injection, k3 expansion or release
 is inferred. The practical next choice is to improve task relevance/context cost
 before larger experiments, not to enable memory everywhere or silently swap models.
 

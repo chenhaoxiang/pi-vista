@@ -324,5 +324,36 @@
     "executable": false
   },
   "authorization": "none",
-  "executable": false
+  "executable": false,
+  "service_fingerprint": {
+    "contract": "api-1.0.0-dist-1.0.0",
+    "api_metadata_version": "1.0.0",
+    "distribution_name": "hindsight-api",
+    "distribution_version": "1.0.0",
+    "distribution_metadata_sha256": "e43b39c6a141dae18ccbf4ae09c099b2aa36005d461c132e5d15aa24435b06b2",
+    "installed_files": [
+      {
+        "relative": "api/http.py",
+        "git_blob": "ff4a2dfe83d8f9c54d08188121c60b3479e5d5ad"
+      },
+      {
+        "relative": "engine/memory_engine.py",
+        "git_blob": "7101b1533a7307a3bf275ba57ba99c5e6bdedec4"
+      },
+      {
+        "relative": "config.py",
+        "git_blob": "606bec9d5c5333b3957d92621f03c1670d579136"
+      },
+      {
+        "relative": "main.py",
+        "git_blob": "ae1692a7c67189e6ee55c8701ef513234f9d4379"
+      },
+      {
+        "relative": "server.py",
+        "git_blob": "aaaf84f71eb3edbe3e76b28db82e193a171b3749"
+      }
+    ],
+    "in_memory_byte_attestation": false,
+    "vendor_authentication": false
+  }
 }
