@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "source_sha256": "b9ba45a93982a9c66ea55e4323a2b69ae617b37430c95f13a28655be0526d048",
+  "scope": "isolated-conventional-discovery-sdk-notification",
+  "actual_default_installation": false,
+  "current_permission": false,
+  "bank_access": false,
+  "results": [
+    {
+      "scenario": "normal",
+      "passed": true,
+      "sdk_version": "1.2.0-fork.1",
+      "node": "v26.9.0",
+      "context": {
+        "ownCwd": true,
+        "accessor": true,
+        "cwdMatched": true,
+        "commandsArray": true,
+        "observerCommands": 4
+      },
+      "persisted_events": 5,
+      "native_read_verified": true,
+      "primary_model_thinking_tools_prompt_preserved": true,
+      "synthetic_requests": 2,
+      "intercepted_model_runtime_calls": 0,
+      "authorization": "none",
+      "executable": false,
+      "default_path_isolated": true,
+      "conventional_discovery": true
+    },
+    {
+      "scenario": "storage-fault",
+      "passed": true,
+      "sdk_version": "1.2.0-fork.1",
+      "node": "v26.9.0",
+      "context": {
+        "ownCwd": true,
+        "accessor": true,
+        "cwdMatched": true,
+        "commandsArray": true,
+        "observerCommands": 4
+      },
+      "persisted_events": 0,
+      "native_read_verified": true,
+      "primary_model_thinking_tools_prompt_preserved": true,
+      "synthetic_requests": 2,
+      "intercepted_model_runtime_calls": 0,
+      "authorization": "none",
+      "executable": false,
+      "default_path_isolated": true,
+      "conventional_discovery": true
+    },
+    {
+      "scenario": "missing-head",
+      "passed": true,
+      "sdk_version": "1.2.0-fork.1",
+      "node": "v26.9.0",
+      "context": {
+        "ownCwd": true,
+        "accessor": true,
+        "cwdMatched": true,
+        "commandsArray": true,
+        "observerCommands": 4
+      },
+      "persisted_events": 0,
+      "native_read_verified": true,
+      "primary_model_thinking_tools_prompt_preserved": true,
+      "synthetic_requests": 2,
+      "intercepted_model_runtime_calls": 0,
+      "authorization": "none",
+      "executable": false,
+      "default_path_isolated": true,
+      "conventional_discovery": true
+    }
+  ]
+}

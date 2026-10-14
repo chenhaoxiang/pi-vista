@@ -54,6 +54,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [docs/handoff/2026-10-14-local-observer-install-closeout.md](docs/handoff/2026-10-14-local-observer-install-closeout.md): PR55 source/head/main CI, exclusive actual local shim/readback and isolated fresh conventional SDK1.2 discovery; no old-session/model/bank/guidance activation claim
+- [docs/handoff/evidence/2026-10-14-local-observer/README.md](docs/handoff/evidence/2026-10-14-local-observer/README.md): safe CI/App/installation/SDK fixture projections, each evidence level retained separately
 - [docs/pi-local-observer-install.md](docs/pi-local-observer-install.md): Owner-selected fixed offline observer release, exclusive default shim installation and fresh conventional SDK discovery; no model/bank/guidance/permission activation
 - [scripts/pi-local-observer-release.mjs](scripts/pi-local-observer-release.mjs): exact clean-source offline runtime builder and manifest-pinned fail-open loader; no host SDK bundle or settings change
 - [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): supplied-facts metadata consistency and Usage-backed paired metrics boundaries; ready labels do not authorize execution

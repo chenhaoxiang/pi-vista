@@ -64,7 +64,7 @@ verified: 2026-10-13
 
 - [x] Offline context-cost slice delivered PR53 reviewed e9753ad/main63b091b; targeted13/release337/source/consumer/actualNode20/headCI38495863019/mainCI38496689731 passed. Actual window shows no semantic gain and token+59.8%; offline complete script+steps candidate804 vs recorded1467 is symbolic only. Analyzer/candidate never injects, calls model/bank, changes default or claims ROI.
 
-- [ ] Owner-selected notification-only default loading: source-bound eleven-tarball offline runtime and fixed fail-open autoload shim; isolated conventional SDK discovery, exclusive real installation/readback and fresh-session evidence remain separately recorded. No model/bank/LOCAL/history/guidance/default-policy change or forced busy-session reload.
+- [x] Owner-selected notification-only default loading: PR55 reviewed1022748/main011b381, headCI38506383812/mainCI38507420246 threeNode SUCCESS; source-bound11tarball/86file fixed fail-open shim exclusively installed/readback0600. Exact installed bytes in isolated conventional SDK1.2/Node26 fresh-session discovery3scenariosPASS, native read/model/thinking/tools/prompt preserved, normal5safe events. No model/bank/LOCAL/history/guidance/default-policy change or forced busy-session reload; no all-user-session/live-global-event claim. Later closeout/evidence itself needs independent docs inclusion.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.

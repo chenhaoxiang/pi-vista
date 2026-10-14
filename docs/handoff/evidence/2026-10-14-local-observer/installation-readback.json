@@ -1,0 +1,23 @@
+{
+  "schema": "pi-local-observer-install-projection/1",
+  "source_sha": "1022748fa6401bdb11830303d6a9e2092c232a44",
+  "shim_sha256": "b9ba45a93982a9c66ea55e4323a2b69ae617b37430c95f13a28655be0526d048",
+  "manifest_sha256": "5dc4f08311b93544b8214c3f7a597276d34e129bd400457e1b3707416435426b",
+  "observer_sha256": "02a6f2d79b19e8455d1efdc29369364d9b1917e3d8b84526d34e5225ce1ad145",
+  "packages": 11,
+  "verified_runtime_files": 86,
+  "global_entry_exists": true,
+  "global_entry_mode": "0600",
+  "host_sdk_bundled": false,
+  "settings_modified": false,
+  "old_sessions_reloaded": false,
+  "permission_changed": false,
+  "loading_acceptance": "isolated-conventional-discovery-passed",
+  "declared_scope": {
+    "real_model_calls": 0,
+    "bank_calls": 0
+  },
+  "verification": "metadata-only",
+  "authorization": "none",
+  "executable": false
+}

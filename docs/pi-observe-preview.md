@@ -5,7 +5,7 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-10
+verified: 2026-10-14
 ssot: true
 ---
 
@@ -53,9 +53,11 @@ and tool execution outcomes to the existing `@pi-vista/core` event contract.
   `null`/`undefined`, and `host-supplied-append-port` otherwise. This status is
   descriptive only; it never implies current permission or durable proof.
 
-The entry is source/contract delivery, not a global installation or proof that a
-running session has loaded it. Loading it in an actual Pi session is a separate
-host acceptance step. Missing cwd/HEAD or a refused/failed host registration call
+Source/contract delivery alone is not global installation or proof that a running
+session has loaded it. The separately Owner-selected PR55 fixed local installation
+and isolated fresh SDK1.2 conventional-discovery acceptance are recorded in the
+[installation closeout](handoff/2026-10-14-local-observer-install-closeout.md).
+They do not activate history/preview/verifier or prove old busy sessions loaded it. Missing cwd/HEAD or a refused/failed host registration call
 produces a fixed observer diagnostic without affecting the primary task. Loading-time
 command introspection is best-effort and its availability is host/SDK-specific.
 If a same-name command is actually detected, this observer instance declines
@@ -86,7 +88,7 @@ This runs actual `loadExtensions`/`AgentSession` with an isolated `HOME` and nat
 `read`, using synthetic provider streams only. Normal recording, EventStore I/O
 fault and unborn Git HEAD each verify that native input/result and the selected
 model/thinking/tools/prompt remain unchanged. It records the entry byte digest,
-installed Pi SDK version and actual context shape. The latest local Node26
+installed Pi SDK version and actual context shape. The prior local Node26
 acceptance bound the entry digest to
 `02a6f2d79b19e8455d1efdc29369364d9b1917e3d8b84526d34e5225ce1ad145`;
 re-run after any entry change. This local record was produced with installed

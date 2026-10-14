@@ -15,9 +15,11 @@ verified: 2026-10-14
 The Owner explicitly selected installation and fresh-session loading acceptance
 on 2026-10-14. This is the notification-only S1 entry, not LOCAL/history/guidance
 activation, an extra model tool, an execution permission, bank access or publication.
-The installation tooling is a source candidate at preparation. An installation
-receipt and exact PR/head/main readback are separate evidence; this page does not
-self-reference a changing PR head or claim installation from source tests.
+The source tooling is delivered by PR55 (reviewed1022748/main011b381). The
+[closeout](handoff/2026-10-14-local-observer-install-closeout.md) records exclusive
+local installation and isolated fresh discovery with separate receipts. This page
+does not self-reference a changing PR head or claim installation from source tests;
+that later closeout's own docs/main inclusion remains separate.
 
 The existing `scripts/pi-local-observer.mjs` remains unchanged: seven notification
 hooks, four user-only `/vista-*` commands, symbolic `session-cwd` binding and safe
