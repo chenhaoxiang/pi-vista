@@ -56,6 +56,10 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 - [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): supplied-facts metadata consistency and Usage-backed paired metrics boundaries; ready labels do not authorize execution
 - [docs/handoff/2026-10-13-k1-actual-window-closeout.md](docs/handoff/2026-10-13-k1-actual-window-closeout.md): first actual8session/16request paired window, strict8/8, unchanged profile/provenance and context cost observation; not default guidance/ROI/release
+- [docs/stage6-context-roi.md](docs/stage6-context-roi.md): pure offline cost/non-degradation recommendation; elapsed alone is not ROI, unpriced stays unknown, no default injection
+- [scripts/stage6-context-roi.mjs](scripts/stage6-context-roi.mjs): closed baseline/guided metadata analyzer; no model/bank/profile read or runtime mutation
+- [docs/stage6-guidance-candidate.md](docs/stage6-guidance-candidate.md): offline whole-script/steps cost proposal, no content/partial instructions/current proof or runtime injection
+- [scripts/stage6-guidance-candidate.mjs](scripts/stage6-guidance-candidate.mjs): exact bridge-associated candidate lengths/digests only; non-candidates have null length/delta
 - [docs/handoff/evidence/2026-10-13-k1-actual/README.md](docs/handoff/evidence/2026-10-13-k1-actual/README.md): sanitized actual K1 report projection, original SHA and scope limits
 - [docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md](docs/handoff/2026-10-13-k1-actual-runner-source-closeout.md): PR49 actual-runner source/main/CI delivery, retained review layers and live 0.10.3-vs-0.10.2 history preflight block; no real model/bank quality claim
 - [docs/hindsight-k1-read-compat.md](docs/hindsight-k1-read-compat.md): Owner-selected current API1.0.0/distribution1.0.0 read compatibility, old0.10.2/0.10.3 evidence retained, actual original-read scope and no write/model/default activation
