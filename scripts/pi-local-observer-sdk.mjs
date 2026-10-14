@@ -14,8 +14,10 @@ const exec = promisify(execFile);
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
 /** Explicit installed-SDK acceptance; only synthetic provider streams and owned fixtures. */
-export async function runLocalObserverSdk(sdkRoot) {
+export async function runLocalObserverSdk(sdkRoot, entry = ENTRY, discovery = false) {
+  if (typeof discovery !== "boolean") throw new Error("invalid-discovery");
   if (typeof sdkRoot !== "string" || !isAbsolute(sdkRoot) || normalize(sdkRoot) !== sdkRoot || sdkRoot.includes("\0")) throw new Error("invalid-sdk-path");
+  if (typeof entry !== "string" || !isAbsolute(entry) || normalize(entry) !== entry || entry.includes("\0")) throw new Error("invalid-entry-path");
   const output = await createRunDirectory("local-observer-sdk");
   const results = [];
   for (const scenario of ["normal", "storage-fault", "missing-head"]) {
@@ -23,7 +25,7 @@ export async function runLocalObserverSdk(sdkRoot) {
     await mkdir(fixture);
     const env = { ...commandEnvironment(), HOME: fixture, TMPDIR: fixture };
     try {
-      const value = await exec(process.execPath, [import.meta.filename, `--sdk=${sdkRoot}`, `--fixture=${fixture}`, `--scenario=${scenario}`], {
+      const value = await exec(process.execPath, [import.meta.filename, `--sdk=${sdkRoot}`, `--fixture=${fixture}`, `--scenario=${scenario}`, `--entry=${entry}`, ...(discovery ? ["--discovery=conventional"] : [])], {
         cwd: ROOT, env, timeout: 60_000, maxBuffer: 1024 * 1024, shell: false,
       });
       await writeFile(join(output, `${scenario}.stdout.json`), value.stdout);
@@ -36,14 +38,14 @@ export async function runLocalObserverSdk(sdkRoot) {
       throw new Error(`local-observer-sdk-failed: ${scenario}; evidence=${output}`);
     }
   }
-  const report = { schema: 1, status: "passed", source_sha256: digest(await readFile(ENTRY)),
-    scope: "isolated-default-entry-sdk-notification", actual_default_installation: false,
+  const report = { schema: 1, status: "passed", source_sha256: digest(await readFile(entry)),
+    scope: discovery ? "isolated-conventional-discovery-sdk-notification" : "isolated-default-entry-sdk-notification", actual_default_installation: false,
     current_permission: false, bank_access: false, results };
   await writeFile(join(output, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   return { report, evidence: output };
 }
 
-async function child(sdkRoot, fixture, scenario) {
+async function child(sdkRoot, fixture, scenario, entry = ENTRY, discovery = false) {
   assert.ok(["normal", "storage-fault", "missing-head"].includes(scenario));
   assert.ok(fixture.startsWith(join(ROOT, "tmp", "release-contract") + "/"));
   assert.equal(process.env.HOME, fixture);
@@ -63,6 +65,7 @@ async function child(sdkRoot, fixture, scenario) {
   };
   modelRuntime.registerProvider("local-observer-fixture", { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic-no-network",
     models: [{ id: "fixture", name: "fixture", reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
+  const settingsManager = sdk.SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false }, cacheWarming: "off", enableAnalytics: false, enableInstallTelemetry: false }, { projectTrusted: false });
   let loaded;
   const contextShape = [];
   const resources = {
@@ -72,7 +75,21 @@ async function child(sdkRoot, fixture, scenario) {
     getSystemPromptSource: () => undefined, getAppendSystemPrompt: () => [], getAppendSystemPromptSources: () => [],
     extendResources(paths) { assert.ok(!Object.values(paths).some(value => value?.length)); },
     async reload() {
-      loaded = await loader.loadExtensions([ENTRY], cwd, undefined, loader.createExtensionRuntime());
+      if (discovery) {
+        // The exact supplied entry is discovered conventionally, not supplied as
+        // an additional path. Other user extensions/settings remain inaccessible.
+        const extensions = join(fixture, "extensions");
+        await mkdir(extensions);
+        const copiedEntry = join(extensions, "pi-vista-local.ts");
+        await writeFile(copiedEntry, await readFile(entry), { flag: "wx", mode: 0o600 });
+        const conventional = new sdk.DefaultResourceLoader({ cwd, agentDir: fixture, settingsManager,
+          noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
+          systemPrompt: "Synthetic observer acceptance only" });
+        await conventional.reload();
+        loaded = conventional.getExtensions();
+        assert.equal(loaded.extensions.length, 1);
+        assert.equal(resolve(loaded.extensions[0].resolvedPath), resolve(copiedEntry));
+      } else loaded = await loader.loadExtensions([entry], cwd, undefined, loader.createExtensionRuntime());
       assert.deepEqual(loaded.errors, []);
       const proof = await loader.loadExtensionFromFactory(pi => {
         pi.on("session_start", (_event, ctx) => {
@@ -92,7 +109,7 @@ async function child(sdkRoot, fixture, scenario) {
   const { session, modelFallbackMessage } = await sdk.createAgentSession({ cwd, agentDir: fixture, modelRuntime,
     model: modelRuntime.getModel("local-observer-fixture", "fixture"), thinkingLevel: "high", tools: ["read"],
     resourceLoader: resources, sessionManager: sdk.SessionManager.inMemory(cwd),
-    settingsManager: sdk.SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false }, cacheWarming: "off", enableAnalytics: false, enableInstallTelemetry: false }, { projectTrusted: false }) });
+    settingsManager });
   assert.equal(modelFallbackMessage, undefined);
   const errors = [];
   try {
@@ -141,7 +158,7 @@ async function child(sdkRoot, fixture, scenario) {
     const report = { scenario, passed: true, sdk_version: packageInfo.version, node: process.version,
       context: contextShape[0], persisted_events: events.length, native_read_verified: true,
       primary_model_thinking_tools_prompt_preserved: true, synthetic_requests: rounds, intercepted_model_runtime_calls: transportCalls,
-      authorization: "none", executable: false, default_path_isolated: true };
+      authorization: "none", executable: false, default_path_isolated: true, conventional_discovery: discovery };
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } finally { if (!session.isIdle) await session.abort(); session.dispose(); }
 }
@@ -149,11 +166,13 @@ async function child(sdkRoot, fixture, scenario) {
 export function parseLocalObserverSdkOptions(args) {
   const values = {};
   for (const value of args) {
-    const match = /^--(sdk|fixture|scenario)=(.+)$/u.exec(value);
+    const match = /^--(sdk|fixture|scenario|entry|discovery)=(.+)$/u.exec(value);
     if (!match || Object.hasOwn(values, match[1])) throw new Error("usage: --sdk=<installed package root>");
     values[match[1]] = match[2];
   }
   if (!values.sdk || !isAbsolute(values.sdk) || normalize(values.sdk) !== values.sdk || values.sdk.includes("\0")) throw new Error("invalid-sdk-path");
+  if (values.entry !== undefined && (!isAbsolute(values.entry) || normalize(values.entry) !== values.entry || values.entry.includes("\0"))) throw new Error("invalid-entry-path");
+  if (values.discovery !== undefined && values.discovery !== "conventional") throw new Error("invalid-discovery");
   if ((values.fixture === undefined) !== (values.scenario === undefined)) throw new Error("invalid-fixture");
   if (values.fixture !== undefined && (!isAbsolute(values.fixture) || normalize(values.fixture) !== values.fixture || values.fixture.includes("\0") ||
       !values.fixture.startsWith(join(ROOT, "tmp", "release-contract") + "/"))) throw new Error("invalid-fixture");
@@ -163,7 +182,7 @@ export function parseLocalObserverSdkOptions(args) {
 if (isMain(import.meta.url)) {
   try {
     const values = parseLocalObserverSdkOptions(process.argv.slice(2));
-    if (values.fixture || values.scenario) { if (!values.fixture || !values.scenario) throw new Error("invalid-fixture"); await child(values.sdk, values.fixture, values.scenario); }
-    else console.log(JSON.stringify(await runLocalObserverSdk(values.sdk)));
+    if (values.fixture || values.scenario) { if (!values.fixture || !values.scenario) throw new Error("invalid-fixture"); await child(values.sdk, values.fixture, values.scenario, values.entry, values.discovery === "conventional"); }
+    else console.log(JSON.stringify(await runLocalObserverSdk(values.sdk, values.entry, values.discovery === "conventional")));
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
