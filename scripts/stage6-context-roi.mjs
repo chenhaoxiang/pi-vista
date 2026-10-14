@@ -4,7 +4,7 @@ export const STAGE6_CONTEXT_ROI_SCHEMA = "stage6-context-roi/1";
 const ARM_KEYS = ["runs", "successes", "trace_accurate", "decision_parsed", "elapsed_ms", "tokens", "reasoning_tokens", "tool_calls", "human_interventions", "sdk_cost", "cost_priced", "unknown_runs"];
 const CONTEXT_KEYS = ["baseline_characters", "guided_characters", "compile_ms", "profile_drift", "evaluation_status"];
 const INPUT_KEYS = ["baseline", "guided", "context"];
-const OUTPUT_KEYS = ["schema", "status", "recommendation", "reason_code", "baseline_successes", "guided_successes", "semantic_gain", "trace_gain", "baseline_tokens", "guided_tokens", "token_delta", "token_overhead_ratio", "context_delta_chars", "compile_ms", "elapsed_delta_ms", "tool_calls_delta", "reasoning_tokens_delta", "decision_parsed_delta", "human_interventions_delta", "cost_status", "non_degradation", "verification", "authorization", "executable"];
+const OUTPUT_KEYS = ["schema", "status", "recommendation", "reason_code", "baseline_successes", "guided_successes", "baseline_trace_accurate", "guided_trace_accurate", "semantic_gain", "trace_gain", "baseline_tokens", "guided_tokens", "token_delta", "token_overhead_ratio", "context_delta_chars", "compile_ms", "elapsed_delta_ms", "tool_calls_delta", "reasoning_tokens_delta", "decision_parsed_delta", "human_interventions_delta", "cost_status", "non_degradation", "verification", "authorization", "executable"];
 const REASONS = ["evaluation-unknown", "semantic-regression", "negative-context-roi", "semantic-gain-observed", "token-saving-observed", "no-demonstrated-benefit"];
 const refuse = () => { throw Error("stage6-context-roi-refused"); };
 function own(value, keys) {
@@ -36,7 +36,7 @@ function output(value) {
   if (v.schema !== STAGE6_CONTEXT_ROI_SCHEMA || !["candidate", "not-beneficial", "insufficient"].includes(v.status) ||
       v.recommendation !== ({ candidate: "inject-candidate", "not-beneficial": "do-not-inject", insufficient: "collect-more" })[v.status] || !REASONS.includes(v.reason_code) ||
       v.verification !== "metadata-only" || v.authorization !== "none" || v.executable !== false || !["priced-estimate", "unpriced"].includes(v.cost_status) || typeof v.non_degradation !== "boolean") refuse();
-  for (const key of ["baseline_successes", "guided_successes", "baseline_tokens", "guided_tokens", "context_delta_chars"]) integer(v[key]);
+  for (const key of ["baseline_successes", "guided_successes", "baseline_trace_accurate", "guided_trace_accurate", "baseline_tokens", "guided_tokens", "context_delta_chars"]) integer(v[key]);
   if (v.compile_ms !== null) number(v.compile_ms);
   for (const key of ["semantic_gain", "trace_gain", "token_delta", "tool_calls_delta", "reasoning_tokens_delta", "decision_parsed_delta", "human_interventions_delta"]) if (v[key] !== null && !Number.isSafeInteger(v[key])) refuse();
   for (const key of ["token_overhead_ratio", "elapsed_delta_ms"]) if (v[key] !== null && (typeof v[key] !== "number" || !Number.isFinite(v[key]))) refuse();
@@ -44,7 +44,7 @@ function output(value) {
     if (v.reason_code !== "evaluation-unknown" || v.non_degradation !== false || ["semantic_gain", "trace_gain", "token_delta", "token_overhead_ratio", "elapsed_delta_ms", "tool_calls_delta", "reasoning_tokens_delta", "decision_parsed_delta", "human_interventions_delta"].some(key => v[key] !== null)) refuse();
   } else {
     if (["semantic_gain", "trace_gain", "token_delta", "elapsed_delta_ms", "tool_calls_delta", "decision_parsed_delta", "human_interventions_delta"].some(key => v[key] === null) ||
-        v.semantic_gain !== v.guided_successes - v.baseline_successes || v.token_delta !== v.guided_tokens - v.baseline_tokens ||
+        v.semantic_gain !== v.guided_successes - v.baseline_successes || v.trace_gain !== v.guided_trace_accurate - v.baseline_trace_accurate || v.token_delta !== v.guided_tokens - v.baseline_tokens ||
         v.token_overhead_ratio !== (v.baseline_tokens === 0 ? null : v.token_delta / v.baseline_tokens)) refuse();
     const decision = classify(v.semantic_gain, v.trace_gain, v.decision_parsed_delta, v.human_interventions_delta, v.token_delta, v.context_delta_chars);
     if (v.status !== decision.status || v.reason_code !== decision.reason_code || v.non_degradation !== decision.non_degradation) refuse();
@@ -64,7 +64,7 @@ export function analyzeStage6ContextRoi(input) {
   try {
     const v = own(input, INPUT_KEYS), baseline = arm(v.baseline), guided = arm(v.guided), c = context(v.context);
     if (baseline.runs !== guided.runs || baseline.runs < 1 || baseline.unknown_runs > 0 || guided.unknown_runs > 0 || c.profile_drift !== "unchanged" || c.evaluation_status !== "measured") {
-      return output({ schema: STAGE6_CONTEXT_ROI_SCHEMA, status: "insufficient", recommendation: "collect-more", reason_code: "evaluation-unknown", baseline_successes: baseline.successes, guided_successes: guided.successes,
+      return output({ schema: STAGE6_CONTEXT_ROI_SCHEMA, status: "insufficient", recommendation: "collect-more", reason_code: "evaluation-unknown", baseline_successes: baseline.successes, guided_successes: guided.successes, baseline_trace_accurate: baseline.trace_accurate, guided_trace_accurate: guided.trace_accurate,
         semantic_gain: null, trace_gain: null, baseline_tokens: baseline.tokens, guided_tokens: guided.tokens, token_delta: null, token_overhead_ratio: null, context_delta_chars: c.guided_characters - c.baseline_characters,
         compile_ms: c.compile_ms, elapsed_delta_ms: null, tool_calls_delta: null, reasoning_tokens_delta: null, decision_parsed_delta: null, human_interventions_delta: null, cost_status: baseline.cost_priced && guided.cost_priced ? "priced-estimate" : "unpriced", non_degradation: false, verification: "metadata-only", authorization: "none", executable: false });
     }
@@ -78,7 +78,7 @@ export function analyzeStage6ContextRoi(input) {
     const { non_degradation, status, reason_code } = classify(semantic_gain, trace_gain, decision_parsed_delta, human_interventions_delta, token_delta, context_delta_chars);
     const recommendation = status === "candidate" ? "inject-candidate" : "do-not-inject";
     // A single-window elapsed improvement alone does not demonstrate ROI.
-    return output({ schema: STAGE6_CONTEXT_ROI_SCHEMA, status, recommendation, reason_code, baseline_successes: baseline.successes, guided_successes: guided.successes,
+    return output({ schema: STAGE6_CONTEXT_ROI_SCHEMA, status, recommendation, reason_code, baseline_successes: baseline.successes, guided_successes: guided.successes, baseline_trace_accurate: baseline.trace_accurate, guided_trace_accurate: guided.trace_accurate,
       semantic_gain, trace_gain, baseline_tokens: baseline.tokens, guided_tokens: guided.tokens, token_delta, token_overhead_ratio, context_delta_chars,
       compile_ms: c.compile_ms, elapsed_delta_ms, tool_calls_delta, reasoning_tokens_delta, decision_parsed_delta, human_interventions_delta, cost_status, non_degradation, verification: "metadata-only", authorization: "none", executable: false });
   } catch { throw Error("stage6-context-roi-refused"); }

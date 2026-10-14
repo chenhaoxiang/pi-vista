@@ -29,7 +29,7 @@ test("regression cannot be rescued by token savings or a gain in another quality
 });
 test("unobserved compile time stays null and copied results reject unsafe or contradictory fields", () => {
   const r = analyzeStage6ContextRoi(input({}, { tokens: 150 }, { compile_ms: null })); assert.equal(r.compile_ms, null);
-  for (const patch of [{ reason_code: "PRIVATE_RAW" }, { token_delta: Infinity }, { baseline_tokens: {} }, { recommendation: "inject-candidate" }, { token_delta: -100 }, { permission: true }, { status: "candidate", recommendation: "inject-candidate", reason_code: "semantic-gain-observed", non_degradation: false }, { non_degradation: false }]) assert.throws(() => validateStage6ContextRoi({ ...r, ...patch }), /stage6-context-roi-refused/);
+  for (const patch of [{ reason_code: "PRIVATE_RAW" }, { token_delta: Infinity }, { baseline_tokens: {} }, { recommendation: "inject-candidate" }, { token_delta: -100 }, { permission: true }, { status: "candidate", recommendation: "inject-candidate", reason_code: "semantic-gain-observed", non_degradation: false }, { non_degradation: false }, { trace_gain: 1, status: "candidate", recommendation: "inject-candidate", reason_code: "semantic-gain-observed" }]) assert.throws(() => validateStage6ContextRoi({ ...r, ...patch }), /stage6-context-roi-refused/);
 });
 test("tool/reasoning/parsed/human deltas are preserved and token savings alone remain a candidate", () => {
   const r = analyzeStage6ContextRoi(input({ reasoning_tokens: 168, tool_calls: 8 }, { reasoning_tokens: 180, tool_calls: 9 }));

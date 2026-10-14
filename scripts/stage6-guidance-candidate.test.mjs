@@ -24,7 +24,7 @@ test("offline candidate keeps complete sections, digests only and never returns 
 });
 test("tight character budget refuses partial guidance instead of truncating or claiming ROI", () => {
   const f = fixture(), result = proposeStage6GuidanceCandidate({ ...f, task_type: "metadata-validation", max_characters: 128 });
-  assert.equal(result.status, "budget-exhausted"); assert.equal(result.candidate_characters, 0); assert.deepEqual(result.included_sections, []); assert.ok(result.omitted_sections.length > 0); assert.equal(result.economic_roi, "not-established");
+  assert.equal(result.status, "budget-exhausted"); assert.equal(result.candidate_characters, null); assert.equal(result.character_delta, null); assert.deepEqual(result.included_sections, []); assert.ok(result.omitted_sections.length > 0); assert.equal(result.economic_roi, "not-established");
 });
 test("unrelated task and hostile DTO fields refuse/avoid association", () => {
   const f = fixture(); assert.equal(proposeStage6GuidanceCandidate({ ...f, task_type: "other-task", max_characters: 8192 }).status, "not-applicable");

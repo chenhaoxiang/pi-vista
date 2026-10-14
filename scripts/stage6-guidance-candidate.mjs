@@ -25,7 +25,9 @@ export function proposeStage6GuidanceCandidate(input) {
     if (typeof v.task_type !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(v.task_type) ||
         !Number.isSafeInteger(v.max_characters) || v.max_characters < 128 || v.max_characters > 8192) reject();
     const association = buildK1HistoryContext({ history: v.history, context: v.context });
-    // Parse only the canonical validated document, never re-read original objects.
+    // The bridge rejects proxies/getters and proves exact raw-document byte
+    // equality to prepareHistoricalGuidance. No await/yield separates its check
+    // from this parse of the already-validated caller-owned content string.
     const e = JSON.parse(v.history.document.content).experience;
     const matching = e.task_type === v.task_type || e.script.applicable_to.includes(v.task_type);
     const sections = [["script", `Script: ${canonical(e.script)}\n`], ["steps", `Steps: ${canonical(e.steps)}\n`]];
@@ -42,7 +44,7 @@ export function proposeStage6GuidanceCandidate(input) {
     return Object.freeze({ schema: "stage6-guidance-candidate/1", mode: "offline-proposal", status,
       task_match: matching, history_digest: association.content_digest, original_context_digest: association.context_digest,
       source_sha: association.subject_source_sha, original_characters: association.character_count,
-      candidate_characters: content.length, character_delta: content.length - association.character_count,
+      candidate_characters: status === "candidate" ? content.length : null, character_delta: status === "candidate" ? content.length - association.character_count : null,
       content_digest: createHash("sha256").update(content).digest("hex"),
       section_digests: Object.freeze(Object.fromEntries(sections.filter(([name, text]) => included.includes(name)).map(([name, text]) => [name, createHash("sha256").update(text).digest("hex")]))),
       included_sections: Object.freeze(included), omitted_sections: Object.freeze(omitted),
