@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, lstat, realpath, rm } from "node:fs/promises";
-import { dirname, isAbsolute, join, normalize } from "node:path";
+import { basename, dirname, isAbsolute, join, normalize } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify, types } from "node:util";
 import { ROOT, commandEnvironment, discoverPackages, listFiles, npmCli, npmFlags } from "./release-utils.mjs";
@@ -23,7 +23,7 @@ export function piLocalObserverLoader(input) {
   const v = own(input, ["entry", "manifest_sha256"]), entry = absolute(v.entry);
   if (typeof v.manifest_sha256 !== "string" || !/^[a-f0-9]{64}$/u.test(v.manifest_sha256)) refuse();
   const manifest = join(dirname(entry), "manifest.json");
-  return `import { readFile } from "node:fs/promises";\nimport { createHash } from "node:crypto";\nimport { dirname, join } from "node:path";\nexport default async function (pi) {\n  try {\n    const manifestFile = ${JSON.stringify(manifest)};\n    const bytes = await readFile(manifestFile);\n    if (createHash("sha256").update(bytes).digest("hex") !== ${JSON.stringify(v.manifest_sha256)}) throw Error("observer-artifact-drift");\n    const manifest = JSON.parse(bytes);\n    for (const row of manifest.files) {\n      const content = await readFile(join(dirname(manifestFile), row.path));\n      if (createHash("sha256").update(content).digest("hex") !== row.sha256) throw Error("observer-artifact-drift");\n    }\n    const module = await import(${JSON.stringify(pathToFileURL(entry).href)});\n    if (typeof module.default !== "function") throw Error("observer-entry-unavailable");\n    return await module.default(pi);\n  } catch { try { console.error("[pi-vista] local observer entry unavailable"); } catch {} }\n}\n`; 
+  return `import { readFile } from "node:fs/promises";\nimport { createHash } from "node:crypto";\nimport { dirname, join } from "node:path";\nexport default async function (pi) {\n  try {\n    const manifestFile = ${JSON.stringify(manifest)};\n    const bytes = await readFile(manifestFile);\n    if (createHash("sha256").update(bytes).digest("hex") !== ${JSON.stringify(v.manifest_sha256)}) throw Error("observer-artifact-drift");\n    const manifest = JSON.parse(bytes);\n    if (!manifest.files.some(row => row.path === ${JSON.stringify(basename(entry))} && row.sha256 === manifest.entry_sha256)) throw Error("observer-entry-unbound");\n    for (const row of manifest.files) {\n      const content = await readFile(join(dirname(manifestFile), row.path));\n      if (createHash("sha256").update(content).digest("hex") !== row.sha256) throw Error("observer-artifact-drift");\n    }\n    const module = await import(${JSON.stringify(pathToFileURL(entry).href)});\n    if (typeof module.default !== "function") throw Error("observer-entry-unavailable");\n    return await module.default(pi);\n  } catch { try { console.error("[pi-vista] local observer entry unavailable"); } catch {} }\n}\n`;
 }
 /** Explicit source-bound builder, no publication/default activation. The caller
  * decides the release directory and later installs the loader. No host Pi SDK is

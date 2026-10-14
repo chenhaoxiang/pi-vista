@@ -12,7 +12,7 @@ test("loader is fixed, diagnostic-only and verifies artifact hashes before facto
   await mkdir(join(ROOT, "tmp"), { recursive: true });const root = await mkdtemp(join(ROOT, "tmp", "observer-release-test-"));
   const entry = join(root, "entry.mjs"), content = "export default function(pi){pi.called++;}\n", dependency = join(root, "dependency.mjs");
   await writeFile(entry, content); await writeFile(dependency, "export const a=1;\n");
-  const manifest = JSON.stringify({ files: [{ path: "entry.mjs", sha256: hash(content) }, { path: "dependency.mjs", sha256: hash("export const a=1;\n") }] });
+  const manifest = JSON.stringify({ entry_sha256: hash(content), files: [{ path: "entry.mjs", sha256: hash(content) }, { path: "dependency.mjs", sha256: hash("export const a=1;\n") }] });
   await writeFile(join(root, "manifest.json"), manifest);
   const loader = join(root, "loader.mjs"); await writeFile(loader, piLocalObserverLoader({ entry, manifest_sha256: hash(manifest) }));
   const messages = [], original = console.error; console.error = message => messages.push(message);
@@ -38,7 +38,7 @@ test("SDK acceptance optionally loads a supplied installed entry; old default st
 test("loader catches rejected async factory and missing manifest without leaking errors", async () => {
   await mkdir(join(ROOT, "tmp"), { recursive: true }); const root = await mkdtemp(join(ROOT, "tmp", "observer-async-test-"));
   const entry = join(root, "entry.mjs"), content = "export default async function(){throw Error('PRIVATE_FACTORY_PAYLOAD');}\n";
-  const manifest = JSON.stringify({ files: [{ path: "entry.mjs", sha256: hash(content) }] });
+  const manifest = JSON.stringify({ entry_sha256: hash(content), files: [{ path: "entry.mjs", sha256: hash(content) }] });
   await writeFile(entry, content); await writeFile(join(root, "manifest.json"), manifest);
   const loader = join(root, "loader.mjs"); await writeFile(loader, piLocalObserverLoader({ entry, manifest_sha256: hash(manifest) }));
   const messages = [], original = console.error; console.error = message => messages.push(message);
@@ -49,7 +49,7 @@ test("loader catches rejected async factory and missing manifest without leaking
     assert.deepEqual(messages, Array(2).fill("[pi-vista] local observer entry unavailable"));
   } finally { console.error = original; await rm(root, { recursive: true, force: true }); }
 });
-test("release builder refuses malformed inputs before commands or destination writes", async () => {
+test("release builder refuses structurally malformed inputs before commands or destination writes", async () => {
   let calls = 0;
   const proxy = new Proxy({}, { ownKeys() { calls++; throw Error(); } });
   const accessor = Object.defineProperty({ source_sha: "a".repeat(40) }, "destination", { get() { calls++; throw Error(); } });
@@ -60,4 +60,17 @@ test("release builder refuses malformed inputs before commands or destination wr
     await assert.rejects(buildPiLocalObserverRelease(input), /pi-local-observer-release-refused/);
   }
   assert.equal(calls, 0);
+});
+test("loader refuses an entry not bound to the pinned manifest before import", async () => {
+  await mkdir(join(ROOT, "tmp"), { recursive: true }); const root = await mkdtemp(join(ROOT, "tmp", "observer-unbound-test-"));
+  const entry = join(root, "unlisted.mjs"), content = "export default function(pi){pi.called++;}\n";
+  const manifest = JSON.stringify({ entry_sha256: hash(content), files: [] });
+  await writeFile(entry, content); await writeFile(join(root, "manifest.json"), manifest);
+  const loader = join(root, "loader.mjs"); await writeFile(loader, piLocalObserverLoader({ entry, manifest_sha256: hash(manifest) }));
+  const messages = [], original = console.error; console.error = message => messages.push(message);
+  try {
+    const module = await import(pathToFileURL(loader).href), pi = { called: 0 };
+    assert.equal(await module.default(pi), undefined); assert.equal(pi.called, 0);
+    assert.deepEqual(messages, ["[pi-vista] local observer entry unavailable"]);
+  } finally { console.error = original; await rm(root, { recursive: true, force: true }); }
 });

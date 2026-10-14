@@ -42,13 +42,15 @@ package manifests/JavaScript runtime files. It is integrity against the explicit
 source/manifest pin, not signing, Owner identity, full host SDK health or OS isolation.
 Hash checking is check-before-load; it is not immutable filesystem or kernel attestation.
 Failed preparation keeps the owned partial directory for diagnosis; no old release
-or observation data is removed. Only the fresh archived build tree is removed on
-successful preparation. All npm commands are offline, ignore install scripts and
+or observation data is removed. Reusing a partial destination returns EEXIST;
+preserve it and choose a new explicit `<source_sha>-retry-<label>` destination for
+a bounded retry, never overwrite the original. Only the fresh archived build tree
+is removed on successful preparation. All npm commands are offline, ignore install scripts and
 use explicit empty user/global configuration.
 
 `piLocalObserverLoader({entry,manifest_sha256})` generates a fixed asynchronous
-factory. It reads and verifies the pinned manifest/runtime files before importing
-and invoking the existing observer. Missing files, drift or factory rejection emit
+factory. It requires the chosen entry to be a listed file bound to the manifest's
+entry hash and verifies all pinned runtime files before importing/invoking the observer. Missing files, drift or factory rejection emit
 only `[pi-vista] local observer entry unavailable`, without original paths/errors,
 and return without installing the observer. The loader starts no process, network,
 watcher or timer. It is bounded by the fixed local artifact, not a general sandbox.
@@ -58,7 +60,11 @@ watcher or timer. It is bounded by the fixed local artifact, not a general sandb
 The local operator chooses a private fixed release directory beneath
 `~/.pi/vista/runtime/releases/<source_sha>/`, then writes a new
 `~/.pi/agent/extensions/pi-vista-local.ts` using exclusive creation. It is not a
-settings package replacement; `settings.json`, other extensions and default models
+settings package replacement. The shim bytes are exactly
+`piLocalObserverLoader({entry:release.entry,manifest_sha256:release.manifest_sha256})`;
+write them with `writeFile(shim,bytes,{flag:"wx",mode:0o600})` and hash/read back the
+result. Its default async factory is the loader, not a new observer implementation.
+`settings.json`, other extensions and default models
 are not modified. Existing entry names must be treated as a conflict, not overwritten.
 The conventional extension discovery contract loads direct `.ts`/`.js` files; a
 standalone `.mjs` runtime is referenced by that fixed shim, not assumed auto-discovered.
@@ -71,6 +77,9 @@ then binds a fresh native AgentSession. The three scenarios are normal, storage-
 and missing-head. They assert native read, two synthetic responses, zero calls to
 the intercepted ModelRuntime transport methods, unchanged selected model/thinking/
 tools/prompt, four registered commands, and five safe events only in the normal case.
+CI covers input/loader/parser regressions, not a complete nested offline release
+build or installed SDK test. The operator's separate full archive/build/install fixture
+exercises the builder success path and actual discovery; do not claim CI reproduced it.
 The synthetic provider has no real credential store; this is not actual model quality
 or independently monitored OS/network/billing egress. Node20 supports library tests;
 actual installed SDK loading requires the SDK's supported Node runtime.
