@@ -64,10 +64,12 @@ verified: 2026-10-13
 
 - [x] Offline context-cost slice delivered PR53 reviewed e9753ad/main63b091b; targeted13/release337/source/consumer/actualNode20/headCI38495863019/mainCI38496689731 passed. Actual window shows no semantic gain and token+59.8%; offline complete script+steps candidate804 vs recorded1467 is symbolic only. Analyzer/candidate never injects, calls model/bank, changes default or claims ROI.
 
+- [ ] Owner-selected notification-only default loading: source-bound eleven-tarball offline runtime and fixed fail-open autoload shim; isolated conventional SDK discovery, exclusive real installation/readback and fresh-session evidence remain separately recorded. No model/bank/LOCAL/history/guidance/default-policy change or forced busy-session reload.
+
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
 - [x] Actual0.10.2 installed fingerprint and dedicated-test-bank retain/read/recall permissions established; notsemantic/operational acceptance or whole-service/in-memory/upstreampin equality.
 - [x] Original zero-fact direct cause established by readonly projectedtrace: model returns validemptyfacts; unknownwhy/modelquality/globalhealth remain. Originalbounded2docwrites concluded; new onebankchunks policy/newtrial explicitly approved, notsilent continuation.
 - [ ] Publisher account/channel/version still require concrete facts. Actual signer/key provenance remains MISSING for the separate signed route; the local route does not require establishing signing keys.
 - [ ] Native Mac personal-authentication broker is not implemented; current explicit user authorization and trusted-host responsibility are not a screen-lock/UID identity attestation.
-- Default global activation, active-session patching, production-bank writes, automatic models/weights/safety changes and executable learned bypass are not approved by these stage goals.
+- Beyond the explicitly selected notification-only local observer installation, default LOCAL/history/guidance activation, active-session patching, production-bank writes, automatic models/weights/safety changes and executable learned bypass are not approved by these stage goals.
