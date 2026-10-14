@@ -19,11 +19,14 @@ schema. Its result is `metadata-only / authorization:none / executable:false`.
 
 - Unknown evaluation, profile drift, mismatched denominators or unknown runs produce
   `status=insufficient/recommendation=collect-more`; no optimism or zero filling.
+  The host maps coordinator drift `classification === "unchanged"` to `unchanged`;
+  any protected/volatile drift maps to `unknown` before calling this seam.
 - Semantic/trace regression produces `do-not-inject`; token savings cannot hide quality
   regression. Semantic gain may produce only `inject-candidate`, never default activation.
 - Equal success/trace with positive token or context overhead produces
-  `not-beneficial/do-not-inject`. A single elapsed improvement is not enough to call
-  positive ROI.
+  `not-beneficial/do-not-inject`. A token reduction can produce an `inject-candidate`
+  even when the compiled context grew, but a single elapsed improvement alone is not
+  enough to call positive ROI.
 - `sdk_cost` remains `unpriced` unless both arms carry an explicitly priced SDK
   estimate; null is not free and no independent billing is inferred.
 - The output is a recommendation projection, not an Owner policy, guard/gate result,
@@ -37,4 +40,6 @@ request or human-intervention delta. Guided total tokens were 10251 versus basel
 6415 (+59.8%), while the ordered row elapsed sum was 22711.6ms versus 26814.3ms
 (-15.3%). SDK cost was null/unpriced. The offline analyzer therefore recommends
 `do-not-inject` for this observation: no semantic gain and positive token/context
-cost. This is a single-window diagnostic, not generalized ROI or a release decision.
+cost. Tool/reasoning/human deltas are preserved in the output; compile time remains
+null because it was not measured. This is a single-window diagnostic, not generalized
+ROI or a release decision.

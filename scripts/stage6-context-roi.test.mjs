@@ -13,7 +13,7 @@ test("semantic gain can yield only a candidate, never permission or default acti
   assert.equal(r.status, "candidate"); assert.equal(r.recommendation, "inject-candidate"); assert.equal(r.semantic_gain, 1); assert.equal(r.verification, "metadata-only"); assert.equal(Object.hasOwn(r, "permission"), false);
 });
 test("unknown, drift and mismatched denominators require more collection", () => {
-  for (const context of [{ evaluation_status: "unknown" }, { profile_drift: "unknown" }]) assert.equal(analyzeStage6ContextRoi(input({}, {}, context)).recommendation, "collect-more");
+  for (const context of [{ evaluation_status: "unknown" }, { profile_drift: "unknown" }, { profile_drift: "protected-profile-drift" }, { profile_drift: "volatile-profile-drift-unknown-attribution" }]) assert.equal(analyzeStage6ContextRoi(input({}, {}, context)).recommendation, "collect-more");
   assert.equal(analyzeStage6ContextRoi(input({ runs: 4 }, { runs: 3, successes: 3, trace_accurate: 3, decision_parsed: 3 })).reason_code, "evaluation-unknown");
 });
 test("unpriced or zero-baseline costs never become free or a fabricated amount", () => {
@@ -29,7 +29,12 @@ test("regression cannot be rescued by token savings or a gain in another quality
 });
 test("unobserved compile time stays null and copied results reject unsafe or contradictory fields", () => {
   const r = analyzeStage6ContextRoi(input({}, { tokens: 150 }, { compile_ms: null })); assert.equal(r.compile_ms, null);
-  for (const patch of [{ reason_code: "PRIVATE_RAW" }, { token_delta: Infinity }, { baseline_tokens: {} }, { recommendation: "inject-candidate" }, { token_delta: -100 }, { permission: true }]) assert.throws(() => validateStage6ContextRoi({ ...r, ...patch }), /stage6-context-roi-refused/);
+  for (const patch of [{ reason_code: "PRIVATE_RAW" }, { token_delta: Infinity }, { baseline_tokens: {} }, { recommendation: "inject-candidate" }, { token_delta: -100 }, { permission: true }, { status: "candidate", recommendation: "inject-candidate", reason_code: "semantic-gain-observed", non_degradation: false }, { non_degradation: false }]) assert.throws(() => validateStage6ContextRoi({ ...r, ...patch }), /stage6-context-roi-refused/);
+});
+test("tool/reasoning/parsed/human deltas are preserved and token savings alone remain a candidate", () => {
+  const r = analyzeStage6ContextRoi(input({ reasoning_tokens: 168, tool_calls: 8 }, { reasoning_tokens: 180, tool_calls: 9 }));
+  assert.equal(r.reasoning_tokens_delta, 12); assert.equal(r.tool_calls_delta, 1); assert.equal(r.decision_parsed_delta, 0); assert.equal(r.human_interventions_delta, 0);
+  const saving = analyzeStage6ContextRoi(input({ tokens: 100 }, { tokens: 50 })); assert.equal(saving.status, "candidate"); assert.equal(saving.reason_code, "token-saving-observed"); assert.deepEqual(validateStage6ContextRoi(saving), saving);
 });
 test("closed DTO rejects raw prompts, model output, credentials, proxies, getters and extras", () => {
   let calls = 0; const value = input(); const proxy = new Proxy(value, { ownKeys() { calls++; throw Error(); } }); assert.throws(() => analyzeStage6ContextRoi(proxy), /stage6-context-roi-refused/);
