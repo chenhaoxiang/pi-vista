@@ -55,6 +55,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 ## Public document map
 
 - [docs/stage6-k1-readiness.md](docs/stage6-k1-readiness.md): supplied-facts metadata consistency and Usage-backed paired metrics boundaries; ready labels do not authorize execution
+- [docs/handoff/2026-10-14-offline-context-cost-source-closeout.md](docs/handoff/2026-10-14-offline-context-cost-source-closeout.md): PR53 offline ROI/candidate source delivery, exact CI/main and no-injection boundary; one-window observation not generalized benefit
 - [docs/handoff/2026-10-13-k1-actual-window-closeout.md](docs/handoff/2026-10-13-k1-actual-window-closeout.md): first actual8session/16request paired window, strict8/8, unchanged profile/provenance and context cost observation; not default guidance/ROI/release
 - [docs/stage6-context-roi.md](docs/stage6-context-roi.md): pure offline cost/non-degradation recommendation; elapsed alone is not ROI, unpriced stays unknown, no default injection
 - [scripts/stage6-context-roi.mjs](scripts/stage6-context-roi.mjs): closed baseline/guided metadata analyzer; no model/bank/profile read or runtime mutation

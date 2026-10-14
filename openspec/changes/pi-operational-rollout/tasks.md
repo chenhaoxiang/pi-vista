@@ -62,7 +62,7 @@ verified: 2026-10-13
 - [x] Owner-selected current Hindsight READ compatibility delivered PR51 head8a122c4/main eec33523, headCI38482482091/mainCI38483742410 allNode SUCCESS. Old0.10.2/0.10.3 evidence preserved; currentAPI1.0.0/distribution1.0.0 explicit fingerprint and exact accepted original read, no bank writes/restart/default changes.
 - [x] First bounded actual K1 window on clean harness eec33523/publicSDK1.0.4/codex-local-8319 gpt-6.1-sol max: real accepted history read/newrun import/fresh scoped native verifier/one item context,8freshsessions/16pretransport/16envelopechecks/strict8of8/0retry/0write/profile+provenanceunchanged. Baseline4of4/guided4of4; tokens6415→10251, elapsed26814.3→22711.6ms, costunpriced/null. Single four-case window notgeneralROI/release/defaultactivation; new runtime handoff itself requires independent docs inclusion.
 
-- [ ] Offline context-cost slice: closed safe aggregate ROI/non-degradation recommendations plus whole-section smaller-guidance proposal metadata; no runtime injection/model/bank/default changes. Source/tests/review/CI/main remain separate; actual K1 evidence indicates no semantic gain and positive token overhead, not generalized ROI.
+- [x] Offline context-cost slice delivered PR53 reviewed e9753ad/main63b091b; targeted13/release337/source/consumer/actualNode20/headCI38495863019/mainCI38496689731 passed. Actual window shows no semantic gain and token+59.8%; offline complete script+steps candidate804 vs recorded1467 is symbolic only. Analyzer/candidate never injects, calls model/bank, changes default or claims ROI.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
