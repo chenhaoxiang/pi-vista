@@ -5,7 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-10
-verified: 2026-10-12
+verified: 2026-10-18
+verification_scope: Maintained delivery status reconciled with merged PRs and existing scoped evidence; no new runtime or model acceptance
 ssot: true
 ---
 
@@ -73,7 +74,7 @@ Pi-Continuum 是 ai-gate、workspace-guard、Pi native host 与 pi-vista 的内�
 S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**。
 
 - S0：本架构、现有owner路由、职责/状态/合同与事实边界；不修改运行时。
-- S1：本地通知观察宿主接线，复用 `createPiObservation` 和 `EventStore`。本源切片属于用户本轮“按顺序实施”授权范围（实现授权不等于已安装/已加载）；默认记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、宿主注册调用失败和存储故障固定诊断/fail-open；加载期命令表预检仅 best-effort，不覆盖 Pi 自身冲突处理。先源/mock、再实际SDK、再明确本机加载，分别留证。
+- S1：本地通知观察宿主接线已交付，复用 `createPiObservation` 和 `EventStore`。PR34 交付源/mock，PR55/56 交付 Owner 选定的 notification-only 固定本机安装、文件回读及隔离新会话 SDK 加载证据（见第7节）。默认只记录安全本地agent/tool metadata，不写bank/history/模型/权限、不修改工具输入结果或触发continuation；缺cwd/HEAD、宿主注册调用失败和存储故障固定诊断/fail-open；加载期命令表预检仅 best-effort，不覆盖 Pi 自身冲突处理。源码、实际安装、隔离加载与所有既有会话/live事件仍分别判断。
 - 会话source只声明采样的session-cwd scope，不假装知道实际受影响仓库。同步host callback必须轻量；Promise timeout不能 sandbox 同步CPU/副作用。
 
 ### P0：先修 harness，再调用模型
@@ -97,8 +98,11 @@ Timeline/trace assertions、run→regression promotion、pass^k、observability�
 - Vista Stage1–5源码/明确scoped运行已交付；不是默认日常Pi或生产bank验收。
 - Stage6 source-only P0 admission/decision/planner 已由 PR35 合入 main `d2abf0c1`，并包含 PR32/a42ff57 的 source-only 祖先；旧私有runtime草稿16调用/8session/0bank为 **INVALID**：严格决定未满足、profile drift未归因。原报告和INVALID assessment都保留，不借为质量、ROI、成本、current proof或发布。
 - Meta PR551样本Node20/26 closed-row相容只证明样本消费，gate仍unknown/not-evaluated；不是Stage6/default activation/current permission。
-- PR43/44/45已分别交付K1 admission、只读history bridge和synthetic host preview；实际public1.0.4 paired measurement、真实history/current verifier、provider/model/broker facts仍未闭合。
-- Meta独立build/typecheck仍是真实缺口，不把governance/inventory冒称构建或完整语义检查。原signed route/key来源、完整SDK declaration health与Mac个人认证broker只在相应路线使用时独立核验，不变成LOCAL当前前置。
+- 截至2026-10-18，PR37/38已交付trusted-host provenance/window source；PR43–51交付K1 admission、history bridge、synthetic preview、Usage metrics及明确的actual runner/READ compatibility。这些源切片不再是待实施项，也不各自代表真实运行成功。
+- [PR52](https://github.com/chenhaoxiang/pi-vista/pull/52) 已将[首个有效actual K1窗口](handoff/2026-10-13-k1-actual-window-closeout.md)纳入main `7b8ed451`：固定harness `eec33523`、publicSDK1.0.4与选定模型，8fresh sessions/16requests/strict8of8，baseline/guided各4/4，profile/provenance不变、bank写入0。它与旧INVALID草稿分开；当次scoped current verifier不是可恢复的当前proof，也不是通用producer认证。
+- [PR53/54](https://github.com/chenhaoxiang/pi-vista/pull/54) 已交付[离线上下文成本分析与候选](handoff/2026-10-14-offline-context-cost-source-closeout.md)。既有窗口无semantic gain、tokens6415→10251（+59.8%）、cost为null，结论为`not-beneficial/do-not-inject`；804字符候选只是离线长度比较，尚无新模型质量或长期ROI证据。不为补状态重跑该窗口或默认注入Guided。
+- [PR55/56](https://github.com/chenhaoxiang/pi-vista/pull/56) 已交付[notification-only固定本机安装及独立加载证据](handoff/2026-10-14-local-observer-install-closeout.md)：11包/86runtime文件、私有shim回读与隔离SDK1.2新会话3场景通过。没有强制旧会话reload，也未证明所有用户会话或live全局事件已启用。
+- Meta默认构建/策略链的限定独立build/typecheck已由PR603–605交付；不再把该scope报为未实施，也不外推为全仓语义覆盖、模型或安装资格。当前精确范围看Meta的`docs/architecture/2026-10-17-default-core-typecheck.md`。原signed route/key来源、完整SDK declaration health与Mac个人认证broker仍在相应路线使用时独立核验，不变成LOCAL当前前置。
 - 发布须落定account/channel/version/启用与rollback范围，并遵循真实授权、资金/平台/生产边界；本架构不自行发布。
 
 ## 8. 研究候选，不是新依赖
@@ -109,6 +113,6 @@ agentmemory仅作为memory benchmark对照，不替换当前Hindsight/LOCAL。�
 
 ## 9. Owner落位
 
-S1 默认入口当前是源码候选，不代表全局 Pi 已安装或现有 session 已加载；其实际装机/启用仍需本机 host acceptance 和独立回读，不把本段实现授权写成默认 live activation。
+S1 notification-only入口已完成上述固定本机安装与隔离新加载，不再安排重复安装/验收。默认LOCAL/history/guidance、所有既有session加载、长期收益与发布仍未由这些证据证明；准备时快照里的pending不覆盖后继交付，后继交付也不回写旧失败。
 
 Vista主架构维护本页与 `docs/architecture.md`，实施计划维护同一 `openspec/changes/pi-operational-rollout/`。Meta保留自己的policy/guard/gate/execution/reconcile实现与文档，只链接共同边界，不复制Vista实现。当前用户已授权按顺序连续实施；只有真实scope变化、必要技术条件失败、资金或实际用户规则才停相关动作并请求必要输入，不重新索要每一步批准。

@@ -5,7 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-13
+verified: 2026-10-18
+verification_scope: Current Pi-Continuum delivery-status pointers only; package and runtime contracts unchanged
 ---
 
 # Repository-local contributor contract
@@ -54,6 +55,11 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+Current Pi-Continuum stage status is maintained in [docs/pi-continuum.md §7](docs/pi-continuum.md#7-已知事实和仍未完成)
+and the [existing rollout tasks](openspec/changes/pi-operational-rollout/tasks.md).
+Handoff snapshot descriptions below retain their preparation-time boundaries;
+use those maintained entries for later K1/ROI/installation delivery, not a repeat run.
+
 - [docs/handoff/2026-10-14-local-observer-install-closeout.md](docs/handoff/2026-10-14-local-observer-install-closeout.md): PR55 source/head/main CI, exclusive actual local shim/readback and isolated fresh conventional SDK1.2 discovery; no old-session/model/bank/guidance activation claim
 - [docs/handoff/evidence/2026-10-14-local-observer/README.md](docs/handoff/evidence/2026-10-14-local-observer/README.md): safe CI/App/installation/SDK fixture projections, each evidence level retained separately
 - [docs/pi-local-observer-install.md](docs/pi-local-observer-install.md): Owner-selected fixed offline observer release, exclusive default shim installation and fresh conventional SDK discovery; no model/bank/guidance/permission activation
@@ -98,7 +104,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [scripts/stage6-host-admission.mjs](scripts/stage6-host-admission.mjs): delivered explicit readonly profile/pretransport source seam; not planner/default Pi/model wiring
 - [docs/handoff/2026-10-10-local-workflow-main-closeout.md](docs/handoff/2026-10-10-local-workflow-main-closeout.md): PR30/mainb245d7f scoped runtime+source/shared delivery, exacthead/mainCI/canonical/postmain evidence, preserved layered BLOCK/red/runtime limits; Stage6 still separate
 - [docs/handoff/2026-10-10-local-workflow-scoped-runtime.md](docs/handoff/2026-10-10-local-workflow-scoped-runtime.md): one approved actual LOCAL sample/write14348/read52511/retain1→0/ownref1/read503-only recovery and exact artifact/policy/config/source evidence; PR30/main delivery and Stage6 remain separately proved; this runtime snapshot retains preparation-time pending
-- [docs/local-learning-workflow.md](docs/local-learning-workflow.md): explicitly approved Stage5 operator source candidate, fixed host scope/fresh source/current proof/read-only recovery; actual one-sample scoped runtime passed and PR30/mainb245 delivery verified; new main-closeout document itself separately pending
+- [docs/local-learning-workflow.md](docs/local-learning-workflow.md): explicitly approved Stage5 operator, fixed host scope/fresh source/current proof/read-only recovery; bounded runtime/source delivered PR30 and main-closeout included PR31; not default activation
 - [openspec/changes/pi-operational-rollout/stage5-operational-design.md](openspec/changes/pi-operational-rollout/stage5-operational-design.md): same dedicated bank/one namespace/one synthetic document scope, independent read/client-only fault/counter/source/policy acceptance plan
 - [docs/handoff/2026-10-10-local-learning-source-closeout.md](docs/handoff/2026-10-10-local-learning-source-closeout.md): PR28/main022afd6 source/CI/canonical/post-main delivery, preserved full15 BLOCK and complete6 F1/F2 closure,1265-case/23-export pins; larger actual Stage5/Stage6 remain separate
 - [docs/local-learning.md](docs/local-learning.md): Stage5 opt-in LOCAL source delivered, exact host proof/preview/confirmation/guidance/recall/lifecycle; original signed/root APIs unchanged, no default activation or new real-bank sample
@@ -120,8 +126,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [docs/pi-agent-canary.md](docs/pi-agent-canary.md): explicit actual AgentSession/model canary, private fixture lifecycle/fault tests, credential/privacy boundaries and separate sequential operational acceptance
 
 - [README.md](README.md): package overview and implementation status
-- [docs/pi-continuum.md](docs/pi-continuum.md): Pi-Continuum unified Policy/Execution/Evidence/Evaluation architecture, non-degradation contract and P0→P2 gates
-- [openspec/changes/pi-operational-rollout/pi-continuum-architecture.md](openspec/changes/pi-operational-rollout/pi-continuum-architecture.md): ordered S0/S1/default-entry delta and P0→P2 source/runtime/evaluation acceptance plan
+- [docs/pi-continuum.md](docs/pi-continuum.md): Pi-Continuum four-plane/native-first contract and current bounded K1/ROI/notification-only delivery status; broader effectiveness, default guidance and release remain separate
+- [openspec/changes/pi-operational-rollout/pi-continuum-architecture.md](openspec/changes/pi-operational-rollout/pi-continuum-architecture.md): existing S0/S1/P0 source and bounded K1/ROI completion versus broader P1/P2 work; no new execution gate or repeat installation
 - [docs/handoff/2026-10-06-source-merge-closeout.md](docs/handoff/2026-10-06-source-merge-closeout.md): merged-source evidence, source PR reconciliation and remaining boundaries
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
 - [docs/infrastructure-integration.md](docs/infrastructure-integration.md): candidate inventory, public source pins, functional validation snapshot and open blockers
