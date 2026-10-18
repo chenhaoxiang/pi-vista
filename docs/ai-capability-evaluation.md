@@ -17,7 +17,9 @@ authority: non-gating
 
 本页记录一份可重复的**离线、非门禁** AI 能力评估集，以及对本机一组自定义 Pi
 Extensions 的白名单安全字段审计。评估集用于观察正常工程任务中的结果质量、成本和
-恢复行为；它不是 Gate、CI、权限前置、审批系统、执行账本或模型路由器。
+恢复行为；它不是 Gate、CI、权限前置、审批系统、执行账本或模型路由器。规范性边界以
+[离线评估设计](../openspec/changes/pi-operational-rollout/ai-capability-evaluation-design.md)
+为准，本页主要保留使用说明、任务矩阵和本次核验快照。
 
 核验快照（2026-10-18）：
 
@@ -261,6 +263,15 @@ Markdown、template→stdin-summary 及拒绝路径；不是仅创建测试文�
 与 `npm run build` 均通过，同一 release-contract 命令重跑 **343 tests / 343 pass / 0 fail /
 0 skipped**。默认 suite 仍未发现新增的手动测试（其 16 项必须显式运行），没有改变
 package scripts、CI 或 Gate。未为本片执行真实 SDK/模型/bank 验收。
+
+接手后的 P1/S1 本地验证在同一候选树上补齐：`npm ci --offline --ignore-scripts`、
+`npm run build`、`npm run typecheck`、`npm test`、现有 `npm run lint`、
+`npm run pack:dry-run` 与 `npm run gate:consumer` 均退出 0。默认测试的逐 suite
+原生计数合计 **1491 tests / 1491 pass / 0 fail / 0 cancelled / 0 skipped / 0 todo**；
+新增手动 suite 与原有 ROI 的联合重跑为 **25/25**（16 新增 + 9 既有），不把重复的
+ROI 计为新增能力证据。packed-consumer 实际安装 11 份本地 tarball 并通过公共入口与
+consumer TypeScript 验证；没有注册表发布或真实模型调用。输出保留在
+`tmp/ai-capability-evaluation/local-p1/`，早期缺构建产物的失败原件保持不变。
 
 pi-vista 本机固定 observer manifest 的 86 个文件 hash 与条目绑定在审计时匹配；这仅证明
 安装文件完整性，不触发 extension 执行，也不证明当前 session 加载或模型质量。

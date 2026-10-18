@@ -72,6 +72,13 @@ preparation-time pending in snapshot handoffs keeps its historical meaning.
 
 - [x] Owner-selected notification-only default loading: PR55 reviewed1022748/main011b381, headCI38506383812/mainCI38507420246 threeNode SUCCESS; source-bound11tarball/86file fixed fail-open shim exclusively installed/readback0600. Exact installed bytes in isolated conventional SDK1.2/Node26 fresh-session discovery3scenariosPASS, native read/model/thinking/tools/prompt preserved, normal5safe events. No model/bank/LOCAL/history/guidance/default-policy change or forced busy-session reload; no all-user-session/live-global-event claim. Existing closeout/evidence independently included by [PR56](https://github.com/chenhaoxiang/pi-vista/pull/56)/main `7faefc0b`; no reinstallation or new loading claim is made by this status correction.
 
+## Offline capability evaluation (non-gating)
+
+- [x] Define the bounded ten-task matrix, closed safe-projection runner and static extension-audit boundaries in [the existing Change's design](ai-capability-evaluation-design.md); keep missing measurements unknown and source observations non-authorizing.
+- [x] Implement concrete synthetic fixtures, safe metric projection, manual-only regressions and the maintained audit/usage guide; do not add the evaluation suite to default CI/Gate discovery or call providers/banks.
+- [x] Complete local P1/S1 build/typecheck/full-suite/consumer validation: default1491/1491 and explicit16manual+9ROI25/25, eleven packed tarballs/public imports/compiler; original missing-build red is retained. These fixture counts do not prove real AI capability.
+- [ ] Pre-merge snapshot: independent exact-head heterogeneous review, existing CI/App/Gate escalation, ordinary PR merge and main/canonical readback remain pending; consult the eventual PR's exact-head and merge-SHA evidence for shared delivery, not this preparation-time checkbox.
+
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
 - [x] Actual0.10.2 installed fingerprint and dedicated-test-bank retain/read/recall permissions established; notsemantic/operational acceptance or whole-service/in-memory/upstreampin equality.
