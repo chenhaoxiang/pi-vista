@@ -77,7 +77,7 @@ preparation-time pending in snapshot handoffs keeps its historical meaning.
 - [x] Define the bounded ten-task matrix, closed safe-projection runner and static extension-audit boundaries in [the existing Change's design](ai-capability-evaluation-design.md); keep missing measurements unknown and source observations non-authorizing.
 - [x] Implement concrete synthetic fixtures, safe metric projection, manual-only regressions and the maintained audit/usage guide; do not add the evaluation suite to default CI/Gate discovery or call providers/banks.
 - [x] Complete local P1/S1 build/typecheck/full-suite/consumer validation: default1491/1491 and explicit16manual+9ROI25/25, eleven packed tarballs/public imports/compiler; original missing-build red is retained. These fixture counts do not prove real AI capability.
-- [ ] Pre-merge snapshot: independent exact-head heterogeneous review, existing CI/App/Gate escalation, ordinary PR merge and main/canonical readback remain pending; consult the eventual PR's exact-head and merge-SHA evidence for shared delivery, not this preparation-time checkbox.
+- [x] Shared delivery closed by PR #58: exact head `c83d2d8c7e6ec8b08d132a4d7a55dc473d30323f`, independent heterogeneous review/App binding, hosted head CI, P1/S1 `PASS_ESCALATED` without Owner override, ordinary merge `ec3587e16cd1a9b512a118344872c6d7f04c62ff`, merge-SHA main CI, strict read-only reconcile and canonical main/origin/remote equality. These evidence layers do not prove real AI capability or runtime activation.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
