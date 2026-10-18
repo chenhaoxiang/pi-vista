@@ -284,5 +284,29 @@ pi-vista 本机固定 observer manifest 的 86 个文件 hash 与条目绑定在
   的模型/shadow 分支。
 - 未修改 `tudingai-meta`、Meta 资金策略、fork 项目、本机 settings 或任何本机 extension；
   `session-title.ts` 保持原状。
-- 本次提交只证明离线评估集的结构/校验/安全边界和审计快照；不代表 PR、合并、部署、
-  发布、默认激活或运行验收已经完成。
+- 候选提交阶段的本地快照只证明离线评估集的结构/校验/安全边界和审计快照；共享交付
+  的 PR、合并和主线 CI 终态见 §7，仍不代表部署、发布、默认激活或真实运行验收。
+
+## 7. 共享交付收口
+
+本片代码、设计和验证已由 PR58 进入共享主线。以下是 **PR58 收口时的证据快照**，
+不是后续 main 始终停在同一 SHA 的声明；各层证据分开，不外推为真实 AI 能力或运行授权：
+
+- 评审 head：`c83d2d8c7e6ec8b08d132a4d7a55dc473d30323f`；独立
+  `codex-local/kimi-k3:high` 评审结论为 **OK with notes**、blocker/major 均为 0，
+  App review check `117702883198` 与记录 hash
+  `a975d52e02eec938dc02444e13e1662aed4759e2fb6b082eff796c2bedd065e6` 绑定。
+- PR [#58](https://github.com/chenhaoxiang/pi-vista/pull/58) 已普通合并，merge commit
+  为 `ec3587e16cd1a9b512a118344872c6d7f04c62ff`；P1/S1 Gate 结果为
+  `PASS_ESCALATED`，使用 Driver + 1 个异构 reviewer，未使用 Owner override，未覆盖任何 gate。
+- 评审 head CI run
+  [39136789338](https://github.com/chenhaoxiang/pi-vista/actions/runs/39136789338) 的
+  Node 20/22/26 source-and-consumer jobs 全部成功；merge SHA 的 main CI run
+  [39137339682](https://github.com/chenhaoxiang/pi-vista/actions/runs/39137339682) 的
+  Node 20/22/26 jobs 也全部成功。
+- 严格只读对账以 exact head/base/merge SHA 返回 `already-merged` + `ci-success`；
+  canonical `main`、`origin/main` 与实时远端 main 均为 merge SHA，工作树干净且
+  `ahead/behind=0/0`，评审 head 是 merge commit 的祖先。
+- 这些是源代码、审查、CI、Gate、合并和主线回读证据；本片未进行真实 AI 能力实验、
+  Provider 业务调用、bank、生产、资金、部署、发布、默认 guidance 或 extension 安装/
+  重载操作。独立模型审查不属于十项 AI 能力实验，也不产生实验成绩。
