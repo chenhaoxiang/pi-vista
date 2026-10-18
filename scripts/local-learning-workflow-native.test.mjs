@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, {describe} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {mkdir,mkdtemp,readFile,writeFile,copyFile,cp,rm} from 'node:fs/promises';
@@ -100,5 +100,9 @@ globalThis.fetch=async(url,init={})=>{const s=state(),target=new URL(url),prefix
   assert.equal(write.source_sha,source);assert.equal(read.source_sha,source);assert.equal(read.bankModeUnchanged,true);
  }finally{await rm(owned,{recursive:true,force:true});}
 }
-test('LOCAL actual compiled source/operator native write+independent read composes fresh proof and readonly recovery with zero real network',{timeout:600000},()=>nativeWorkflowFixture());
-test('LOCAL missing saved reference plus read fault composes only readonly recovery',{timeout:600000},()=>nativeWorkflowFixture(true));
+// Each case owns a distinct mkdtemp checkout, bank state, clients and child PIDs.
+// Parallelize only these isolated scenarios; never share built artifacts or proofs.
+describe('LOCAL independent native workflow fixtures', {concurrency:2},()=>{
+ test('LOCAL actual compiled source/operator native write+independent read composes fresh proof and readonly recovery with zero real network',{timeout:600000},()=>nativeWorkflowFixture());
+ test('LOCAL missing saved reference plus read fault composes only readonly recovery',{timeout:600000},()=>nativeWorkflowFixture(true));
+});
