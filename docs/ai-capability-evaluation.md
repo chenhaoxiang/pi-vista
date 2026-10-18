@@ -23,7 +23,7 @@ Extensions 的白名单安全字段审计。评估集用于观察正常工程任
 
 - 目标仓：`github-public/pi-vista`，开工实时远端核对的 `origin/main` 与本地 `main` 均为
   `94c8357d52c3b3d2c141f0a7dff9e2880f3e62c3`。
-- 实施工作树：`/Users/robotmac/.worktree/pi-vista/ai-capability-eval-20261018-01a14f02`。
+- 实施工作树：独立 `pi-vista` worktree（公开路径省略；分支见下）。
 - 实施分支：`docs/ai-capability-eval-20261018-01a14f02`。
 - 评估 runner：`scripts/ai-capability-evaluation.mjs`。
 - 手动测试：`tests/ai-capability-evaluation.test.mjs`；它故意不加入
@@ -129,7 +129,7 @@ T07 给定日期倒置及损坏链接；T09 给定 owner v1 与 config v2/host �
 ### 4.1 合成结构演示
 
 ```bash
-cd /Users/robotmac/.worktree/pi-vista/ai-capability-eval-20261018-01a14f02
+# 在 pi-vista worktree 根目录执行
 mkdir -p tmp/ai-capability-evaluation
 node scripts/ai-capability-evaluation.mjs --matrix > tmp/ai-capability-evaluation/matrix.json
 node scripts/ai-capability-evaluation.mjs --demo > tmp/ai-capability-evaluation/demo.json
@@ -144,7 +144,7 @@ node scripts/ai-capability-evaluation.mjs --template | node scripts/ai-capabilit
 ### 4.2 手动测试 suite
 
 ```bash
-cd /Users/robotmac/.worktree/pi-vista/ai-capability-eval-20261018-01a14f02
+# 在 pi-vista worktree 根目录执行
 node --test tests/ai-capability-evaluation.test.mjs
 ```
 
