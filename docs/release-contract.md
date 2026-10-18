@@ -5,7 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-07
+verified: 2026-10-19
+verification_scope: Bounded native-workflow fixture scheduling only; historical release evidence retains its original scope
 ssot: true
 ---
 
@@ -200,6 +201,41 @@ mandatory; this exception is not coverage.
 | public integration | 15 |
 | **Existing total** | **332** |
 | New release-script regressions (separate) | **17** |
+
+## Bounded native-workflow fixture scheduling
+
+`local-learning-workflow-native.test.mjs` runs its two independent scenarios in
+one Node test suite with `concurrency: 2`. This changes scheduling only, not the
+workflow, runtime helpers, assertions, timeouts, script discovery or CI matrix.
+Each scenario still creates its own `mkdtemp` checkout, Git history, synthetic
+HTTP state, namespace artifacts, fresh client builds, tarballs, installed consumer
+and child processes. Write and restarted read remain sequential **within** each
+scenario, with different PIDs and fresh source-bound verification. No compiled
+output, proof, journal, bank state or consumer installation is shared between
+scenarios. Cleanup remains limited to each scenario's own directory.
+
+This concurrency must remain bounded to these two isolated scenarios. Do not
+raise global file concurrency or replace real package/independent-process checks
+with mock/shared artifacts. The native reporter excludes the enclosing suite
+from test-case totals; both original cases and all existing assertions remain.
+A failure in either scenario must still fail the unchanged guarded test runner.
+
+A local offline profiling pair on base `1056c2c1` used actual checksummed Node
+20.20.2 on Darwin arm64, the same 35 script files and the original native-count
+reporter wrapped only to collect duration metadata. The original 343-case suite
+passed in **72.58 s**; a temporary two-scenario parallel probe passed the same
+343 cases in **40.25 s** (about **44.5%** less suite wall time in this pair).
+The original two cases each took about 36 s serially; in the parallel probe each
+took about 39.9 s while overlapping. Individual work was not removed. This is a
+single-machine before/after observation, not a promised hosted-CI speedup or a
+claim that every Node runtime/host improves equally. The old baseline/probe
+profiles are retained separately under `tmp/release-script-profiling/`.
+
+The actual source-file change also passed both cases on Node20 and Node26
+(**2 passed, 1 suite**, no failures/cancellations/skips/todo; approximately
+39.59 s and 41.20 s in the respective targeted runs). Exact-head hosted CI,
+merge, and main checks remain separate delivery facts; performance observations
+never authorize skipping the Node20/22/26 or full consumer contracts.
 
 ## Recorded local evidence (2026-10-07)
 
