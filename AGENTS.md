@@ -160,6 +160,7 @@ use those maintained entries for later K1/ROI/installation delivery, not a repea
 - [docs/architecture.md](docs/architecture.md): storage, safety and Pi-Continuum integration boundary
 - [packages/core/README.md](packages/core/README.md): public core runtime contract
 - [packages/protocol/README.md](packages/protocol/README.md): protocol interfaces
+- [docs/adapters/pi.md](docs/adapters/pi.md) includes the opt-in closed phase-counter consumer over existing run identity/ArtifactRef stats; no raw collector or authority.
 - [docs/adapters/pi.md](docs/adapters/pi.md),
   [docs/adapters/workspace-guard.md](docs/adapters/workspace-guard.md) and
   [docs/adapters/ai-gate.md](docs/adapters/ai-gate.md): adapter guides

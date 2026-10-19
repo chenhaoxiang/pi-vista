@@ -6,6 +6,8 @@ export {
 export type {
   PiArtifactRefInput,
   PiCheckpointInput,
+  PiMeasurementStage,
+  PiMeasurementsInput,
   PiRunContext,
   PiRunContextOptions,
   PiStep,

@@ -8,6 +8,7 @@ export function consumerSources(entries) {
   const imports = entries.map((entry, index) => `import * as public${index} from ${JSON.stringify(entry.specifier)};`).join("\n");
   const typescript = `${imports}
 import { CheckRegistry } from "@pi-vista/checks";
+import { createPiRunContext } from "@pi-vista/adapter-pi";
 import type { VistaCheckFunction } from "@pi-vista/protocol";
 export const publicNamespaces = [${entries.map((_, index) => `public${index}`).join(", ")}];
 export async function compareSyntheticMetadata(): Promise<boolean> {
@@ -20,7 +21,16 @@ export async function compareSyntheticMetadata(): Promise<boolean> {
   const report = await registry.run(definitions);
   const authorization: "none" = report.authorization;
   const verification: "predicate-only" = report.verification;
-  return report.satisfied && authorization === "none" && verification === "predicate-only";
+  let observed = false;
+  const context = createPiRunContext({ runId: "consumer-native-metrics", emit: async event => {
+    const stats = event.artifact_refs?.[0]?.stats;
+    observed = event.run_id === "consumer-native-metrics" && event.result === "unknown"
+      && stats?.duration_ms === 7 && stats?.tool_count === 2 && stats?.cost_status === "unpriced";
+    return undefined;
+  } });
+  await context.emitMeasurements({ stage: "subagent", runId: "consumer-native-metrics", durationMs: 7, toolCount: 2, sdkCost: 0 });
+  await context.end();
+  return report.satisfied && authorization === "none" && verification === "predicate-only" && observed;
 }
 `;
   const probe = `import { strict as assert } from "node:assert";

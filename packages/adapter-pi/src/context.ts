@@ -19,6 +19,7 @@ import { assertVistaCheckpoint, isVistaStepIdForRun } from "@pi-vista/core/valid
 import type {
   PiArtifactRefInput,
   PiCheckpointInput,
+  PiMeasurementsInput,
   PiRunContext,
   PiRunContextOptions,
   PiStep,
@@ -45,6 +46,7 @@ const CONTEXT_METHOD_KEYS = new Set([
   "checkpoint",
   "emitToolCall",
   "emitToolResult",
+  "emitMeasurements",
   "withRunContext",
   "flush",
   "end",
@@ -77,6 +79,13 @@ const TOOL_KEYS = new Set([
   "artifact_refs",
 ]);
 const TOOL_RESULT_KEYS = new Set([...TOOL_KEYS, "result"]);
+const MEASUREMENT_FIELDS = {
+  childIndex: "child_index", durationMs: "duration_ms", toolCount: "tool_count",
+  inputCount: "usage_in_count", outputCount: "usage_out_count", cacheReadCount: "cache_read_count",
+  cacheWriteCount: "cache_write_count", sdkCost: "sdk_cost", exitCode: "exit_code",
+} as const;
+const MEASUREMENT_KEYS = new Set(["stage", "runId", ...Object.keys(MEASUREMENT_FIELDS)]);
+const MEASUREMENT_STAGES = new Set(["initialization", "request-first-token", "generation", "tool", "build-test", "review-ci", "subagent"]);
 const ARTIFACT_KEYS = new Set(["type", "ref", "sha", "verified", "stats"]);
 const CHECKPOINT_KEYS = new Set([
   "runId",
@@ -925,6 +934,34 @@ class PiRunContextImpl implements PiRunContext {
     if (normalized.reasonCode !== undefined) event.reason_code = normalized.reasonCode;
     if (normalized.artifactRefs !== undefined) event.artifact_refs = normalized.artifactRefs;
     return this.dispatch(event, step);
+  }
+
+  async emitMeasurements(input: PiMeasurementsInput): Promise<VistaEvent | undefined> {
+    try {
+      // Reuse the adapter's descriptor-only boundary and ArtifactRef stats. Whole native
+      // status/meta objects (which can carry private content) are deliberately not accepted.
+      if (types.isProxy(input)) return undefined;
+      const record = snapshotRecord(input, "measurements", MEASUREMENT_KEYS);
+      const stage = requiredString(ownValue(record, "stage"), "stage");
+      if (!MEASUREMENT_STAGES.has(stage)) return undefined;
+      const sourceRun = ownValue(record, "runId");
+      if (sourceRun !== undefined && safeIdentifier(sourceRun, "runId") !== this.runId) return undefined;
+      const stats: Record<string, number | string> = { stage, usage_unit: "sdk-token", observation: "host-projected" };
+      for (const [key, label] of Object.entries(MEASUREMENT_FIELDS)) {
+        const value = optionalFiniteNumber(ownValue(record, key), key);
+        if (value !== undefined && (Math.abs(value) > Number.MAX_SAFE_INTEGER ||
+          (key !== "exitCode" && value < 0) ||
+          (key !== "durationMs" && key !== "sdkCost" && !Number.isSafeInteger(value)))) return undefined;
+        stats[label] = value ?? "unknown";
+      }
+      const cost = ownValue(record, "sdkCost");
+      stats.cost_status = cost === undefined ? "unknown" : cost === 0 ? "unpriced" : "sdk-reported";
+      const step = this.ensureStep();
+      // A process exit, timing or SDK price never proves business success or authority.
+      return await this.emitToolResult({ tool: "native-metrics", action: `pi:measurements:${stage}`,
+        result: "unknown", target_class: "native-stage",
+        artifact_refs: [{ type: "run-metrics", ref: `${step.stepId}-metrics-${stage}`, stats }] });
+    } catch { return undefined; } // Observation must never block primary execution.
   }
 
   async checkpoint(partial: PiCheckpointInput): Promise<void> {

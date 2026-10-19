@@ -36,6 +36,16 @@ await vista.checkpoint({
 await vista.end();
 ```
 
+## Optional measured phase counters
+
+`context.emitMeasurements({stage:"subagent", runId:context.runId, durationMs:42, toolCount:3, sdkCost:0})`
+projects already-measured host counters through existing safe `ArtifactRef.stats`.
+The method is fail-open, does not install a collector or infer timing from raw
+content, and keeps missing phases unknown/zero SDK pricing unpriced. Explicit
+initialization, request-first-token, generation, tool, build-test, review-ci and
+subagent phases must not be added as overlapping wall-clock totals. See the
+[phase measurement contract](../../docs/adapters/pi.md#optional-phase-measurements-from-existing-host-counters).
+
 ## Boundaries
 
 - `run_id` is selected from an explicit option, a safe `VISTA_RUN_ID`, or
