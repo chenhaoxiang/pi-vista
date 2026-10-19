@@ -117,6 +117,30 @@ function assertPredicateOnly(report: CheckReport): void {
   for (const result of report.results) deepStrictEqual(Object.keys(result).sort(), ["check_id", "reason", "status", "type"]);
 }
 
+test("public Pi measurements consume a projected native summary without raw artifact collection", async () => {
+  const base = await sandbox();
+  try {
+    const store = new EventStore(base);
+    const native = { runId: "native-child-run", index: 2, durationMs: 42, toolCount: 3, exitCode: 0,
+      usage: { input: 10, output: 4, cacheRead: 0, cacheWrite: 0, cost: 0 },
+      task: "PRIVATE_PROMPT_SENTINEL", artifactPaths: { metadataPath: "/private/local-only" }, missionId: "not-the-run" };
+    const context = createPiRunContext({ runId: native.runId, sessionId: "parent-session", store, now: 100 });
+    await context.emitMeasurements({ stage: "subagent", runId: native.runId, childIndex: native.index,
+      durationMs: native.durationMs, toolCount: native.toolCount, exitCode: native.exitCode,
+      inputCount: native.usage.input, outputCount: native.usage.output, cacheReadCount: native.usage.cacheRead,
+      cacheWriteCount: native.usage.cacheWrite, sdkCost: native.usage.cost });
+    await context.end();
+    const events = await store.readRun(native.runId); strictEqual(events.length, 1);
+    strictEqual(events[0]?.result, "unknown"); strictEqual(events[0]?.session_id, "parent-session");
+    const stats = events[0]?.artifact_refs?.[0]?.stats; strictEqual(stats?.duration_ms, 42);
+    strictEqual(stats?.tool_count, 3); strictEqual(stats?.cost_status, "unpriced");
+    const persisted = await readFile(join(base, "runs", native.runId, "events.jsonl"), "utf8");
+    for (const privateValue of [native.task, native.artifactPaths.metadataPath, native.missionId]) strictEqual(persisted.includes(privateValue), false);
+    const view = await observe({ command: "inspect", runId: native.runId, baseDir: base });
+    strictEqual(view.authorization, "none"); strictEqual(view.independent_verification, "not-performed");
+  } finally { await rm(base, { recursive: true, force: true }); }
+});
+
 test("public Pi, guard and gate observations persist a common run/step chain and bound checkpoint", async () => {
   const base = await sandbox();
   try {

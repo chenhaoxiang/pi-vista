@@ -79,6 +79,12 @@ preparation-time pending in snapshot handoffs keeps its historical meaning.
 - [x] Complete local P1/S1 build/typecheck/full-suite/consumer validation: default1491/1491 and explicit16manual+9ROI25/25, eleven packed tarballs/public imports/compiler; original missing-build red is retained. These fixture counts do not prove real AI capability.
 - [x] Shared delivery closed by PR #58: exact head `c83d2d8c7e6ec8b08d132a4d7a55dc473d30323f`, independent heterogeneous review/App binding, hosted head CI, P1/S1 `PASS_ESCALATED` without Owner override, ordinary merge `ec3587e16cd1a9b512a118344872c6d7f04c62ff`, merge-SHA main CI, strict read-only reconcile and canonical main/origin/remote equality. These evidence layers do not prove real AI capability or runtime activation.
 
+## Existing phase-counter consumer (2026-10-20)
+
+- [x] Add the smallest closed `PiRunContext.emitMeasurements` projection over existing safe artifact stats/run identity; keep missing/unpriced/exit semantics non-authorizing and observer failure fail-open. No raw collector, per-token write, scheduling, model trial or default activation.
+- [x] Add supplied-counter stage, unsafe input/identity, failure/timeout and real EventStore/CLI public-import regressions; preserve old contracts and original redactor failures rather than weakening redaction.
+- [ ] Complete applicable stable full source/packed consumer gates, independent exact-head review/App/CI and ordinary shared delivery; no publication/install/whole-ROI claim.
+
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
 - [x] Actual0.10.2 installed fingerprint and dedicated-test-bank retain/read/recall permissions established; notsemantic/operational acceptance or whole-service/in-memory/upstreampin equality.

@@ -5,7 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-06
-verified: 2026-10-07
+verified: 2026-10-20
+verification_scope: Closed phase-counter source/public-consumer synthetic checks; no actual latency, ROI or resident activation claim
 ---
 
 # Pi run-context adapter
@@ -100,6 +101,40 @@ accepted class methods with their original instance as `this`. A custom
 `emit` must be a callable data value. `withRunContext` accepts only an exact
 context created by `createPiRunContext`; structural lookalikes and
 accessor/proxy contexts are rejected.
+
+## Optional phase measurements from existing host counters
+
+`context.emitMeasurements()` reuses this context's `run_id`/session/step and the
+existing `ArtifactRef.stats` outlet. It installs no hooks, watcher, raw-session
+reader, collector or alternate event protocol. A trusted caller projects only
+already-measured numeric fields; never pass a whole Subagents status/metadata
+object containing task, error, session, prompt or artifact-path content.
+
+```ts
+await vista.emitMeasurements({
+  stage: "subagent", runId: vista.runId, childIndex: 0,
+  durationMs: 42, toolCount: 3, inputCount: 10, outputCount: 4,
+  cacheReadCount: 0, cacheWriteCount: 0, sdkCost: 0, exitCode: 0,
+});
+```
+
+The closed phases are `initialization`, `request-first-token`, `generation`,
+`tool`, `build-test`, `review-ci`, and `subagent`. They are explicit host labels,
+not classifications inferred from raw tool commands or reviewer prose. Missing
+phases/times remain unknown; Subagents aggregate duration does not reveal
+first-token or model-generation latency. Emit at a phase boundary, not per token.
+`runId`, when supplied, must match this context; child index is not a mission or
+session ID. Counters must be safe nonnegative integers; duration/SDK cost finite
+nonnegative numbers; an exit code is an integer observation, not task success.
+
+Stats contain closed numeric summaries (`usage_in_count`/`usage_out_count` are SDK
+token counts, not raw input/output). Absent values are explicit `unknown`, zero
+measured tool calls stay zero, and zero SDK cost is `unpriced`, never free or a
+reconciled invoice. Result stays `unknown`, artifact verification is not asserted,
+and ordinary CLI views remain recorded-only/non-authorizing. Raw/invalid/foreign
+run input and observer failure return `undefined` without blocking execution.
+Existing source, package, installation and resident-session boundaries remain
+separate; this method does not enable a structured contract or new model trial.
 
 ## Integration boundary
 

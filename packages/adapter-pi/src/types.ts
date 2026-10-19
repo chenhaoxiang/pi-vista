@@ -59,6 +59,25 @@ export interface PiToolResultInput extends PiToolCallInput {
   result: VistaResult;
 }
 
+/** Closed phase labels, not automatic tool/command or raw model classification. */
+export type PiMeasurementStage = "initialization" | "request-first-token" | "generation" | "tool" | "build-test" | "review-ci" | "subagent";
+
+/** Already-measured counters only; missing values remain unknown, never inferred from prose. */
+export interface PiMeasurementsInput {
+  stage: PiMeasurementStage;
+  /** Optional producer invocation ID must match this context, never a mission/session alias. */
+  runId?: string | undefined;
+  childIndex?: number | undefined;
+  durationMs?: number | undefined;
+  toolCount?: number | undefined;
+  inputCount?: number | undefined;
+  outputCount?: number | undefined;
+  cacheReadCount?: number | undefined;
+  cacheWriteCount?: number | undefined;
+  sdkCost?: number | undefined;
+  exitCode?: number | undefined;
+}
+
 /**
  * A partial checkpoint. Identity and timestamp are filled from this context;
  * the remaining fields are required before CheckpointStore.save is called.
@@ -111,6 +130,7 @@ export interface PiRunContext {
   checkpoint(partial: PiCheckpointInput): Promise<void>;
   emitToolCall(input: PiToolCallInput): Promise<VistaEvent | undefined>;
   emitToolResult(input: PiToolResultInput): Promise<VistaEvent | undefined>;
+  emitMeasurements(input: PiMeasurementsInput): Promise<VistaEvent | undefined>;
   withRunContext<T>(callback: (context: PiRunContext) => T | Promise<T>): T | Promise<T>;
   flush(): Promise<void>;
   end(): Promise<void>;
