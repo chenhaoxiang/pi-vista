@@ -1,0 +1,70 @@
+{
+  "schema": "ai-capability-evaluation-input/1",
+  "mode": "safe-projection",
+  "records": [
+    {
+      "task_id": "T09",
+      "run_id": "run-030",
+      "arm": "single",
+      "completion": "pass",
+      "tool_calls": null,
+      "elapsed_ms": null,
+      "context_tokens": null,
+      "output_tokens": null,
+      "rework_count": 2,
+      "error_injected": false,
+      "error_recovered": null,
+      "human_interventions": 0,
+      "false_intercepts": null,
+      "safe_action_opportunities": null
+    },
+    {
+      "task_id": "T07",
+      "run_id": "run-618",
+      "arm": "single",
+      "completion": "pass",
+      "tool_calls": null,
+      "elapsed_ms": null,
+      "context_tokens": null,
+      "output_tokens": null,
+      "rework_count": 0,
+      "error_injected": false,
+      "error_recovered": null,
+      "human_interventions": 0,
+      "false_intercepts": null,
+      "safe_action_opportunities": null
+    },
+    {
+      "task_id": "T05",
+      "run_id": "run-16",
+      "arm": "single",
+      "completion": "pass",
+      "tool_calls": null,
+      "elapsed_ms": null,
+      "context_tokens": null,
+      "output_tokens": null,
+      "rework_count": 2,
+      "error_injected": false,
+      "error_recovered": null,
+      "human_interventions": 0,
+      "false_intercepts": null,
+      "safe_action_opportunities": null
+    },
+    {
+      "task_id": "T03",
+      "run_id": "run-620",
+      "arm": "single",
+      "completion": "partial",
+      "tool_calls": null,
+      "elapsed_ms": null,
+      "context_tokens": null,
+      "output_tokens": null,
+      "rework_count": 5,
+      "error_injected": false,
+      "error_recovered": null,
+      "human_interventions": 0,
+      "false_intercepts": null,
+      "safe_action_opportunities": null
+    }
+  ]
+}

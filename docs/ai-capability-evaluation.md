@@ -5,8 +5,9 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-18
-verified: 2026-10-18
+verified: 2026-10-20
 verified_by: manual
+verification_scope: 2026-10-20 supplied natural-task metrics only; the older extension audit retains its original dated scope
 ssot: false
 authority: non-gating
 ---
@@ -312,6 +313,41 @@ controlled error injection，故既有DTO的error_recovered仍null；未采样�
 原生Notify取消/并发/完整声音重复是既定范围内下一最小验证热点；当前没有真实
 paired收益证据支持扩大功能、注入经验、改模型或权限。实际样本终态与未验证项按PR
 和owner文档回读，不从本段预签交付或安装。
+
+### 2026-10-20 接手修复的有限自然样本
+
+本次补入[显式安全 DTO](handoff/evidence/2026-10-20-natural-engineering/input.json)，不新增采集器、
+评分器或 schema；仍由原 `scripts/ai-capability-evaluation.mjs --summarize` 消费。只填入本轮
+可逐项核对的验收状态、修复次数和必要人工介入，既有的 Usage/端到端计时缺口没有补零。
+
+| 安全别名 | 验收投影范围 | 原件入口 | 首候选后因验收不足而返工 | 必要人工介入 | 状态 |
+|---|---|---|---|---|---|
+| run-030 / T09 | 插件开发基线、锁文件、支持文案一致性 | [model-memory PR7](https://github.com/chenhaoxiang/pi-endpoint-model-memory/pull/7) | 2（默认测试隔离；清理失败退出码） | 0 | pass |
+| run-618 / T07 | 现行角色、文档元数据与历史快照分层 | [Meta PR618](https://github.com/tudingaicn/tudingai-meta/pull/618) | 0 | 0 | pass |
+| run-16 / T05 | 自有 PTY 生命周期及正常/故障测试 | [Notify PR16](https://github.com/chenhaoxiang/pi-notify-mac/pull/16) | 2（dry-run/退出/早期清理；登记后交接窗口） | 0 | pass |
+| run-620 / T03 | 原 Guard 误拦根因与候选修正 | [Meta PR620](https://github.com/tudingaicn/tudingai-meta/pull/620) | 5（初 scanner；收回载荷解析；输出边界；分组管道；多中继边） | 0 | partial |
+
+`pass` 只指表中验收投影，不是整个模型能力评分。返工按“首个候选之后因验收不满足而修正”计，
+不把正常实现步骤、提交数、纯发布文案或每条 review 意见分别计一次。人工介入指这些有限
+修复窗口内确需人类裁决/手动恢复；初始授权与正常用户提问不计。独立审查是模型成本，不是
+人类介入。旧 Terminal GUI 残余不在这些已通过样本中，仍是独立未完成项。
+
+此 DTO 是受信操作者根据审查/PR原件作的手动投影，源头未被 runner 认证；没有读取或提交
+原始 session、工具参数、模型输入输出、凭据或私有路径。alias 不扩充为仓/端点身份。
+`T03` 的 `partial` 保留在该观察时点，后续 PR 合并不会反向把此历史样本改成即时 pass。
+
+四条记录都只有 `single` arm；没有同一任务的可比 baseline/candidate，也没有完整 Usage/
+wall time，所以仍为 `capability_claim:not-assessed`、`cost_status:unpriced`、`roi:null`。
+已知返工合计为 9，说明这轮确实发生了修复成本，不能把“成本可接受”写成“返工已减少”。
+没有为了正结论追加真实模型试验、默认注入经验或修改模型/权限。以后只在自然任务已经
+提供同口径两臂与缺失指标时再比较，不能用这四条替代因果收益证据。
+
+可重复的离线读取：
+
+```bash
+node scripts/ai-capability-evaluation.mjs --summarize \
+  < docs/handoff/evidence/2026-10-20-natural-engineering/input.json
+```
 
 ## 7. 共享交付收口
 

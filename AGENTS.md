@@ -61,7 +61,7 @@ Handoff snapshot descriptions below retain their preparation-time boundaries;
 use those maintained entries for later K1/ROI/installation delivery, not a repeat run.
 
 - [openspec/changes/pi-operational-rollout/ai-capability-evaluation-design.md](openspec/changes/pi-operational-rollout/ai-capability-evaluation-design.md): normative contract for the bounded offline/non-gating capability matrix, closed safe projection, and static extension audit boundaries
-- [docs/ai-capability-evaluation.md](docs/ai-capability-evaluation.md): ten concrete offline engineering tasks, manual safe-metric projection and local-extension audit snapshot; no AI score, required CI/Gate, permission or model invocation
+- [docs/ai-capability-evaluation.md](docs/ai-capability-evaluation.md): ten concrete offline engineering tasks, manual safe-metric projection (including four bounded 2026-10-20 natural-task records) and dated local-extension audit snapshot; no AI score, required CI/Gate, permission or model invocation
 - [docs/handoff/2026-10-14-local-observer-install-closeout.md](docs/handoff/2026-10-14-local-observer-install-closeout.md): PR55 source/head/main CI, exclusive actual local shim/readback and isolated fresh conventional SDK1.2 discovery; no old-session/model/bank/guidance activation claim
 - [docs/handoff/evidence/2026-10-14-local-observer/README.md](docs/handoff/evidence/2026-10-14-local-observer/README.md): safe CI/App/installation/SDK fixture projections, each evidence level retained separately
 - [docs/pi-local-observer-install.md](docs/pi-local-observer-install.md): Owner-selected fixed offline observer release, exclusive default shim installation and fresh conventional SDK discovery; no model/bank/guidance/permission activation
