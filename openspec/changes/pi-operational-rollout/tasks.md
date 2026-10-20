@@ -11,6 +11,12 @@ verification_scope: Maintained task status versus merged source and scoped hando
 
 # Sequential tasks
 
+## 2026-10-20 quality-first offline recommendation successor
+
+- [x] Reuse the existing ROI analyzer/validator and closed DTO; permit observed parse/human-intervention improvement under the unchanged non-degradation floor even if tokens or priced SDK cost rise. Keep unknown/denominators/drift, original no-gain actual window and non-authorizing output. No model/bank/profile/permission/default-injection change.
+- [ ] Complete baseline-red/green and applicable stable-source checks, exact-head independent review/CI/PR/main delivery.
+- [ ] Genuine paired natural-engineering effects remain unmeasured; reuse the existing safe-projection runner and mark missing tokens/time/recovery/intervention metrics unknown rather than add a collector or repeat model windows for a positive result.
+
 Current status reconciled as of 2026-10-18. Checked source/scoped deliveries below
 are not instructions to repeat their model trials or installation. The broader
 Stage6 effectiveness/release item and explicit unresolved facts remain open;

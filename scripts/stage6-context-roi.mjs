@@ -5,7 +5,7 @@ const ARM_KEYS = ["runs", "successes", "trace_accurate", "decision_parsed", "ela
 const CONTEXT_KEYS = ["baseline_characters", "guided_characters", "compile_ms", "profile_drift", "evaluation_status"];
 const INPUT_KEYS = ["baseline", "guided", "context"];
 const OUTPUT_KEYS = ["schema", "status", "recommendation", "reason_code", "baseline_successes", "guided_successes", "baseline_trace_accurate", "guided_trace_accurate", "semantic_gain", "trace_gain", "baseline_tokens", "guided_tokens", "token_delta", "token_overhead_ratio", "context_delta_chars", "compile_ms", "elapsed_delta_ms", "tool_calls_delta", "reasoning_tokens_delta", "decision_parsed_delta", "human_interventions_delta", "cost_status", "non_degradation", "verification", "authorization", "executable"];
-const REASONS = ["evaluation-unknown", "semantic-regression", "negative-context-roi", "semantic-gain-observed", "token-saving-observed", "no-demonstrated-benefit"];
+const REASONS = ["evaluation-unknown", "semantic-regression", "negative-context-roi", "semantic-gain-observed", "human-intervention-reduced", "decision-parse-gain-observed", "token-saving-observed", "no-demonstrated-benefit"];
 const refuse = () => { throw Error("stage6-context-roi-refused"); };
 function own(value, keys) {
   if (types.isProxy(value) || value === null || typeof value !== "object" || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value)) || Reflect.ownKeys(value).length !== keys.length) refuse();
@@ -53,9 +53,12 @@ function output(value) {
 }
 function classify(semantic, trace, parsed, human, tokens, chars) {
   const non_degradation = semantic >= 0 && trace >= 0 && parsed >= 0 && human <= 0;
-  const qualityGain = semantic > 0 || trace > 0, candidate = non_degradation && (qualityGain || tokens < 0);
+  const qualityGain = semantic > 0 || trace > 0;
+  // Observed outcome/reliability/human-effort improvements may justify higher
+  // cost. Raw elapsed/tool/token counts alone are not proof of those outcomes.
+  const candidate = non_degradation && (qualityGain || parsed > 0 || human < 0 || tokens < 0);
   return { non_degradation, status: candidate ? "candidate" : "not-beneficial",
-    reason_code: !non_degradation ? "semantic-regression" : qualityGain ? "semantic-gain-observed" : tokens < 0 ? "token-saving-observed" : tokens > 0 || chars > 0 ? "negative-context-roi" : "no-demonstrated-benefit" };
+    reason_code: !non_degradation ? "semantic-regression" : qualityGain ? "semantic-gain-observed" : human < 0 ? "human-intervention-reduced" : parsed > 0 ? "decision-parse-gain-observed" : tokens < 0 ? "token-saving-observed" : tokens > 0 || chars > 0 ? "negative-context-roi" : "no-demonstrated-benefit" };
 }
 /** Pure offline comparison. It never reads model/bank/profile state and never
  * changes guidance injection or permissions. The caller supplies already-safe

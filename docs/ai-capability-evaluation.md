@@ -287,6 +287,32 @@ pi-vista 本机固定 observer manifest 的 86 个文件 hash 与条目绑定在
 - 候选提交阶段的本地快照只证明离线评估集的结构/校验/安全边界和审计快照；共享交付
   的 PR、合并和主线 CI 终态见 §7，仍不代表部署、发布、默认激活或真实运行验收。
 
+### 2026-10-20 自然工程任务观察与成本取舍后继
+
+本轮优先准确性、稳定性、少等待/返工/人工；合理总成本上升可接受，不以调用数、token
+或测试数本身证明成功。既有ROI已允许semantic/trace改善伴随更高成本；实际缺口是它
+没有把已提供的parse改善或人工介入减少计作收益。后继只在原analyzer/validator增加这
+两种non-authorizing候选原因，不改DTO/评分/采集/执行权限，语义与轨迹非退化底线保留。
+单窗口elapsed更快、工具更少或token更低都不能证明真实工程收益；原K1窗口的无收益
+结论不改，也不为取得正数重跑模型。未定价仍unpriced，不把成本接受写成成本减少。
+
+本轮自然发生的Meta交付与Notify回归任务可用现有`--summarize`消费安全投影；但没有
+成对baseline/candidate、完整Usage与端到端计时，故不能给有效改善率/ROI/价格或稳定性
+因果结论。实现、回归、独审和CI提供验收证据，不是模型效果实验。缺失的tool/token/time/
+恢复/人工指标保持null；合成172条回归不能填成172个成功工程样本，未知误拦分母不补零。
+已发生的单臂观察（不是paired效果实验）：Meta PR617普通merge
+`10af53dca8b265c1480222f96c8a0f455137dc13`、head `9bd7045`，精确head CI
+`39363407710`/merge CI `39364530757`成功，default/candidate同PASS_ESCALATED且无
+Owner override。merge调用外层180秒超时后，仅严格只读reconcile恢复：先exit3/pending，
+后exit0/ci-success；没有第二次merge请求。可按T08/T10记单臂验收pass，但它不是
+controlled error injection，故既有DTO的error_recovered仍null；未采样完整Usage/工具
+计数/端到端时间/返工/人工分母，全部保持null。安全投影`--summarize`仍输出
+`supplied-not-authenticated`、unpriced、roi:null、capability_claim:not-assessed。
+
+原生Notify取消/并发/完整声音重复是既定范围内下一最小验证热点；当前没有真实
+paired收益证据支持扩大功能、注入经验、改模型或权限。实际样本终态与未验证项按PR
+和owner文档回读，不从本段预签交付或安装。
+
 ## 7. 共享交付收口
 
 本片代码、设计和验证已由 PR58 进入共享主线。以下是 **PR58 收口时的证据快照**，
