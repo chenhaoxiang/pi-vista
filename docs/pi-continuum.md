@@ -21,7 +21,7 @@ Pi-Continuum 是 ai-gate、workspace-guard、Pi native host 与 pi-vista 的内�
 - observer、memory、建议收集或评测故障不能阻塞主任务；unknown、pending、skipped、历史成功不升级为 ok/current permission。
 - 建议仅通过 trusted-host 显式安全 DTO 和本地 sink 保存，不搬入 raw output/reasoning/命令/路径/凭据，不默认新增模型请求或模型工具。
 - 不承诺所有模型绝对零负面。每个增强必须有同模型、同任务和明确可比预算条件的 native baseline 对照；记录 overhead、schema failure、latency、semantic/task outcome、context和token cost。Owner 2026-10-20明确质量/稳定/少等待返工人工优先，合理成本上升可接受；实际成本仍如实记录，不能为正收益无限追加调用。
-- 质量退化、无已证实业务收益的负 context ROI 或 profile drift 时关闭该增强并保留诊断；成本上升本身不能否决已证实的质量/稳定/人工改善。原窗口无semantic/parse/human收益的失败结论保留，不关闭 guard/gate，不改变硬规则，也不悄悄换模型/渠道/思考档。
+- 质量退化、无已证实业务收益的负 context ROI 或 profile drift 时关闭该增强并保留诊断；成本上升本身不能否决已观察并经独立复核的质量/稳定/人工改善；离线metadata候选仍不是已证实收益。原窗口无semantic/parse/human收益的失败结论保留，不关闭 guard/gate，不改变硬规则，也不悄悄换模型/渠道/思考档。
 
 ## 2. 四平面与单向依赖
 

@@ -22,7 +22,10 @@ schema. Its result is `metadata-only / authorization:none / executable:false`.
   The host maps coordinator drift `classification === "unchanged"` to `unchanged`;
   any protected/volatile drift maps to `unknown` before calling this seam.
 - Semantic/trace regression produces `do-not-inject`; token savings cannot hide quality
-  regression. Semantic gain may produce only `inject-candidate`, never default activation.
+  regression. The retained reason `semantic-regression` covers any floor breach,
+  including parsed-decision loss or increased human interventions; read the deltas
+  to identify the actual dimension. Semantic gain may produce only `inject-candidate`,
+  never default activation.
 - Equal success/trace **and no observed parse/human-intervention improvement** with
   positive token or context overhead produces `not-beneficial/do-not-inject`. A token reduction can produce an `inject-candidate`
   even when the compiled context grew, but a single elapsed improvement alone is not
@@ -35,6 +38,8 @@ schema. Its result is `metadata-only / authorization:none / executable:false`.
   share the same rule. These counters are supplied metadata, not authenticated effects.
   End-to-end waiting, rework and actual recovery are not present in this ROI DTO, so
   they remain unassessed here; raw elapsed or fewer tool calls do not substitute for them.
+  A newly parsed but semantically mismatched decision is not task success: a parse-gain
+  candidate must be read alongside the unchanged paired success/trace counts.
 - `sdk_cost` remains `unpriced` unless both arms carry an explicitly priced SDK
   estimate; null is not free and no independent billing is inferred.
 - The output is a recommendation projection, not an Owner policy, guard/gate result,
