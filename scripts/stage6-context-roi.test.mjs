@@ -41,6 +41,33 @@ test("closed DTO rejects raw prompts, model output, credentials, proxies, getter
   const getter = Object.defineProperty(value, "baseline", { get() { calls++; throw Error(); } }); assert.throws(() => analyzeStage6ContextRoi(getter), /stage6-context-roi-refused/); assert.equal(calls, 0);
   assert.throws(() => analyzeStage6ContextRoi({ ...input(), prompt: "PRIVATE" }), /stage6-context-roi-refused/);
 });
+test("fewer observed human interventions can be a candidate despite higher tokens and priced cost", () => {
+  const r = analyzeStage6ContextRoi(input({ human_interventions: 2, tokens: 100, sdk_cost: 1, cost_priced: true }, { human_interventions: 1, tokens: 180, sdk_cost: 2, cost_priced: true }));
+  assert.equal(r.status, "candidate"); assert.equal(r.reason_code, "human-intervention-reduced");
+  assert.equal(r.semantic_gain, 0); assert.equal(r.trace_gain, 0); assert.equal(r.human_interventions_delta, -1);
+  assert.equal(r.token_delta, 80); assert.equal(r.cost_status, "priced-estimate");
+  assert.equal(r.authorization, "none"); assert.equal(r.executable, false);
+  assert.deepEqual(validateStage6ContextRoi(JSON.parse(JSON.stringify(r))), r);
+});
+test("more valid parsed decisions can be a candidate without token savings or a new semantic success", () => {
+  const r = analyzeStage6ContextRoi(input({ successes: 3, decision_parsed: 3, tokens: 100 }, { successes: 3, decision_parsed: 4, tokens: 180 }));
+  assert.equal(r.status, "candidate"); assert.equal(r.reason_code, "decision-parse-gain-observed");
+  assert.equal(r.semantic_gain, 0); assert.equal(r.decision_parsed_delta, 1); assert.equal(r.non_degradation, true);
+  assert.deepEqual(validateStage6ContextRoi(r), r);
+});
+test("human or parse gain cannot hide quality regression or bypass unknown paired evidence", () => {
+  const worse = analyzeStage6ContextRoi(input({ successes: 3, human_interventions: 2 }, { successes: 2, human_interventions: 1, tokens: 180 }));
+  assert.equal(worse.recommendation, "do-not-inject"); assert.equal(worse.reason_code, "semantic-regression");
+  const unknown = analyzeStage6ContextRoi(input({ human_interventions: 2, unknown_runs: 1 }, { human_interventions: 1, tokens: 180 }));
+  assert.equal(unknown.recommendation, "collect-more"); assert.equal(unknown.human_interventions_delta, null);
+  const r = analyzeStage6ContextRoi(input({}, { tokens: 180 }));
+  assert.throws(() => validateStage6ContextRoi({ ...r, status: "candidate", recommendation: "inject-candidate", reason_code: "human-intervention-reduced" }), /stage6-context-roi-refused/);
+});
+test("lower elapsed, fewer tools and more reasoning alone do not establish an outcome improvement", () => {
+  const r = analyzeStage6ContextRoi(input({ elapsed_ms: 1000, tool_calls: 8, reasoning_tokens: 10 }, { elapsed_ms: 500, tool_calls: 4, reasoning_tokens: 20, tokens: 180 }));
+  assert.equal(r.status, "not-beneficial"); assert.equal(r.reason_code, "negative-context-roi");
+  assert.equal(r.elapsed_delta_ms, -500); assert.equal(r.tool_calls_delta, -4);
+});
 test("import has no model/bank/network work", async () => {
   const source = await (await import("node:fs/promises")).readFile(new URL("./stage6-context-roi.mjs", import.meta.url), "utf8"); assert.doesNotMatch(source, /from ["'](?:node:fs|node:http|node:https|node:child_process)/u); assert.doesNotMatch(source, /import\s*\(/u);
 });
