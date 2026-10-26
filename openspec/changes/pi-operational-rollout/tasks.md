@@ -5,8 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-18
-verification_scope: Maintained task status versus merged source and scoped handoffs; no new runtime/model acceptance
+verified: 2026-10-26
+verification_scope: Only PR61 phase-counter and PR62 quality-first source delivery reread from GitHub; older task evidence retains its own dates; no new runtime/model acceptance
 ---
 
 # Sequential tasks
@@ -14,11 +14,12 @@ verification_scope: Maintained task status versus merged source and scoped hando
 ## 2026-10-20 quality-first offline recommendation successor
 
 - [x] Reuse the existing ROI analyzer/validator and closed DTO; permit observed parse/human-intervention improvement under the unchanged non-degradation floor even if tokens or priced SDK cost rise. Keep unknown/denominators/drift, original no-gain actual window and non-authorizing output. No model/bank/profile/permission/default-injection change.
-- [ ] Complete baseline-red/green and applicable stable-source checks, exact-head independent review/CI/PR/main delivery.
+- [x] Quality-first source delivery completed by [PR62](https://github.com/chenhaoxiang/pi-vista/pull/62): reviewed head `dbe773a55b79ef737b52f2b08e5c4cc96268dbf3`, ordinary merge `743994824433399fbef743f5d0ab2f51d78ff4d4`, exact head CI `39367024099` and merge CI `39367730422` succeeded for Node20/22/26 source and packed consumer. The [original delivery readback](https://github.com/chenhaoxiang/pi-vista/pull/62#issuecomment-6283252533) retains review/App/Gate and local-validation boundaries; this status correction does not rerun or upgrade those historical results.
 - [ ] Genuine paired natural-engineering effects remain unmeasured; reuse the existing safe-projection runner and mark missing tokens/time/recovery/intervention metrics unknown rather than add a collector or repeat model windows for a positive result.
 
-Current status reconciled as of 2026-10-18. Checked source/scoped deliveries below
-are not instructions to repeat their model trials or installation. The broader
+The PR61/PR62 source-delivery rows were reread on 2026-10-26; the earlier
+2026-10-18 reconciliation and other dated evidence retain their original scope.
+Checked source/scoped deliveries below are not instructions to repeat their model trials or installation. The broader
 Stage6 effectiveness/release item and explicit unresolved facts remain open;
 preparation-time pending in snapshot handoffs keeps its historical meaning.
 
@@ -89,7 +90,7 @@ preparation-time pending in snapshot handoffs keeps its historical meaning.
 
 - [x] Add the smallest closed `PiRunContext.emitMeasurements` projection over existing safe artifact stats/run identity; keep missing/unpriced/exit semantics non-authorizing and observer failure fail-open. No raw collector, per-token write, scheduling, model trial or default activation.
 - [x] Add supplied-counter stage, unsafe input/identity, failure/timeout and real EventStore/CLI public-import regressions; preserve old contracts and original redactor failures rather than weakening redaction.
-- [ ] Complete applicable stable full source/packed consumer gates, independent exact-head review/App/CI and ordinary shared delivery; no publication/install/whole-ROI claim.
+- [x] Phase-counter source delivery completed by [PR61](https://github.com/chenhaoxiang/pi-vista/pull/61): reviewed head `aa7d3f17381d4a815f9588e92b7af83b2d2ec981`, ordinary merge `4ff07cff3bc452c06f97e3ca07c8919285f3f2a2`, exact head CI `39341101503` and merge CI `39342243455` succeeded for Node20/22/26 source and packed consumer. The [original delivery readback](https://github.com/chenhaoxiang/pi-vista/pull/61#issuecomment-6279767917) preserves the outer post-CI timeout and strict read-only reconciliation without replaying merge; no publication, installation, first-token-data or whole-ROI claim is added.
 
 ## Exclusions / unresolved facts
 - [ ] Full SDK dependency declaration health remains unresolved; no silent gate relaxation or host patch.
