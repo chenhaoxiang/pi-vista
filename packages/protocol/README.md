@@ -38,6 +38,11 @@ import { VISTA_PROTOCOL_VERSION } from "@pi-vista/protocol";
 | `ExperienceStatus` | Experience lifecycle state |
 | `VistaComponent` | Component identifier union |
 | `VistaResult` | Outcome classification union |
+| `GovernanceReceipt` | Versioned cross-component Run/Effect/Evidence receipt |
+| `GovernanceRunRecord` | Compact resumable Run state |
+| `GovernanceEffectRecord` | Idempotent external-effect state |
+| `GovernanceEvidenceRecord` | Bound evidence and validator state |
+| `GovernanceHandoff` | Versioned fresh-session handoff packet |
 
 ## Redaction contract
 

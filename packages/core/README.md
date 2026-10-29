@@ -74,3 +74,12 @@ await emitVistaEvent({
 The package is fail-open for store I/O and redaction failures: observer
 failures do not block the operation being observed. Caller/protocol mistakes
 are rejected with `VistaProtocolError` before a write is attempted.
+
+## Pi governance receipts
+
+The core package exports the first read-only governance slice:
+`assertGovernanceReceipt`, `isGovernanceReceipt`, the Run/Effect/Evidence record
+validators, and transition predicates. Receipts are versioned, redaction-bound
+and non-authorizing. An `unknown` effect can only move into `reconciling`; the
+validator never retries an external effect or turns an observation into
+permission.

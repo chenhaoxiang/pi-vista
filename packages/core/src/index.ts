@@ -29,6 +29,17 @@ export {
 } from "./run-id.js";
 export { VistaProtocolError, isVistaComponent, isVistaEvent, isVistaResult, isVistaCheckpoint } from "./validation.js";
 export {
+  assertGovernanceReceipt,
+  canTransitionEffect,
+  canTransitionEvidence,
+  canTransitionRun,
+  isGovernanceEffectRecord,
+  isGovernanceEvidenceRecord,
+  isGovernanceEventKind,
+  isGovernanceReceipt,
+  isGovernanceRunRecord,
+} from "./governance.js";
+export {
   CheckpointStore,
   EventStore,
   defaultBaseDir,
