@@ -79,7 +79,9 @@ are rejected with `VistaProtocolError` before a write is attempted.
 
 The core package exports the first read-only governance slice:
 `assertGovernanceReceipt`, `isGovernanceReceipt`, the Run/Effect/Evidence record
-validators, and transition predicates. Receipts are versioned, redaction-bound
-and non-authorizing. An `unknown` effect can only move into `reconciling`; the
-validator never retries an external effect or turns an observation into
-permission.
+validators, transition predicates, and `projectGovernanceReceipt(s)`. Receipts
+are versioned, redaction-bound and non-authorizing. The projection keeps only
+bounded lifecycle/outcome/next-action fields for Desk/Vista consumers; it never
+loads artifact bodies or creates controls. An `unknown` effect can only move
+into `reconciling`; the validator never retries an external effect or turns an
+observation into permission.
