@@ -46,6 +46,16 @@ initialization, request-first-token, generation, tool, build-test, review-ci and
 subagent phases must not be added as overlapping wall-clock totals. See the
 [phase measurement contract](../../docs/adapters/pi.md#optional-phase-measurements-from-existing-host-counters).
 
+## Governance receipts
+
+An extension may supply `emitGovernanceReceipt` to receive a bounded,
+non-authorizing `pi-governance-receipt/1` sink. `context.emitGovernanceReceipt()`
+validates the receipt, binds its `run_id` and optional `session_id` to the
+context, and invokes the sink with the existing fail-open timeout policy.
+There is no default receipt store, retry, scheduler, permission change, or
+business-result inference. Invalid receipts fail before the sink is called;
+sink failure or timeout returns `undefined` without changing Pi execution.
+
 ## Boundaries
 
 - `run_id` is selected from an explicit option, a safe `VISTA_RUN_ID`, or

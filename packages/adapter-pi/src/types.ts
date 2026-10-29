@@ -8,6 +8,7 @@ import type {
   VistaEventInput,
   VistaResult,
 } from "@pi-vista/core";
+import type { GovernanceReceipt } from "@pi-vista/protocol";
 
 /** A structural ArtifactRef input; content is never accepted by this adapter. */
 export type PiArtifactRefInput = NonNullable<VistaEvent["artifact_refs"]>[number];
@@ -33,6 +34,8 @@ export interface PiRunContextOptions {
   eventStore?: Pick<EventStore, "append"> | undefined;
   checkpointStore?: Pick<CheckpointStore, "save"> | undefined;
   emit?: VistaEmitter | undefined;
+  /** Optional non-authorizing receipt sink; invalid receipts are rejected before invocation. */
+  emitGovernanceReceipt?: ((receipt: GovernanceReceipt) => void | Promise<void>) | undefined;
 }
 
 /**
@@ -131,6 +134,7 @@ export interface PiRunContext {
   emitToolCall(input: PiToolCallInput): Promise<VistaEvent | undefined>;
   emitToolResult(input: PiToolResultInput): Promise<VistaEvent | undefined>;
   emitMeasurements(input: PiMeasurementsInput): Promise<VistaEvent | undefined>;
+  emitGovernanceReceipt(receipt: GovernanceReceipt): Promise<GovernanceReceipt | undefined>;
   withRunContext<T>(callback: (context: PiRunContext) => T | Promise<T>): T | Promise<T>;
   flush(): Promise<void>;
   end(): Promise<void>;
