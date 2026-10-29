@@ -15,6 +15,8 @@ export type {
   PiToolResultInput,
 } from "./types.js";
 
+export type { GovernanceReceipt } from "@pi-vista/protocol";
+
 export type {
   VistaCheckpoint,
   VistaEmitter,

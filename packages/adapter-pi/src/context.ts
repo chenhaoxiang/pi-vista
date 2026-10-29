@@ -1,6 +1,7 @@
 import { types } from "node:util";
 import {
   CheckpointStore,
+  assertGovernanceReceipt,
   hasKnownCredential,
   emitVistaEvent,
   generateStepId,
@@ -26,6 +27,7 @@ import type {
   PiToolCallInput,
   PiToolResultInput,
 } from "./types.js";
+import type { GovernanceReceipt } from "@pi-vista/protocol";
 
 const SAFE_LABEL_PATTERN = /^[A-Za-z0-9._:@+-]{1,128}$/u;
 const SUMMARY_PATTERN = /^[A-Za-z0-9._:@+\- \[\],]{1,256}$/u;
@@ -47,6 +49,7 @@ const CONTEXT_METHOD_KEYS = new Set([
   "emitToolCall",
   "emitToolResult",
   "emitMeasurements",
+  "emitGovernanceReceipt",
   "withRunContext",
   "flush",
   "end",
@@ -64,6 +67,7 @@ const CONTEXT_OPTION_KEYS = new Set([
   "eventStore",
   "checkpointStore",
   "emit",
+  "emitGovernanceReceipt",
 ]);
 const TOOL_KEYS = new Set([
   "tool",
@@ -141,6 +145,7 @@ interface NormalizedOptions {
   readonly store: Pick<EventStore, "append"> | undefined;
   readonly checkpointStore: Pick<CheckpointStore, "save">;
   readonly emit: VistaEmitter;
+  readonly emitGovernanceReceipt: ((receipt: GovernanceReceipt) => void | Promise<void>) | undefined;
 }
 
 function reject(message: string): never {
@@ -633,6 +638,13 @@ function normalizeEmitter(value: unknown): VistaEmitter {
   return observerFunction(value, "emit") as VistaEmitter;
 }
 
+function normalizeGovernanceReceiptEmitter(value: unknown): ((receipt: GovernanceReceipt) => void | Promise<void>) | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return observerFunction(value, "emitGovernanceReceipt") as (receipt: GovernanceReceipt) => void | Promise<void>;
+}
+
 function normalizeOptions(value: unknown): NormalizedOptions {
   const options = value === undefined ? {} : snapshotRecord(value, "context options", CONTEXT_OPTION_KEYS);
   const { runId, sessionId } = resolveIdentity(options);
@@ -659,6 +671,7 @@ function normalizeOptions(value: unknown): NormalizedOptions {
   const store = normalizeEventStore(rawStore);
   const checkpointStore = normalizeCheckpointStore(ownValue(options, "checkpointStore"));
   const emit = normalizeEmitter(ownValue(options, "emit"));
+  const emitGovernanceReceipt = normalizeGovernanceReceiptEmitter(ownValue(options, "emitGovernanceReceipt"));
   return {
     runId,
     sessionId,
@@ -668,6 +681,7 @@ function normalizeOptions(value: unknown): NormalizedOptions {
     store,
     checkpointStore,
     emit,
+    emitGovernanceReceipt,
   };
 }
 
@@ -962,6 +976,33 @@ class PiRunContextImpl implements PiRunContext {
         result: "unknown", target_class: "native-stage",
         artifact_refs: [{ type: "run-metrics", ref: `${step.stepId}-metrics-${stage}`, stats }] });
     } catch { return undefined; } // Observation must never block primary execution.
+  }
+
+  async emitGovernanceReceipt(receipt: GovernanceReceipt): Promise<GovernanceReceipt | undefined> {
+    try {
+      if (types.isProxy(receipt)) {
+        reject("governance receipt must not be a Proxy");
+      }
+      assertGovernanceReceipt(receipt);
+      if (receipt.identity.run_id !== this.runId) {
+        reject("governance receipt run_id must match the context run");
+      }
+      if (receipt.identity.session_id !== undefined && receipt.identity.session_id !== this.sessionId) {
+        reject("governance receipt session_id must match the context session");
+      }
+      const sink = this.options.emitGovernanceReceipt;
+      if (sink === undefined) {
+        return undefined;
+      }
+      const operation = Promise.resolve().then(() => Reflect.apply(sink, undefined, [receipt]));
+      await this.track(awaitWithTimeout(operation, this.observerTimeout()));
+      return receipt;
+    } catch (error) {
+      if (error instanceof VistaProtocolError) {
+        throw error;
+      }
+      return undefined;
+    }
   }
 
   async checkpoint(partial: PiCheckpointInput): Promise<void> {
