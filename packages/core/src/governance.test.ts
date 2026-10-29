@@ -9,6 +9,8 @@ import {
   isGovernanceEvidenceRecord,
   isGovernanceReceipt,
   isGovernanceRunRecord,
+  projectGovernanceReceipt,
+  projectGovernanceReceipts,
   VistaProtocolError,
 } from "./index.js";
 import type { GovernanceReceipt } from "@pi-vista/protocol";
@@ -123,6 +125,33 @@ test("governance receipt rejects raw path-like metadata and unsafe redaction fla
     redaction: { ...sampleReceipt().redaction, raw_content_included: true },
   } as unknown;
   strictEqual(isGovernanceReceipt(unsafeRedaction), false);
+});
+
+test("governance receipt projection is bounded and non-authorizing", () => {
+  const receipt = sampleReceipt();
+  const view = projectGovernanceReceipt(receipt);
+  deepStrictEqual(view, {
+    receiptId: "receipt_effect_1",
+    eventKind: "effect.observed",
+    emittedAt: "2026-10-29T00:00:00.000Z",
+    source: "pi",
+    runId: "run_1",
+    effectId: "effect_1",
+    runState: "running",
+    effectState: "observed",
+    executionOutcome: "settled",
+    businessOutcome: "unknown",
+    deliveryOutcome: "not_requested",
+    permissionOutcome: "admitted",
+    reasonCode: "provider_returned",
+    unknown: true,
+    nextAction: "reconcile",
+    evidenceCount: 1,
+    validatedEvidenceCount: 0,
+    authorization: "none",
+    readOnly: true,
+  });
+  deepStrictEqual(projectGovernanceReceipts([receipt, receipt], 1), [view]);
 });
 
 test("governance state transitions keep unknown effects on reconciliation", () => {

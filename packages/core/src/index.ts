@@ -40,6 +40,11 @@ export {
   isGovernanceRunRecord,
 } from "./governance.js";
 export {
+  projectGovernanceReceipt,
+  projectGovernanceReceipts,
+  type GovernanceReceiptProjection,
+} from "./governance-projection.js";
+export {
   CheckpointStore,
   EventStore,
   defaultBaseDir,
