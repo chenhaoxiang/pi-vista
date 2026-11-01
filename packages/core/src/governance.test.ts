@@ -180,6 +180,23 @@ test("attention projection keeps only actionable read-only state", () => {
     next: { action: "none" as const },
   };
   deepStrictEqual(projectGovernanceAttentionQueue([receipt, settled]), []);
+
+  const runClose = {
+    ...receipt,
+    receipt_id: "receipt_run_close_1",
+    event_kind: "run.settled" as const,
+    identity: { ...receipt.identity, effect_id: undefined },
+    status: {
+      ...receipt.status,
+      run: "settled" as const,
+      effect: undefined,
+      execution_outcome: "settled" as const,
+      business_outcome: "completed" as const,
+      delivery_outcome: "delivered" as const,
+    },
+    next: { action: "close" as const },
+  };
+  deepStrictEqual(projectGovernanceAttentionQueue([receipt, runClose]).map((item) => item.queueKey), ["run:run_1"]);
 });
 
 test("attention projection exposes waiting-user state and stays bounded", () => {

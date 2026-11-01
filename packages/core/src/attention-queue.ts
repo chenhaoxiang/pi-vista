@@ -103,18 +103,15 @@ export function projectGovernanceAttentionQueue(
       ? `effect:${projection.runId}:${projection.effectId}`
       : `run:${projection.runId}`;
     const item = attentionItem(projection);
-    if (item === undefined) {
-      latest.delete(key);
-      if (
-        projection.effectId === undefined &&
-        ["settled", "failed", "cancelled", "closed"].includes(projection.runState)
-      ) {
-        for (const existingKey of latest.keys()) {
-          if (existingKey.startsWith(`effect:${projection.runId}:`)) latest.delete(existingKey);
-        }
+    if (item === undefined) latest.delete(key);
+    else latest.set(key, item);
+    if (
+      projection.effectId === undefined &&
+      ["settled", "failed", "cancelled", "closed"].includes(projection.runState)
+    ) {
+      for (const existingKey of latest.keys()) {
+        if (existingKey.startsWith(`effect:${projection.runId}:`)) latest.delete(existingKey);
       }
-    } else {
-      latest.set(key, item);
     }
   }
   return [...latest.values()].slice(0, limit);

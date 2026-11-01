@@ -27,7 +27,7 @@ Fresh handoff 必须保留：
 - 已接受的安全事实；
 - 未解决的 effect；
 - blockers；
-- 下一步和停止条件；
+- 下一步，以及适用时的停止条件；
 - 当前 head 必须重新读取；
 - 不得重放 unknown effect；
 - 不得静默更换模型。

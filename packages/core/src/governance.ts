@@ -26,6 +26,7 @@ import {
   GOVERNANCE_EFFECT_STATUSES,
   GOVERNANCE_EVIDENCE_STATUSES,
   GOVERNANCE_RUN_STATUSES,
+  PI_GOVERNANCE_HANDOFF_SCHEMA,
   PI_GOVERNANCE_RECEIPT_SCHEMA,
 } from "@pi-vista/protocol";
 import { hasKnownCredential } from "./credential.js";
@@ -337,7 +338,7 @@ export function isGovernanceHandoff(value: unknown): value is GovernanceHandoff 
     ? Reflect.ownKeys(constraints)
     : [];
   return (
-    handoff.handoff_schema === "pi-governance-handoff/1" &&
+    handoff.handoff_schema === PI_GOVERNANCE_HANDOFF_SCHEMA &&
     isSafeId(handoff.run_id) &&
     (handoff.goal_id === undefined || isSafeId(handoff.goal_id)) &&
     Number.isInteger(handoff.run_revision) && (handoff.run_revision as number) >= 0 &&
