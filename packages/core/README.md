@@ -85,3 +85,11 @@ bounded lifecycle/outcome/next-action fields for Desk/Vista consumers; it never
 loads artifact bodies or creates controls. An `unknown` effect can only move
 into `reconciling`; the validator never retries an external effect or turns an
 observation into permission.
+
+The Router/Worker/Attention Queue v1 slice adds `assertGovernanceHandoff` and a
+bounded `projectGovernanceAttentionQueue` over those same receipts. The handoff
+requires a current-head read, no replay of unknown effects, and no silent model
+change. The attention queue keeps only items that need a person (waiting,
+reconcile, blocked, handoff, or close), removes stale items when a later receipt
+settles the same run/effect, and remains `authorization: none` / `readOnly: true`;
+it is not a router, scheduler, worker launcher, or permission surface.

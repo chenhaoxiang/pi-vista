@@ -29,6 +29,7 @@ export {
 } from "./run-id.js";
 export { VistaProtocolError, isVistaComponent, isVistaEvent, isVistaResult, isVistaCheckpoint } from "./validation.js";
 export {
+  assertGovernanceHandoff,
   assertGovernanceReceipt,
   canTransitionEffect,
   canTransitionEvidence,
@@ -36,6 +37,7 @@ export {
   isGovernanceEffectRecord,
   isGovernanceEvidenceRecord,
   isGovernanceEventKind,
+  isGovernanceHandoff,
   isGovernanceReceipt,
   isGovernanceRunRecord,
 } from "./governance.js";
@@ -44,6 +46,12 @@ export {
   projectGovernanceReceipts,
   type GovernanceReceiptProjection,
 } from "./governance-projection.js";
+export {
+  projectGovernanceAttention,
+  projectGovernanceAttentionQueue,
+  type GovernanceAttentionItem,
+  type GovernanceAttentionReason,
+} from "./attention-queue.js";
 export {
   CheckpointStore,
   EventStore,

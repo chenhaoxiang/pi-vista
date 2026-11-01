@@ -1,19 +1,23 @@
 import { deepStrictEqual, rejects, strictEqual } from "node:assert/strict";
 import { test } from "node:test";
 import {
+  assertGovernanceHandoff,
   assertGovernanceReceipt,
   canTransitionEffect,
   canTransitionEvidence,
   canTransitionRun,
   isGovernanceEffectRecord,
   isGovernanceEvidenceRecord,
+  isGovernanceHandoff,
   isGovernanceReceipt,
   isGovernanceRunRecord,
+  projectGovernanceAttention,
+  projectGovernanceAttentionQueue,
   projectGovernanceReceipt,
   projectGovernanceReceipts,
   VistaProtocolError,
 } from "./index.js";
-import type { GovernanceReceipt } from "@pi-vista/protocol";
+import type { GovernanceHandoff, GovernanceReceipt } from "@pi-vista/protocol";
 
 function sampleReceipt(): GovernanceReceipt {
   return {
@@ -152,6 +156,70 @@ test("governance receipt projection is bounded and non-authorizing", () => {
     readOnly: true,
   });
   deepStrictEqual(projectGovernanceReceipts([receipt, receipt], 1), [view]);
+});
+
+test("attention projection keeps only actionable read-only state", () => {
+  const receipt = sampleReceipt();
+  const item = projectGovernanceAttention(receipt);
+  strictEqual(item?.reason, "reconcile_required");
+  strictEqual(item?.authorization, "none");
+  strictEqual(item?.readOnly, true);
+  strictEqual(item?.queueKey, "run_1:effect_1");
+
+  const settled = {
+    ...receipt,
+    event_kind: "effect.settled" as const,
+    status: {
+      ...receipt.status,
+      run: "settled" as const,
+      effect: "settled" as const,
+      execution_outcome: "settled" as const,
+      business_outcome: "completed" as const,
+      delivery_outcome: "delivered" as const,
+    },
+    next: { action: "none" as const },
+  };
+  deepStrictEqual(projectGovernanceAttentionQueue([receipt, settled]), []);
+});
+
+test("attention projection exposes waiting-user state and stays bounded", () => {
+  const base = sampleReceipt();
+  const receipt = {
+    ...base,
+    receipt_id: "receipt_waiting_1",
+    event_kind: "run.waiting" as const,
+    status: { ...base.status, run: "waiting" as const },
+    next: { action: "wait" as const, waiting_reason: "needs_user" },
+  };
+  const [item] = projectGovernanceAttentionQueue([receipt], 1);
+  strictEqual(item?.reason, "waiting_user");
+  strictEqual(item?.nextAction, "wait");
+  strictEqual(projectGovernanceAttentionQueue([receipt, receipt], 1).length, 1);
+});
+
+test("governance handoff requires fresh-head and no-replay successor constraints", () => {
+  const handoff: GovernanceHandoff = {
+    handoff_schema: "pi-governance-handoff/1",
+    goal_id: "goal_1",
+    run_id: "run_1",
+    run_revision: 2,
+    source_session_id: "session_1",
+    source_runtime: "pi@1.4.0-fork.3",
+    accepted_facts: ["head_verified", "ci_passed"],
+    unresolved_effects: ["effect_unknown"],
+    blockers: ["business_result_unknown"],
+    next_action: "reconcile",
+    write_scope_digest: "a".repeat(64),
+    stop_condition: "readback_required",
+    successor_constraints: {
+      must_read_current_head: true,
+      must_not_replay_unknown_effect: true,
+      must_not_change_model_silently: true,
+    },
+  };
+  strictEqual(isGovernanceHandoff(handoff), true);
+  assertGovernanceHandoff(handoff);
+  strictEqual(isGovernanceHandoff({ ...handoff, successor_constraints: { ...handoff.successor_constraints, must_read_current_head: false } }), false);
 });
 
 test("governance state transitions keep unknown effects on reconciliation", () => {
