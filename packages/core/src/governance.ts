@@ -329,7 +329,7 @@ export function isGovernanceHandoff(value: unknown): value is GovernanceHandoff 
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const handoff = value as Record<string, unknown>;
   const handoffKeys = Reflect.ownKeys(handoff);
-  if (Object.getPrototypeOf(handoff) !== Object.prototype || handoffKeys.length !== HANDOFF_KEYS.size || handoffKeys.some((key) => typeof key !== "string" || !HANDOFF_KEYS.has(key))) {
+  if (Object.getPrototypeOf(handoff) !== Object.prototype || handoffKeys.some((key) => typeof key !== "string" || !HANDOFF_KEYS.has(key))) {
     return false;
   }
   const constraints = handoff.successor_constraints;

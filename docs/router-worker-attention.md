@@ -48,7 +48,7 @@ Fresh handoff 必须保留：
 - `handoff_required`：需要把结果交付给人；
 - `close_available`：工作已达到可关闭状态。
 
-正常运行中的 `continue`、已完成且已交付的 receipt 不进入队列。相同 run/effect 的后续 receipt 会替换旧投影；后续健康/关闭 receipt 会移除旧的 Attention item，避免重复催促。
+正常运行中的 `continue`、已完成且已交付的 receipt 不进入队列。相同 run/effect 的后续 receipt 会替换旧投影；run 级 settled/failed/cancelled/closed receipt 也会清理该 run 的 effect 级旧项，避免重复催促。已完成但仍需要 handoff 或 close 的 receipt 仍会进入队列；只有 `next.action` 为 `none`/`continue` 且无需对账时保持安静。
 
 所有输出固定标记：
 
@@ -59,7 +59,7 @@ Fresh handoff 必须保留：
 }
 ```
 
-投影丢弃 action payload、evidence body、resource metadata 和原始上下文；观察失败保持 fail-open，不阻塞主执行。
+投影丢弃 action payload、evidence body、resource metadata 和原始上下文。该投影是纯只读旁路；输入不符合既有 Receipt 校验契约时会拒绝并保留错误，调用方不得让它阻塞主执行。
 
 ## 明确不做
 

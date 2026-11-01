@@ -91,5 +91,6 @@ bounded `projectGovernanceAttentionQueue` over those same receipts. The handoff
 requires a current-head read, no replay of unknown effects, and no silent model
 change. The attention queue keeps only items that need a person (waiting,
 reconcile, blocked, handoff, or close), removes stale items when a later receipt
-settles the same run/effect, and remains `authorization: none` / `readOnly: true`;
-it is not a router, scheduler, worker launcher, or permission surface.
+settles the same run/effect or closes the run, and remains `authorization: none` /
+`readOnly: true`; invalid receipts follow the existing projection validation
+contract. It is not a router, scheduler, worker launcher, or permission surface.

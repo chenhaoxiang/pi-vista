@@ -164,7 +164,7 @@ test("attention projection keeps only actionable read-only state", () => {
   strictEqual(item?.reason, "reconcile_required");
   strictEqual(item?.authorization, "none");
   strictEqual(item?.readOnly, true);
-  strictEqual(item?.queueKey, "run_1:effect_1");
+  strictEqual(item?.queueKey, "effect:run_1:effect_1");
 
   const settled = {
     ...receipt,
@@ -188,13 +188,43 @@ test("attention projection exposes waiting-user state and stays bounded", () => 
     ...base,
     receipt_id: "receipt_waiting_1",
     event_kind: "run.waiting" as const,
-    status: { ...base.status, run: "waiting" as const },
+    status: { ...base.status, run: "waiting" as const, business_outcome: "progress" as const },
     next: { action: "wait" as const, waiting_reason: "needs_user" },
   };
   const [item] = projectGovernanceAttentionQueue([receipt], 1);
   strictEqual(item?.reason, "waiting_user");
   strictEqual(item?.nextAction, "wait");
   strictEqual(projectGovernanceAttentionQueue([receipt, receipt], 1).length, 1);
+
+  const runSettled = {
+    ...receipt,
+    receipt_id: "receipt_run_settled_1",
+    event_kind: "run.settled" as const,
+    identity: { ...receipt.identity, effect_id: undefined },
+    status: { ...receipt.status, run: "settled" as const, execution_outcome: "settled" as const, business_outcome: "completed" as const },
+    next: { action: "none" as const },
+  };
+  strictEqual(projectGovernanceAttentionQueue([receipt, runSettled]).length, 0);
+});
+
+test("governance handoff accepts the minimal required packet and rejects unsafe constraints", () => {
+  const minimal: GovernanceHandoff = {
+    handoff_schema: "pi-governance-handoff/1",
+    run_id: "run_1",
+    run_revision: 1,
+    accepted_facts: [],
+    unresolved_effects: [],
+    blockers: [],
+    next_action: "none",
+    successor_constraints: {
+      must_read_current_head: true,
+      must_not_replay_unknown_effect: true,
+      must_not_change_model_silently: true,
+    },
+  };
+  strictEqual(isGovernanceHandoff(minimal), true);
+  assertGovernanceHandoff(minimal);
+  strictEqual(isGovernanceHandoff({ ...minimal, extra: "unknown" }), false);
 });
 
 test("governance handoff requires fresh-head and no-replay successor constraints", () => {
@@ -220,6 +250,21 @@ test("governance handoff requires fresh-head and no-replay successor constraints
   strictEqual(isGovernanceHandoff(handoff), true);
   assertGovernanceHandoff(handoff);
   strictEqual(isGovernanceHandoff({ ...handoff, successor_constraints: { ...handoff.successor_constraints, must_read_current_head: false } }), false);
+});
+
+test("attention projection rejects invalid limits and keeps namespaced run keys", () => {
+  const base = sampleReceipt();
+  const runWaiting = {
+    ...base,
+    receipt_id: "receipt_run_waiting_1",
+    event_kind: "run.waiting" as const,
+    identity: { ...base.identity, effect_id: undefined },
+    status: { ...base.status, run: "waiting" as const, business_outcome: "progress" as const },
+    next: { action: "wait" as const, waiting_reason: "needs_user" },
+  };
+  const [item] = projectGovernanceAttentionQueue([runWaiting]);
+  strictEqual(item?.queueKey, "run:run_1");
+  rejects(async () => projectGovernanceAttentionQueue([runWaiting], 0), /limit must be a positive integer/);
 });
 
 test("governance state transitions keep unknown effects on reconciliation", () => {

@@ -44,11 +44,11 @@ function attentionReason(projection: GovernanceReceiptProjection): GovernanceAtt
   if (projection.businessOutcome === "blocked") {
     return "business_blocked";
   }
-  if (projection.runState === "waiting" || projection.nextAction === "wait") {
-    return "waiting_user";
-  }
   if (projection.nextAction === "reconcile" || projection.unknown) {
     return "reconcile_required";
+  }
+  if (projection.runState === "waiting" || projection.nextAction === "wait") {
+    return "waiting_user";
   }
   if (projection.nextAction === "handoff") {
     return "handoff_required";
@@ -63,7 +63,9 @@ function attentionItem(projection: GovernanceReceiptProjection): GovernanceAtten
   const reason = attentionReason(projection);
   if (reason === undefined) return undefined;
   return {
-    queueKey: `${projection.runId}:${projection.effectId ?? "run"}`,
+    queueKey: projection.effectId
+      ? `effect:${projection.runId}:${projection.effectId}`
+      : `run:${projection.runId}`,
     runId: projection.runId,
     ...(projection.effectId ? { effectId: projection.effectId } : {}),
     eventKind: projection.eventKind,
@@ -97,10 +99,23 @@ export function projectGovernanceAttentionQueue(
   const latest = new Map<string, GovernanceAttentionItem>();
   for (const value of values) {
     const projection = projectGovernanceReceipt(value);
-    const key = `${projection.runId}:${projection.effectId ?? "run"}`;
+    const key = projection.effectId
+      ? `effect:${projection.runId}:${projection.effectId}`
+      : `run:${projection.runId}`;
     const item = attentionItem(projection);
-    if (item === undefined) latest.delete(key);
-    else latest.set(key, item);
+    if (item === undefined) {
+      latest.delete(key);
+      if (
+        projection.effectId === undefined &&
+        ["settled", "failed", "cancelled", "closed"].includes(projection.runState)
+      ) {
+        for (const existingKey of latest.keys()) {
+          if (existingKey.startsWith(`effect:${projection.runId}:`)) latest.delete(existingKey);
+        }
+      }
+    } else {
+      latest.set(key, item);
+    }
   }
   return [...latest.values()].slice(0, limit);
 }
