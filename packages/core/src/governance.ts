@@ -14,6 +14,7 @@ import type {
   GovernanceNext,
   GovernancePermissionOutcome,
   GovernanceReceipt,
+  GovernanceHandoff,
   GovernanceRunRecord,
   GovernanceRunStatus,
   GovernanceSource,
@@ -25,6 +26,7 @@ import {
   GOVERNANCE_EFFECT_STATUSES,
   GOVERNANCE_EVIDENCE_STATUSES,
   GOVERNANCE_RUN_STATUSES,
+  PI_GOVERNANCE_HANDOFF_SCHEMA,
   PI_GOVERNANCE_RECEIPT_SCHEMA,
 } from "@pi-vista/protocol";
 import { hasKnownCredential } from "./credential.js";
@@ -53,6 +55,14 @@ const RUN_ONLY_EVENTS = new Set<GovernanceEventKind>([
   "run.created", "run.admitted", "run.started", "run.waiting", "run.recovering", "run.settled", "run.closed", "run.failed", "run.cancelled", "run.unknown",
 ]);
 const NEXT_ACTIONS = new Set<GovernanceNext["action"]>(["reconcile", "continue", "wait", "close", "handoff", "none"]);
+const HANDOFF_KEYS = new Set([
+  "handoff_schema", "goal_id", "run_id", "run_revision", "source_session_id", "source_runtime",
+  "accepted_facts", "unresolved_effects", "blockers", "next_action", "write_scope_digest", "stop_condition",
+  "successor_constraints",
+]);
+const SUCCESSOR_CONSTRAINT_KEYS = new Set([
+  "must_read_current_head", "must_not_replay_unknown_effect", "must_not_change_model_silently",
+]);
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f\u0080-\u009f]/u;
 const RAW_PATH_PATTERN = /(?:^|[\\/])(?:Users|home|private|var|tmp|etc|opt|workspace|src)(?:[\\/]|$)|^[A-Za-z]:[\\/]/u;
 const SHELL_PATTERN = /(?:&&|\|\||[;`$<>]|\r?\n)/u;
@@ -313,6 +323,46 @@ export function isGovernanceEvidenceRecord(value: unknown): value is GovernanceE
 export function assertGovernanceReceipt(value: unknown): asserts value is GovernanceReceipt {
   if (!isGovernanceReceipt(value)) {
     throw new VistaProtocolError("invalid Pi governance receipt");
+  }
+}
+
+export function isGovernanceHandoff(value: unknown): value is GovernanceHandoff {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const handoff = value as Record<string, unknown>;
+  const handoffKeys = Reflect.ownKeys(handoff);
+  if (Object.getPrototypeOf(handoff) !== Object.prototype || handoffKeys.some((key) => typeof key !== "string" || !HANDOFF_KEYS.has(key))) {
+    return false;
+  }
+  const constraints = handoff.successor_constraints;
+  const constraintKeys = constraints !== null && typeof constraints === "object" && !Array.isArray(constraints)
+    ? Reflect.ownKeys(constraints)
+    : [];
+  return (
+    handoff.handoff_schema === PI_GOVERNANCE_HANDOFF_SCHEMA &&
+    isSafeId(handoff.run_id) &&
+    (handoff.goal_id === undefined || isSafeId(handoff.goal_id)) &&
+    Number.isInteger(handoff.run_revision) && (handoff.run_revision as number) >= 0 &&
+    (handoff.source_session_id === undefined || isSafeId(handoff.source_session_id)) &&
+    (handoff.source_runtime === undefined || isSafeMetadataText(handoff.source_runtime)) &&
+    isSafeStringArray(handoff.accepted_facts) &&
+    isSafeStringArray(handoff.unresolved_effects) &&
+    isSafeStringArray(handoff.blockers) &&
+    typeof handoff.next_action === "string" && NEXT_ACTIONS.has(handoff.next_action as GovernanceNext["action"]) &&
+    (handoff.write_scope_digest === undefined || isSafeMetadataText(handoff.write_scope_digest, 128)) &&
+    (handoff.stop_condition === undefined || isSafeMetadataText(handoff.stop_condition)) &&
+    constraints !== null && typeof constraints === "object" && !Array.isArray(constraints) &&
+    Object.getPrototypeOf(constraints) === Object.prototype &&
+    constraintKeys.length === SUCCESSOR_CONSTRAINT_KEYS.size &&
+    constraintKeys.every((key) => typeof key === "string" && SUCCESSOR_CONSTRAINT_KEYS.has(key)) &&
+    (constraints as Record<string, unknown>).must_read_current_head === true &&
+    (constraints as Record<string, unknown>).must_not_replay_unknown_effect === true &&
+    (constraints as Record<string, unknown>).must_not_change_model_silently === true
+  );
+}
+
+export function assertGovernanceHandoff(value: unknown): asserts value is GovernanceHandoff {
+  if (!isGovernanceHandoff(value)) {
+    throw new VistaProtocolError("invalid Pi governance handoff");
   }
 }
 

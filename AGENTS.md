@@ -129,6 +129,7 @@ use those maintained entries for later K1/ROI/installation delivery, not a repea
 
 - [README.md](README.md): package overview and implementation status
 - [docs/pi-continuum.md](docs/pi-continuum.md): Pi-Continuum four-plane/native-first contract and current bounded K1/ROI/notification-only delivery status; broader effectiveness, default guidance and release remain separate
+- [docs/router-worker-attention.md](docs/router-worker-attention.md): Router/Worker/Attention Queue v1 read-only, non-authorizing projection and fresh-handoff constraints; no execution or scheduler integration
 - [openspec/changes/pi-operational-rollout/pi-continuum-architecture.md](openspec/changes/pi-operational-rollout/pi-continuum-architecture.md): existing S0/S1/P0 source and bounded K1/ROI completion versus broader P1/P2 work; no new execution gate or repeat installation
 - [docs/handoff/2026-10-06-source-merge-closeout.md](docs/handoff/2026-10-06-source-merge-closeout.md): merged-source evidence, source PR reconciliation and remaining boundaries
 - [docs/getting-started.md](docs/getting-started.md): source/package usage
