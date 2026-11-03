@@ -5,8 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-10
-verified: 2026-10-18
-verification_scope: Maintained delivery status reconciled with merged PRs and existing scoped evidence; no new runtime or model acceptance
+verified: 2026-11-04
+verification_scope: New continuity paragraph checked against source and local source/package evidence; earlier delivery reconciliation retains its 2026-10-18 scope; no new runtime/model acceptance
 ssot: true
 ---
 
@@ -93,6 +93,8 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 Timeline/trace assertions、run→regression promotion、pass^k、observability、发行与回滚。每阶段source/mock/fresh独审/CI/普通merge/remote-main分别验真；源码、合成和历史相容不推导live。
 
 ## 7. 已知事实和仍未完成
+
+- **2026-11-04 工作结果连续性仅为本地源码候选**：[现有 Change 的设计/状态](../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#retained-local-validation-and-open-delivery)与[Pi adapter API](adapters/pi.md#explicit-work-result-continuity-local-source-candidate)补入显式 work/binding、原 owner 结果/required 集合读回及同工作/阶段 fresh successor 观察，复用现有 receipt/handoff，不新增执行权。有限有效期、精确 head 与元数据通过不独立认证来源；handoff 始终 `currentVerification:not_checked`、`executable:false`，不恢复旧 run 或丢弃其迟到效果。保留的一期 A/B 定向与公开入口合成结果只支持本地实现；实际前 worker 只确认执行结束/报告可读，源码共享交付仍 unknown/review-required。本地实际 Node20 全 workspace source 与真实打包 consumer 检查通过，仅为工程兼容证据；正式 fresh 异模型独审和 PR/CI/merge 状态须回读原件，安装/默认接线、真实业务与整体收益不由此证明；Intercom 问题执行语义、Desk/Schedule 后继差额留后续 Todo #33，不改 Hindsight 及外围路径，也不重标下列旧交付证据。
 
 - Meta 已交付 PR548正常执行减阻、PR549分层producer、PR551严格只读reconcile、PR552有效目标分支完整门禁、PR553共享handoff；当前Meta owner入口见其 `owner-configurable-automation-policy` Change 和 `docs/handoff/2026-10-10-reconcile-target-base-current-handoff.md`。
 - Vista Stage1–5源码/明确scoped运行已交付；不是默认日常Pi或生产bank验收。

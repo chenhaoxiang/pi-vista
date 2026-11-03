@@ -8,7 +8,8 @@ export function consumerSources(entries) {
   const imports = entries.map((entry, index) => `import * as public${index} from ${JSON.stringify(entry.specifier)};`).join("\n");
   const typescript = `${imports}
 import { CheckRegistry } from "@pi-vista/checks";
-import { createPiRunContext } from "@pi-vista/adapter-pi";
+import { createPiRunContext, snapshotPiWorkBinding, readPiOwnerResult, observePiWorkHandoff } from "@pi-vista/adapter-pi";
+import type { PiOwnerReadback } from "@pi-vista/adapter-pi";
 import type { VistaCheckFunction } from "@pi-vista/protocol";
 export const publicNamespaces = [${entries.map((_, index) => `public${index}`).join(", ")}];
 export async function compareSyntheticMetadata(): Promise<boolean> {
@@ -32,6 +33,35 @@ export async function compareSyntheticMetadata(): Promise<boolean> {
   await context.end();
   return report.satisfied && authorization === "none" && verification === "predicate-only" && observed;
 }
+export async function compareSyntheticWork(): Promise<boolean> {
+  const now = Date.parse("2026-11-04T00:00:30.000Z");
+  const binding = snapshotPiWorkBinding({
+    workRef: { owner: "example/consumer", kind: "document", key: "existing-report" },
+    stageId: "report", runId: "consumer-work-1", sessionId: "consumer-session-1", revision: 1,
+  });
+  const view = await readPiOwnerResult({ binding, resultRef: "consumer-result-1" }, { now,
+    readOwner: (request): PiOwnerReadback => ({
+      binding: request.binding, sourceKind: "report", sourceRef: "consumer-report-original", disposition: "accepted",
+      observedAt: "2026-11-04T00:00:20.000Z", freshUntil: "2026-11-04T00:01:00.000Z",
+      requiredEvidence: [], evidence: [], requiredEffects: [],
+    }),
+  });
+  const handoff = observePiWorkHandoff({
+    previous: binding,
+    successor: { ...binding, runId: "consumer-work-2", sessionId: "consumer-session-2", revision: 0 },
+    handoff: {
+      handoff_schema: "pi-governance-handoff/1", run_id: binding.runId, run_revision: binding.revision,
+      source_session_id: binding.sessionId, accepted_facts: ["consumer-report-readable"],
+      unresolved_effects: ["native-effect-reference"], blockers: [], next_action: "reconcile",
+      successor_constraints: { must_read_current_head: true, must_not_replay_unknown_effect: true, must_not_change_model_silently: true },
+    },
+  });
+  const authorization: "none" = view.authorization;
+  const executable: false = handoff.executable;
+  return view.decision === "deliverable" && authorization === "none" && view.readOnly
+    && handoff.decision === "handoff_observed" && handoff.unresolvedEffectRefs.length === 1
+    && handoff.currentVerification === "not_checked" && executable === false;
+}
 `;
   const probe = `import { strict as assert } from "node:assert";
 import { realpath } from "node:fs/promises";
@@ -48,8 +78,9 @@ for (const entry of entries) {
     require(entry.specifier);
   }
 }
-const { compareSyntheticMetadata, publicNamespaces } = await import("./dist/consumer.js");
+const { compareSyntheticMetadata, compareSyntheticWork, publicNamespaces } = await import("./dist/consumer.js");
 assert.equal(await compareSyntheticMetadata(), true);
+assert.equal(await compareSyntheticWork(), true);
 assert.equal(publicNamespaces.length, entries.length);
 console.log(JSON.stringify({ importedExports: entries.length, compiledConsumer: true, authorization: "none" }));
 `;

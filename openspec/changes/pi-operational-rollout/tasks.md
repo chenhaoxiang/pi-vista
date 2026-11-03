@@ -5,11 +5,27 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-07
-verified: 2026-10-26
-verification_scope: Only PR61 phase-counter and PR62 quality-first source delivery reread from GitHub; older task evidence retains its own dates; no new runtime/model acceptance
+verified: 2026-11-04
+verification_scope: Continuity source/API and retained local checks only; PR61/62 readback retains its 2026-10-26 date and older evidence its original scope; no new runtime/model acceptance
 ---
 
 # Sequential tasks
+
+## 2026-11-04 quality-first work result continuity
+
+- [x] Freeze the approved v0.3 first-path scope, current owner/source baseline and isolated implementation worktree; keep Hindsight and all surrounding memory paths unchanged.
+- [x] Implement closed work references and exact stage/run/session/revision/source binding over existing owner records; snapshots are metadata, not provenance or permission.
+- [x] Implement `consumePiOwnerResult` and explicit `readPiOwnerResult`, using original-owner required evidence/effects, finite freshness and scoped acceptance without a global pending barrier.
+- [x] Cover normal, missing/foreign/stale, report-only, observer-failure and unsafe metadata cases with synthetic regressions; retain the original worker's final 30/30 targeted, 73/73 adapter and 2/2 public result-path checks.
+- [x] Add `observePiWorkHandoff` over existing `GovernanceHandoff`: same work/stage, fresh run/session, original run revision match, preserved accepted/unresolved/blocker refs and no execution/replay/permission; parent handoff unit checks 7/7 and public successor checks 2/2.
+- [x] Exercise the existing Pi context/receipt sink through the two synthetic public-import paths. Separately read back the actual preceding worker's execution terminal/report artifact; only report receipt/readability is confirmed, not shared source or business delivery.
+- [x] Complete the necessary owner API/trust-boundary and local-status documentation (Todo #28) by fresh continuation of the same WorkItem/source stage; keep prior run/results/failures and the protected source candidate unchanged.
+- [x] Complete actual Node20.20.2 full source/typecheck/test and isolated 11-tarball/23-export consumer validation for the combined implementation (Todo #29), including new API calls; retain the separate earlier Phase A counts without relabeling them.
+- [ ] Complete required fresh independent heterogeneous-model exact-candidate review, normal PR/head CI/merge and post-merge verification (Todo #30–32). Source-shared delivery remains unknown/review-required.
+- [ ] Assess Intercom question execution semantics and Desk/Schedule successor/finite-trigger gaps only as later Todo #33–34; reuse existing capabilities, add only a demonstrated necessary gap, and do not force the panorama's entire counterexample table into Phase A/B.
+- [ ] Assess overall quality/continuity benefit and any separately authorized adoption/rollback (Todo #35–36). Installation/default wiring, actual business and overall benefit are unverified, not implied by source or fixture success.
+
+These rows record implementation preparation; later unchecked shared-delivery/adoption milestones are not a substitute for current PR/CI/owner readback. The normative first-path boundary and retained evidence are in [work-result-continuity-design.md](work-result-continuity-design.md); public API usage is in the [Pi adapter guide](../../../docs/adapters/pi.md#explicit-work-result-continuity-local-source-candidate). Checked implementation/local-test rows are not publication, installation, default-runtime or independent-review claims. The Phase A report preserves its initial 26/30 reader failure/late rejection and later correction; no old failure or dated evidence is rewritten as a new pass. These tasks do not authorize Hindsight changes, default activation, real business/model trials, production or new framework/approval layers.
 
 ## 2026-10-20 quality-first offline recommendation successor
 
