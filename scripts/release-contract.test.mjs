@@ -191,8 +191,13 @@ test("consumer compiler source uses public APIs and checks non-authorizing typed
   const sources = consumerSources([{ specifier: "@pi-vista/checks", expectedRuntime: "/synthetic/consumer/node_modules/@pi-vista/checks/dist/index.js" }]);
   assert.match(sources.typescript, /VistaCheckFunction\[\]/);
   assert.match(sources.typescript, /authorization: "none"/);
+  assert.match(sources.typescript, /readPiOwnerResult/);
+  assert.match(sources.typescript, /observePiWorkHandoff/);
+  assert.match(sources.typescript, /PiOwnerReadback/);
+  assert.match(sources.typescript, /currentVerification === "not_checked"/);
   assert.match(sources.probe, /import\.meta\.resolve/);
   assert.match(sources.probe, /compareSyntheticMetadata/);
+  assert.match(sources.probe, /assert\.equal\(await compareSyntheticWork\(\), true\)/);
 });
 
 test("Node20 validators fail closed for other runtimes, checksum mismatches and unsafe archive names", () => {

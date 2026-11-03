@@ -56,6 +56,68 @@ There is no default receipt store, retry, scheduler, permission change, or
 business-result inference. Invalid receipts fail before the sink is called;
 sink failure or timeout returns `undefined` without changing Pi execution.
 
+## Explicit owner result consumption (local source candidate)
+
+These opt-in public exports are implemented locally, not published, installed
+or wired into Pi by default:
+
+- `snapshotPiWorkRef(value)` freezes a closed `{owner, kind, key}` reference to
+  an existing owner record. `snapshotPiWorkBinding(value)` adds
+  `stageId/runId/sessionId/revision/headSha?`. References are safe aliases, not
+  private paths, discovery instructions, provenance or permission.
+- `consumePiOwnerResult(expectedBinding, ownerReadback, now?)` is a pure
+  metadata consistency/applicability check; it does not read or authenticate
+  originals. `now` is epoch milliseconds, defaulting to the current time.
+- `readPiOwnerResult({binding, resultRef}, {readOwner, timeoutMs?, now?})` uses
+  an explicitly injected trusted-host reader of the existing result/receipt,
+  original owner acceptance and required evidence/effects. No default reader,
+  task store, network/session scan or Hindsight call is added.
+
+The original owner declares the complete required set for this stage. The
+helper checks all declared items' exact work/stage/run/session/revision/head,
+ID, kind, original source alias and claims. `sourceKind` is `code`, `artifact`,
+`business` or `report`, using that kind's applicable originals; code requires
+an exact lowercase 40- or 64-character head and matching evidence SHA. Owner
+and selected evidence timestamps use exact UTC millisecond ISO strings, with
+finite validity satisfying `observed <= now < expiry`; selected evidence cannot
+postdate the owner snapshot. Non-report stages require evidence; reports/designs
+can satisfy their own original acceptance without code CI, while still meeting
+any evidence requirements they declare.
+
+Every required effect must match this stage and be `settled` and owner
+`accepted`. Pending/unknown/failed/cancelled cannot become successful delivery;
+unrelated work, advisory checks and later-stage pending are not global barriers.
+Returned `deliverable`, `reportable_terminal` or `reconcile_required` observations
+always have `authorization: "none"` and `readOnly: true`; they do not write task
+or delivery state, acknowledge user receipt, replay effects or grant execution.
+A copied `validated` flag, timestamp or well-formed callback response does not
+independently authenticate its source. Correct original resolution, required
+sets and native acceptance remain the host's trust responsibility.
+
+Reader failure/timeout affects only the observation, not native execution or
+its Gate. The async wait defaults to 250 ms (integer 0–30,000 ms); there is no
+cancellation, and late outcomes do not rewrite the result. It is not a sandbox
+for synchronous host code or a callback that violates its read-only contract.
+
+`observePiWorkHandoff({previous, successor, handoff})` relates an existing
+`GovernanceHandoff` to the same owner work/stage with a different run **and**
+session. The packet must match the original run/revision and optional source
+session; revisions are run-local, not ordered across runs. A valid relation
+preserves accepted-fact, unresolved-effect and blocker refs, but always marks
+`sourceHeadRecheckRequired: true`, `currentVerification: "not_checked"` and
+`executable: false`. Packet flags do not prove a new head was independently
+read. The helper neither resumes execution nor changes native claims/fencing.
+Old artifacts and real late effects retain their original ownership for
+read-only reconciliation, not automatic replay or successor settlement.
+
+See the [API, trusted-host example and boundaries](../../docs/adapters/pi.md#explicit-work-result-continuity-local-source-candidate)
+and [retained local validation/open delivery](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#retained-local-validation-and-open-delivery).
+Local source/package checks are engineering evidence only, not independent
+review, current PR/CI/merge state, installation/default wiring, actual business
+or overall benefit. Read current shared-delivery state from its original
+Git/CI/owner sources. Intercom question semantics and Desk/Schedule successor
+gaps remain later owner-specific work, not an implicit first-phase scope.
+
 ## Boundaries
 
 - `run_id` is selected from an explicit option, a safe `VISTA_RUN_ID`, or

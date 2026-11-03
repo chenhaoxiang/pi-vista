@@ -55,6 +55,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
+- [Work result continuity](openspec/changes/pi-operational-rollout/work-result-continuity-design.md): quality-first explicit owner readback, work/stage/run identity, scoped delivery and controlled handoff; no Hindsight changes, default activation or new execution authority.
+
 Current Pi-Continuum stage status is maintained in [docs/pi-continuum.md §7](docs/pi-continuum.md#7-已知事实和仍未完成)
 and the [existing rollout tasks](openspec/changes/pi-operational-rollout/tasks.md).
 Handoff snapshot descriptions below retain their preparation-time boundaries;
