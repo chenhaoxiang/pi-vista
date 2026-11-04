@@ -68,7 +68,7 @@ async function githubOriginal(kind, c, merge) {
   const prefix = `repos/${c.repository}`;
   const routes = {
     pr: [`${prefix}/pulls/${c.pullRequest}`, '{number,merged,merged_at,merge_commit_sha,head:{sha:.head.sha},base:{ref:.base.ref,repo:{full_name:.base.repo.full_name}}}'],
-    checks: [`${prefix}/commits/${c.binding.headSha}/check-runs?per_page=100`, '{total_count,check_runs:[.check_runs[]|{id,name,head_sha,status,conclusion,started_at,completed_at,app:{id:.app.id},output:{summary:.output.summary}}]}'],
+    checks: [`${prefix}/commits/${c.binding.headSha}/check-runs?per_page=100`, `${JSON.stringify(c.headChecks)} as $required | {total_count,check_runs:[.check_runs[] | . as $check | {id,name,head_sha,status,conclusion,started_at,completed_at,app:{id:.app.id},output:{summary:([$required[] | select(.name == $check.name and .appId == $check.app.id and .reviewHash != null) | .reviewHash as $hash | select(($check.output.summary // "") | contains($hash)) | $hash] | join(" "))}}]}`],
     workflows: [`${prefix}/actions/runs?head_sha=${merge}&event=push&branch=${encodeURIComponent(c.baseRef)}&per_page=100`, '{total_count,workflow_runs:[.workflow_runs[]|{id,name,head_sha,status,conclusion,event,head_branch,run_attempt,created_at,repository:{full_name:.repository.full_name}}]}'],
     ancestry: [`${prefix}/compare/${merge}...${encodeURIComponent(c.baseRef)}`, '{status,base_commit:{sha:.base_commit.sha}}'],
   };
@@ -81,6 +81,23 @@ async function githubOriginal(kind, c, merge) {
 function latest(rows) {
   if (!Array.isArray(rows) || !rows.length || rows.some(x => !integer(x.id))) fail("required_original_missing");
   return [...rows].sort((a, b) => b.id - a.id)[0];
+}
+function selectChecks(checks, c) {
+  if (!Array.isArray(checks.check_runs) || checks.total_count !== checks.check_runs.length || checks.check_runs.length > 100) fail("original_coverage_incomplete");
+  return c.headChecks.map(requirement => {
+    const row = latest(checks.check_runs.filter(x => x.name === requirement.name && x.app?.id === requirement.appId && x.head_sha === c.binding.headSha));
+    if (row.status !== "completed" || row.conclusion !== "success") fail("source_check_not_successful");
+    if (requirement.reviewHash && (typeof row.output?.summary !== "string" || !row.output.summary.includes(requirement.reviewHash))) fail("review_hash_mismatch");
+    return { kind: "ci", ref: `check-${row.id}`, original: row };
+  });
+}
+function selectWorkflows(workflows, c, merge) {
+  if (!Array.isArray(workflows.workflow_runs) || workflows.total_count !== workflows.workflow_runs.length || workflows.workflow_runs.length > 100) fail("original_coverage_incomplete");
+  return c.mergeWorkflows.map(name => {
+    const row = latest(workflows.workflow_runs.filter(x => x.name === name && x.head_sha === merge && x.event === "push" && x.head_branch === c.baseRef && x.repository?.full_name === c.repository));
+    if (row.status !== "completed" || row.conclusion !== "success") fail("merge_workflow_not_successful");
+    return { kind: "ci", ref: `workflow-${row.id}`, original: row };
+  });
 }
 function gatePremerge(gate, c, pr, now) {
   const b = gate.evidence_readiness?.binding;
@@ -114,23 +131,15 @@ export async function observeCodeOwner(value, { readGitHub = githubOriginal, rea
     const [checks, workflows, ancestry, gateBytes] = await Promise.all([
       readGitHub("checks", c, merge), readGitHub("workflows", c, merge), readGitHub("ancestry", c, merge), readGate(c.gateReportFile),
     ]);
-    if (!Array.isArray(checks.check_runs) || checks.total_count !== checks.check_runs.length || checks.check_runs.length > 100
-      || !Array.isArray(workflows.workflow_runs) || workflows.total_count !== workflows.workflow_runs.length || workflows.workflow_runs.length > 100) fail("original_coverage_incomplete");
     if (ancestry.base_commit?.sha !== merge || !["identical", "ahead"].includes(ancestry.status)) fail("merge_not_in_base");
-    const required = c.headChecks.map(requirement => {
-      const row = latest(checks.check_runs.filter(x => x.name === requirement.name && x.app?.id === requirement.appId && x.head_sha === c.binding.headSha));
-      if (row.status !== "completed" || row.conclusion !== "success") fail("source_check_not_successful");
-      if (requirement.reviewHash && (typeof row.output?.summary !== "string" || !row.output.summary.includes(requirement.reviewHash))) fail("review_hash_mismatch");
-      return { kind: "ci", ref: `check-${row.id}`, original: row };
-    });
-    for (const name of c.mergeWorkflows) {
-      const row = latest(workflows.workflow_runs.filter(x => x.name === name && x.head_sha === merge && x.event === "push" && x.head_branch === c.baseRef && x.repository?.full_name === c.repository));
-      if (row.status !== "completed" || row.conclusion !== "success") fail("merge_workflow_not_successful");
-      required.push({ kind: "ci", ref: `workflow-${row.id}`, original: row });
-    }
+    const required = [...selectChecks(checks, c), ...selectWorkflows(workflows, c, merge)];
+    const originalFingerprint = digest(required);
     const current = await readGitHub("pr", c);
     if (current.number !== pr.number || current.head?.sha !== pr.head?.sha || current.base?.ref !== pr.base?.ref || current.base?.repo?.full_name !== pr.base?.repo?.full_name
       || current.merged !== true || current.merge_commit_sha !== merge || current.merged_at !== pr.merged_at) fail("pr_changed_during_readback");
+    const [lastChecks, lastWorkflows] = await Promise.all([readGitHub("checks", c, merge), readGitHub("workflows", c, merge)]);
+    const finalRequired = [...selectChecks(lastChecks, c), ...selectWorkflows(lastWorkflows, c, merge)];
+    if (originalFingerprint !== digest(finalRequired)) fail("required_evidence_changed_during_readback");
     const time = now(), gate = parseOriginalGate(gateBytes); gatePremerge(gate, c, pr, time);
     required.push({ kind: "readback", ref: "gate-original", original: gate }, { kind: "merge", ref: `merge-${merge}`, original: pr });
     const observedAt = new Date(time).toISOString(), freshUntil = new Date(time + 30_000).toISOString();
@@ -167,8 +176,9 @@ export async function recordCodeOwnerObservation(view, store) {
 
 if (isMain(import.meta.url)) {
   const arg = process.argv.slice(2);
-  if (![1, 2].includes(arg.length) || !arg[0].startsWith("--contract=") || (arg.length === 2 && arg[1] !== "--record")) throw Error("usage: --contract=<explicit private owner contract file> [--record]");
-  try {
+  if (![1, 2].includes(arg.length) || !arg[0].startsWith("--contract=") || (arg.length === 2 && arg[1] !== "--record")) {
+    console.error("usage: --contract=<explicit private owner contract file> [--record]"); process.exitCode = 2;
+  } else try {
     const contract = JSON.parse((await readSubagentFile(arg[0].slice(11))).toString("utf8"));
     const result = await observeCodeOwner(contract);
     const recorded = arg.length === 2 ? await recordCodeOwnerObservation(result, new EventStore()) : undefined;

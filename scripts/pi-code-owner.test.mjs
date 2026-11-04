@@ -5,6 +5,7 @@ import { EventStore } from "@pi-vista/core";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "./release-utils.mjs";
+import { spawnSync } from "node:child_process";
 const head = "a".repeat(40), merge = "b".repeat(40), now = Date.parse("2026-01-02T00:00:00.000Z");
 function fixture() {
   const c = { binding: { workRef: { owner: "example/engineering", kind: "change", key: "existing-work" }, stageId: "source-shared-delivery", runId: "source-run", sessionId: "parent-session", revision: 0, headSha: head },
@@ -92,6 +93,32 @@ test("a fail-open append without readable row is not declared recorded", async (
   const f = fixture(), view = await f.run();
   assert.equal(await recordCodeOwnerObservation(view, { async append() {}, async readRun() { return []; } }), false);
   assert.equal(view.decision, "deliverable");
+});
+
+test("failure, foreign Gate and missing required effect cases remain unresolved", async () => {
+  const cases = [
+    [f => { f.checks.check_runs[0].conclusion = "failure"; }, "source_check_not_successful"],
+    [f => { f.workflows.workflow_runs[0].conclusion = "failure"; }, "merge_workflow_not_successful"],
+    [f => { f.gate.evidence_readiness.binding.repository = "other/repo"; }, "gate_binding_mismatch"],
+    [f => { f.gate.execution_observations.pop(); }, "gate_required_result_missing"],
+    [f => { f.pr.merged = false; }, "pr_not_merged"],
+  ];
+  for (const [mutate, code] of cases) { const f = fixture(); mutate(f); const v = await f.run(); assert.equal(v.reasonCode, code); assert.equal(v.outcome, "unknown"); }
+});
+test("required evidence is re-read once and a new check or workflow attempt invalidates", async () => {
+  for (const kind of ["checks", "workflows"]) {
+    const f = fixture(); let n = 0;
+    const v = await f.run({ readGitHub: async key => {
+      const value = { pr: f.pr, checks: f.checks, workflows: f.workflows, ancestry: f.ancestry }[key];
+      if (key === kind && ++n === 2) { if (key === "checks") value.check_runs[0].id = 88; else value.workflow_runs[0].run_attempt = 2; }
+      return value;
+    } });
+    assert.equal(v.reasonCode, "required_evidence_changed_during_readback"); assert.equal(n, 2);
+  }
+});
+test("standalone host usage refuses missing contract before any IO", () => {
+  const v = spawnSync(process.execPath, [join(ROOT, "scripts/pi-code-owner.mjs")], { encoding: "utf8" });
+  assert.equal(v.status, 2); assert.match(v.stderr, /^usage:/); assert.equal(v.stdout, "");
 });
 
 test("original Gate parser accepts one explicit JSON object and refuses ambiguous trailing content", () => {
