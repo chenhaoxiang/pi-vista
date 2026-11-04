@@ -287,6 +287,35 @@ original PR/CI/owner sources. Installation/default wiring, actual business and
 overall benefit are not implied. No prior phase-counter or notification-only
 installation evidence is upgraded by these exports.
 
+## Explicit source-owner original readback
+
+The opt-in host operator [`scripts/pi-code-owner.mjs`](../../scripts/pi-code-owner.mjs)
+provides a concrete GitHub/Gate reader for an explicitly selected engineering
+stage. It is separate from the offline public `vista` CLI and the notification
+observer; import does not trigger network activity. Supply existing work/binding,
+exact repository/PR/head/base, complete required checks with App IDs (review hash
+when applicable), merge workflows and the exact original Gate report path. The
+host uses fixed bounded GitHub GETs and the selected file, then delegates to
+`consumePiOwnerResult`; it never calls Gate, merge, CI rerun or deploy.
+
+```sh
+node scripts/pi-code-owner.mjs --contract=/private/task/owner-contract.json
+# Optional: also append safe stage metadata to the existing local EventStore.
+node scripts/pi-code-owner.mjs --contract=/private/task/owner-contract.json --record
+```
+
+This example is a host-selected private contract, not a discovered environment or
+new task store. Requirement completeness and the original Gate artifact's actual
+provenance remain the trusted host/owner's responsibility. Unknown or malformed
+originals return a non-authorizing unresolved observation with fixed reason codes.
+Postmerge re-evaluation/reconcile cannot be relabeled as historical premerge Gate
+acceptance; an unrelated pending check cannot block a satisfied declared stage.
+The output is source delivery only, not installed/running/business success.
+`--record` is an explicit local observation write, not a source/owner write; it
+confirms the exact event through EventStore readback before claiming recorded.
+Storage failure leaves the source observation unchanged and recorded false. See
+[the maintained source-owner contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-source-owner-acceptance-long-term-work-package49).
+
 ## Integration boundary
 
 The adapter imports only public `@pi-vista/core` APIs and has no dependency on

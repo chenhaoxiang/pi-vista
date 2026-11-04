@@ -58,6 +58,7 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 - [Work result continuity](openspec/changes/pi-operational-rollout/work-result-continuity-design.md): quality-first explicit owner readback and controlled handoff, plus separately selected fresh-session host observation/pilot; no Hindsight changes or new execution authority.
 - [scripts/pi-work-observer.mjs](scripts/pi-work-observer.mjs): forward-only fresh-cohort native Todo metadata and explicit trusted-owner event ports; no Todo-to-delivery inference, model tool or history scan.
 - [scripts/pi-subagent-owner.mjs](scripts/pi-subagent-owner.mjs): bounded native Subagents mission/run/status/output original adapter; reports artifact availability only, not task acceptance or business completion.
+- [scripts/pi-code-owner.mjs](scripts/pi-code-owner.mjs): explicitly invoked source-stage GitHub/Gate original reader; fixed GETs, complete owner-declared requirements and premerge/postmerge distinction, no Gate/merge/CI execution. Not the offline public observation CLI.
 
 Current Pi-Continuum stage status is maintained in [docs/pi-continuum.md §7](docs/pi-continuum.md#7-已知事实和仍未完成)
 and the [existing rollout tasks](openspec/changes/pi-operational-rollout/tasks.md).

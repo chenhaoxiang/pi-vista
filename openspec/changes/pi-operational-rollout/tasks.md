@@ -48,6 +48,14 @@ These rows describe preparation-time pilot/source facts. Later source/installati
 - [ ] Finish exact-head independent source review, ordinary PR/CI/Gate/merge and fixed-runtime upgrade readback before claiming default producer delivery.
 - [ ] Package49 original Git/CI/Gate stage acceptance,50 full fresh recovery,51 questions and52 Desk integration remain separate; output availability does not complete them. Package55 natural measurements are retained as single-sample diagnostics, not causal ROI.
 
+## Long-term v0.4 source-owner acceptance (work package49)
+
+- [x] Add an explicitly invoked code-stage original reader using the existing owner binding/result consumer: exact PR/head/base, owner-declared check/App set, review hash, merge workflow, ancestry and original Gate report.
+- [x] Keep Gate/merge/CI/deploy side effects out of the reader; distinguish original premerge Gate from postmerge reconciliation and return authorization:none/readOnly source-shared-delivery only.
+- [x] Validate synthetic positive/negative contracts: unrelated pending does not block, missing/foreign/failed/incomplete originals remain unknown, current binding changes invalidate, postmerge-only Gate cannot prove historical premerge, and no private source/error content escapes.
+- [x] Consume actual PR68 originals as a positive source-delivery readback. Preserve PR69's postmerge-only Gate log as a negative/unknown preparation fact after an accidental already-merged Gate invocation; do not relabel it as historical premerge proof.
+- [ ] Choose an owner-approved production consumer for code/CI delivery and run it only where the original owner contract supplies complete evidence; business/provider and installation remain separate stages.
+
 ## 2026-10-20 quality-first offline recommendation successor
 
 - [x] Reuse the existing ROI analyzer/validator and closed DTO; permit observed parse/human-intervention improvement under the unchanged non-degradation floor even if tokens or priced SDK cost rise. Keep unknown/denominators/drift, original no-gain actual window and non-authorizing output. No model/bank/profile/permission/default-injection change.
