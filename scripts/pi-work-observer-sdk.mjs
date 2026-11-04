@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, isAbsolute, normalize } from "node:path";
+import { mkdir, readFile, writeFile, realpath } from "node:fs/promises";
+import { dirname, join, isAbsolute, normalize, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { EventStore } from "@pi-vista/core";
@@ -39,7 +39,9 @@ export async function runWorkObserverSdk({ sdkRoot, entry, ownerReport, todoEntr
   await writeFile(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n"); return { evidence: output, report };
 }
 async function child({ sdk, entry, fixture, scenario, report, todo }) {
-  assert.ok(fixture.startsWith(join(ROOT, "tmp/release-contract/") )); assert.equal(process.env.HOME, fixture);
+  assert.ok(fixture.startsWith(join(ROOT, "tmp/release-contract") + sep));
+  assert.equal(normalize(fixture), fixture); assert.equal(await realpath(fixture), fixture);
+  assert.equal(process.env.HOME, fixture);
   assert.ok(["normal", "old-session", "storage-fault"].includes(scenario));
   const api = await import(pathToFileURL(join(sdk, "dist/index.js")));
   const { AssistantMessageEventStream } = await import(pathToFileURL(join(dirname(sdk), "pi-ai/dist/utils/event-stream.js")));

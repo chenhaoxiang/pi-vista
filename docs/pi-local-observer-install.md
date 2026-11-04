@@ -31,8 +31,10 @@ See [notification/preview contracts](pi-observe-preview.md).
 
 ## Selected fresh-session work observer
 
-The later user-selected continuation adds a **separate** `pi-vista-work.ts`
-entry after a self-run low-risk task pilot and applicable code gates. It does not
+The later user-selected continuation prepares a **separate** `pi-vista-work.ts`
+entry after a self-run low-risk task pilot and applicable code gates. It is not
+installed in this preparation snapshot; remaining installation is tracked in the
+[rollout tasks](../openspec/changes/pi-operational-rollout/tasks.md#2026-11-04-selected-fresh-session-host-pilot-and-adoption). It does not
 replace `pi-vista-local.ts`, retarget its release or duplicate its notification
 commands. The existing notification-only installation and its older evidence stay
 unchanged.
@@ -52,7 +54,9 @@ loads, not historical data, old runtimes or in-flight native work.
 
 All eligible new sessions observe current native Todo numeric ID/status changes
 without copying text or metadata. Todo completed means **unverified**, not
-successful task delivery. `/vista-work-status` reports forward-only coverage.
+successful task delivery. `/vista-work-status` reports forward-only observed
+counts, not persisted row counts; `unavailable` and `persistence: best-effort`
+expose lost observation/storage coverage.
 Explicit same-process owner producers may supply current original readers through
 `pi-vista:owner-result`/`pi-vista:work-handoff`; loading the receiver does not claim
 that every business owner produces those events. Missing/failed observation is

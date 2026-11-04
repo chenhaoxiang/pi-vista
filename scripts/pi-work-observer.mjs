@@ -95,7 +95,10 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   function request(payload, kind) {
     const identity = current, version = generation;
     if (!identity) return;
-    if (data(payload, "hostSessionId") !== identity.session || inFlight >= 32) { report(); return; }
+    const address = data(payload, "hostSessionId");
+    if (typeof address !== "string") { report(); return; }
+    if (address !== identity.session) return;
+    if (inFlight >= 32) { report(); return; }
     const onObservation = data(payload, "onObservation");
     if (onObservation !== undefined && (typeof onObservation !== "function" || types.isProxy(onObservation))) { report(); return; }
     const reference = data(payload, "reference"), readOwner = data(payload, "readOwner");
@@ -140,7 +143,8 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   }
   function status() {
     return Object.freeze({ schema: 1, loaded: current !== undefined, mode: "forward-only-readonly",
-      ...counts, inFlight, todoCompletionIsDelivery: false, ownerProducerRequired: true,
+      ...counts, inFlight, todoRecordsMeaning: "observed-not-persisted", persistence: "best-effort",
+      todoCompletionIsDelivery: false, ownerProducerRequired: true,
       authorization: "none", executable: false });
   }
   function extension(pi) {

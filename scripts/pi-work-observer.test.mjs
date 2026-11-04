@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { isVistaEvent } from "@pi-vista/core";
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
+import { ROOT } from "./release-utils.mjs";
 import { createPiWorkObserver, OWNER_RESULT_EVENT, HANDOFF_EVENT } from "./pi-work-observer.mjs";
 
 const since = "2026-01-01T00:00:00.000Z", now = Date.now();
@@ -29,6 +32,14 @@ function todo(f, statuses, action = "update", call = "call-1") {
   return f.handlers.get("tool_execution_end")({ toolName: "todo", toolCallId: call,
     result: { details: { action, tasks: statuses.map(([id, status]) => ({ id, status, subject: "PRIVATE_TASK_BODY", metadata: { secret: "PRIVATE_METADATA" } })) } } });
 }
+
+test("SDK child refuses sibling and traversal fixture paths before SDK or writes", () => {
+  for (const fixture of [join(ROOT, "tmp/release-contract-sibling"), `${ROOT}/tmp/release-contract/../outside`]) {
+    const result = spawnSync(process.execPath, [join(ROOT, "scripts/pi-work-observer-sdk.mjs"), "--sdk=/fixture/sdk", "--entry=/fixture/entry.ts", `--fixture=${fixture}`, "--scenario=normal"], { encoding: "utf8" });
+    assert.equal(result.status, 1); assert.match(result.stderr, /AssertionError/);
+    assert.ok(!result.stderr.includes("ERR_MODULE_NOT_FOUND"));
+  }
+});
 
 test("new cohort loads forward-only; old resumed session stays untouched, no branch read", () => {
   const f = fixture();
@@ -92,6 +103,7 @@ test("foreign and expired owner results remain unknown", async () => {
 test("event host mismatch, proxy and getter payloads do not execute readers", async () => {
   const f = fixture(); f.handlers.get("session_start")({}, f.ctx()); let calls = 0;
   f.events.emit(OWNER_RESULT_EVENT, { hostSessionId: "another-session", readOwner() { calls++; } });
+  assert.equal(f.observer.status().unavailable, 0);
   f.events.emit(OWNER_RESULT_EVENT, new Proxy({}, { get() { calls++; throw Error(); } }));
   f.events.emit(OWNER_RESULT_EVENT, Object.defineProperty({}, "hostSessionId", { get() { calls++; throw Error(); } }));
   await f.observer.drain(); assert.equal(calls, 0); assert.equal(f.diagnostics.length, 1);
@@ -155,6 +167,8 @@ test("storage faults and registration failure remain bounded diagnostics only", 
   const f = fixture({ store: { append() { throw Error("PRIVATE_PATH"); } } });
   f.handlers.get("session_start")({}, f.ctx()); todo(f, [[1, "completed"]]);
   assert.equal(f.diagnostics.length, 1); assert.ok(f.observer.status().unavailable >= 2);
+  assert.equal(f.observer.status().todoRecordsMeaning, "observed-not-persisted");
+  assert.equal(f.observer.status().persistence, "best-effort");
   const broken = fixture(); broken.pi.events.on = () => { throw Error(); };
   broken.observer.extension(broken.pi); assert.equal(broken.observer.status().loaded, false);
 });

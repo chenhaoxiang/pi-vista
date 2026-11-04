@@ -71,7 +71,9 @@ test("release builder refuses structurally malformed inputs before commands or d
   for (const input of [proxy, accessor, { source_sha: "a".repeat(40), destination: "relative" },
     { source_sha: "bad", destination: join(ROOT, "tmp", "must-not-be-created") },
     { source_sha: "a".repeat(40), destination: "/fixture/../target" },
-    { source_sha: "a".repeat(40), destination: "/fixture/target", permission: true }]) {
+    { source_sha: "a".repeat(40), destination: "/fixture/target", permission: true },
+    { source_sha: "a".repeat(40), destination: "/fixture/target", entry_name: "other.mjs" },
+    { source_sha: "a".repeat(40), destination: "/fixture/target", entry_name: 7 }]) {
     await assert.rejects(buildPiLocalObserverRelease(input), /pi-local-observer-release-refused/);
   }
   assert.equal(calls, 0);
