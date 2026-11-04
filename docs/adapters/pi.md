@@ -316,6 +316,72 @@ confirms the exact event through EventStore readback before claiming recorded.
 Storage failure leaves the source observation unchanged and recorded false. See
 [the maintained source-owner contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-source-owner-acceptance-long-term-work-package49).
 
+## Same-process completed-observation export (v1 host candidate)
+
+The separate `scripts/pi-work-observer.mjs` host exposes already-completed
+`PiResultConsumption` / `PiWorkHandoffObservation` values to display clients.
+This is not `PiOwnerReadback`, an owner reader, a task database or a public
+`vista` network command. Source delivery and fixed-runtime installation must be
+verified separately; an older installed observer has no such port.
+
+| Same-process event | Payload |
+| --- | --- |
+| `pi-vista:work-observation:query:v1` | `{version:1, requestId, hostSessionId}` |
+| `pi-vista:work-observation:reply:v1:<requestId>` | `{version:1, requestId, snapshot}` |
+| `pi-vista:work-observation:changed:v1` | `{version:1, snapshot}` |
+
+Requests are closed own-data plain objects. `requestId` is a caller-generated
+1–128 character ASCII alphanumeric/underscore/hyphen token without a known
+credential signature, not an arbitrary reply event or callback. Register the
+reply handler before emitting, match request and exact host identity, and remove
+the handler after response/timeout. Invalid or foreign requests are silent.
+A missing response is unavailable/not-observed, never empty authoritative work.
+
+```ts
+// Transport envelope, not another work/acceptance schema.
+type Snapshot = {
+  version: 1; hostSessionId: string | null; observerEpoch: string; seq: number;
+  scope: "session-recent-observations";
+  coverage: "not-observed" | "observed" | "not-applicable" | "unavailable";
+  observations: readonly ({ seq: number; observedAt: number } & (
+    { kind: "result"; observation: PiResultConsumption } |
+    { kind: "handoff"; observation: PiWorkHandoffObservation }
+  ))[];
+  omitted: number; authorization: "none"; readOnly: true; executable: false;
+};
+```
+
+- `hostSessionId` routes the actual native header identity. It is **not** required
+  to equal a result binding or either handoff session: those are kept unchanged.
+  A host without a verified safe identity does not answer or notify clients.
+- Each session start/reload or tree-scope reset starts a new opaque epoch, seq0
+  and empty window. Epoch is not ordered or a native task revision. Clients bind
+  the current runtime/session, discard retired epochs and reject duplicate/older
+  seq within the selected epoch; never jump to another runtime just because a
+  session ID matches. A late prior-epoch result cannot populate the new window.
+- Completed observations increment sequence; the newest16 are retained. `omitted`
+  counts evicted observations in this epoch, not missing or completed tasks.
+  Query does not increment sequence, update coverage or change any timestamp.
+- `observedAt` is UTC epoch milliseconds when the observer finished consumption,
+  **not** the original evidence time/expiry or renewed verification. The original
+  DTO has no freshness deadline to export; no `freshUntil` is fabricated. Treat
+  old observations as last-known history, not fresh permission or live proof.
+- `not-observed` means no completed observation in this eligible scope,
+  `not-applicable` means an old excluded cohort, and `observed` includes unknown
+  and failed outcomes. It does not claim exhaustive work coverage. Shutdown
+  clears the window, emits an incremented-seq `unavailable`, then stops replies.
+- Original stage IDs/bindings and non-authorizing DTO fields remain intact.
+  `subagent-output-available` is not business acceptance; source-only delivery
+  is not installation/deployment. Native broad wait/unknown is not an action
+  required of the user. No source/business producer is invented by this port.
+
+Query is a synchronous immutable memory snapshot: no file/owner read, verifier,
+model call, EventStore read/write, transcript scan, timer, cancellation or task
+execution. Notifications occur on completed consumption and scope lifecycle,
+not polling. Listener errors remain fail-open; trusted same-process listeners
+are not sandboxed, and a blocking synchronous listener cannot be preempted.
+The existing owner callback/effect path and late original metadata are retained.
+
 ## Integration boundary
 
 The adapter imports only public `@pi-vista/core` APIs and has no dependency on
