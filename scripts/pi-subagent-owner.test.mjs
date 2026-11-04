@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, writeFile, rm, symlink, readFile } from "node:fs/promis
 import { join } from "node:path";
 import { createSubagentOwnerProducer, readSubagentFile } from "./pi-subagent-owner.mjs";
 import { readPiOwnerResult } from "@pi-vista/adapter-pi";
+import { createPiWorkObserver } from "./pi-work-observer.mjs";
+import { EventEmitter } from "node:events";
 import { ROOT } from "./release-utils.mjs";
 
 async function fixture(fn, ownerIsFile = false) {
@@ -39,6 +41,24 @@ test("native mission/run/output originals produce scoped availability, not task 
   assert.equal(view.authorization, "none"); assert.equal(f.producer.status().taskAcceptance, "not-checked");
   assert.ok(!JSON.stringify(f.views).includes("PRIVATE_ORIGINAL_REPORT")); assert.ok(!JSON.stringify(f.views).includes(f.root));
 }));
+
+test("installed host wiring routes native events through actual observer consumption and safe rows", () => fixture(async f => {
+  const handlers = new Map(), events = new EventEmitter(), rows = [];
+  const pi = { on(name, fn) { handlers.set(name, fn); return () => handlers.delete(name); },
+    events: { on(name, fn) { events.on(name, fn); return () => events.off(name, fn); } },
+    registerCommand() {}, getCommands: () => [] };
+  const observer = createPiWorkObserver({ freshSessionsSince: "2026-01-01T00:00:00.000Z", store: { append: event => { rows.push(event); } }, diagnose: () => assert.fail("unexpected diagnostic") });
+  observer.extension(pi); handlers.get("session_start")({}, { sessionManager: {
+    getSessionId: () => "parent-session", getSessionFile: () => f.mission.ownerSessionId,
+    getHeader: () => ({ id: "parent-session", timestamp: "2026-01-01T00:00:00.000Z" }),
+  } });
+  handlers.get("tool_execution_end")(f.launch); await observer.drain();
+  events.emit("subagent:async-complete", f.complete); await observer.drain();
+  assert.equal(observer.status().deliverable, 1); assert.equal(observer.status().ownerProducer.taskAcceptance, "not-checked");
+  const last = rows.at(-1); assert.equal(last.result, "ok"); assert.equal(last.artifact_refs[0].ref, "subagent-output-available");
+  const json = JSON.stringify(rows); assert.ok(!json.includes(f.root)); assert.ok(!json.includes("PRIVATE_ORIGINAL_REPORT"));
+  events.emit("subagent:async-complete", f.complete); await observer.drain(); assert.equal(observer.status().deliverable, 1);
+}, true));
 
 test("native persisted session owner maps from exact host file reference without leaking paths", () => fixture(async f => {
   f.producer.onCompletion(f.complete); f.producer.onTool(f.launch); await f.drain();
@@ -105,6 +125,7 @@ test("descriptor-only native payload handling refuses getters/proxies without in
   f.producer.onTool(new Proxy({}, { get() { calls++; throw Error(); } }));
   f.producer.onTool(Object.defineProperty({}, "toolName", { get() { calls++; throw Error(); } }));
   f.producer.onCompletion(new Proxy({}, { get() { calls++; throw Error(); } }));
+  f.producer.onTerminal(new Proxy({}, { get() { calls++; throw Error(); } }));
   await f.drain(); assert.equal(calls, 0); assert.equal(f.views.length, 0);
 }));
 

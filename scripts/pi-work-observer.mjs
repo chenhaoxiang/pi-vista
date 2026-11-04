@@ -7,7 +7,6 @@ import { createSubagentOwnerProducer } from "./pi-subagent-owner.mjs";
 export const OWNER_RESULT_EVENT = "pi-vista:owner-result";
 export const HANDOFF_EVENT = "pi-vista:work-handoff";
 export const SUBAGENT_ASYNC_COMPLETE_EVENT = "subagent:async-complete";
-export const SUBAGENT_FOREGROUND_COMPLETE_EVENT = "subagent:foreground-complete";
 export const SUBAGENT_PROCESS_TERMINAL_EVENT = "subagent:process-terminal";
 const hash = value => createHash("sha256").update(value).digest("hex");
 function data(value, key) {
@@ -175,7 +174,6 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
       subscriptions.push(pi.on("tool_execution_end", event => { try { todo(event); } catch { report(); } }));
       subscriptions.push(pi.on("session_tree", () => { epoch = randomUUID(); lastTasks = new Map(); }));
       subscriptions.push(pi.events.on(SUBAGENT_ASYNC_COMPLETE_EVENT, event => { try { ownerProducer?.onCompletion(event); } catch { report(); } }));
-      subscriptions.push(pi.events.on(SUBAGENT_FOREGROUND_COMPLETE_EVENT, event => { try { ownerProducer?.onCompletion(event); } catch { report(); } }));
       subscriptions.push(pi.events.on(SUBAGENT_PROCESS_TERMINAL_EVENT, event => { try { ownerProducer?.onTerminal(event); } catch { report(); } }));
       subscriptions.push(pi.on("session_shutdown", () => { generation++; current = undefined; inFlight = 0; lastTasks = new Map(); recentResults = []; ownerProducer?.reset(); }));
       subscriptions.push(pi.events.on(OWNER_RESULT_EVENT, value => { try { request(value, "owner"); } catch { report(); } }));
