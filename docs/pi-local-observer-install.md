@@ -48,8 +48,14 @@ in a new process; no active session is force-reloaded. Preserve the generated
 candidate before installation, validate conventional discovery in an isolated
 HOME, then use exclusive creation of `~/.pi/agent/extensions/pi-vista-work.ts`
 with mode0600 and verify exact bytes. An existing unexpected entry is a conflict,
-not permission to overwrite it. Retain the old notification shim and original
-records. A rollback removes only this known additional work shim for future
+not permission to overwrite it. For an authorized upgrade of this exact work
+entry, first read/hash the current shim, preserve its exact bytes privately,
+prepare and validate the replacement fixed runtime, and recheck the old hash
+before atomic rename of the prepared0600 shim. Retain the existing creation-time
+cohort rather than silently widening it to older sessions. Keep the prior runtime
+and shim for rollback; do not reload active sessions. The offline builder pins
+`pi-subagent-owner.mjs` with the work entry as well as its packaged dependencies.
+Retain the old notification shim and original records. A rollback removes only this known additional work shim for future
 loads, not historical data, old runtimes or in-flight native work.
 
 All eligible new sessions observe current native Todo numeric ID/status changes
@@ -59,7 +65,15 @@ counts, not persisted row counts; `unavailable` and `persistence: best-effort`
 expose lost observation/storage coverage.
 Explicit same-process owner producers may supply current original readers through
 `pi-vista:owner-result`/`pi-vista:work-handoff`; loading the receiver does not claim
-that every business owner produces those events. Missing/failed observation is
+that every business owner produces those events. The later native Subagents
+adapter uses existing single-async mission/run/status/artifact originals. It
+observes native completion events or an already-requested exact `bg_wait` return;
+it does not start waits or poll. `subagent-output-available` means the original
+artifact is readable, not that the task/business passed. Current safe recent
+results and `ownerProducer.taskAcceptance:not-checked` expose that distinction.
+Subagents' private session-file owner reference is compared against native
+originals but is never exported as protocol metadata. See the
+[native producer contract](../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#native-subagents-owner-producer-long-term-work-package48). Missing/failed observation is
 not a task Gate. There is no model tool/prompt change, model call, timer collector,
 transcript scan or Hindsight/peripheral-memory change. See the maintained
 [host contract](../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#selected-fresh-session-host-continuation).
