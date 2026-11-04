@@ -95,6 +95,22 @@ The host SHALL associate current native Subagents events with the existing missi
 - **THEN** it SHALL be deduplicated, retained until bounded association where safe, or ignored for the replacement session
 - **AND** it SHALL NOT replay execution or call a stale consumer; an identical completion notification SHALL NOT trigger another original read
 
+### Requirement: Explicit code-owner readback shall use original source and merge evidence
+The opt-in code-owner host SHALL read an explicitly selected PR/head/base, declared check names with pinned App IDs, merge workflows and original premerge Gate report. It SHALL not execute Gate, merge, CI, retries or deployments. Missing, foreign, failed, incomplete or post-merge-only Gate evidence SHALL remain unknown; an accepted result SHALL only describe source-shared delivery and never grant permission.
+
+#### Scenario: All declared source originals match
+- **WHEN** the original PR/head/base, latest matching source checks, review hash when required, merge workflow and base ancestry match a successful premerge Gate and actual merge
+- **THEN** the existing result consumer MAY report source-shared-delivery as accepted
+- **AND** unrelated advisory checks SHALL not become a global barrier
+
+#### Scenario: The supplied Gate was evaluated after merge
+- **WHEN** its evaluation finished after the original merge time or its merge observation says already-merged
+- **THEN** it SHALL NOT substitute for original premerge Gate evidence even when current CI is green
+
+#### Scenario: A required source changes during readback
+- **WHEN** the PR head/base/merge binding changes, a newer matching check is pending/failed, or a returned collection is incomplete
+- **THEN** the observation SHALL remain unknown without modifying or retrying the original task
+
 ### Requirement: Continuity helpers shall not alter unrelated execution or memory
 Continuity helpers SHALL remain explicit optional observation. They SHALL NOT change Hindsight or surrounding memory paths, native models/tools/permissions, existing Gate decisions, canonical transcripts or task execution. Missing observers SHALL NOT become new mandatory gates.
 
