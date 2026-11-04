@@ -113,6 +113,12 @@ The reader creates scoped evidence/effect metadata and delegates acceptance to `
 
 Local verification retains one actual PR68 original-read positive and a PR69 postmerge-evaluation negative, with no new merge/CI/model effect. The PR69 Gate command was accidentally invoked again after already-confirmed delivery and overwrote the same log; the later file is kept as postmerge-only, not upgraded to the original evaluation. The original native merge is still confirmed. Tests use synthetic GitHub/Gate records only; real readback files remain local tmp. Cross-owner requirement policies and daily default source-producer wiring remain further adoption work, not claimed by this explicit reader.
 
+## Completed-observation client export (long-term work package52 / slice60)
+
+The host adds only an in-memory, same-process request/reply and completion/reset notification over the already-produced PiResultConsumption and PiWorkHandoffObservation. The [v1 transport contract](../../../docs/adapters/pi.md#same-process-completed-observation-export-v1-host-candidate) is the event/payload SSOT. It preserves reporting host versus result binding identities, fixed completed-observation timestamps, per-instance/scope epochs and monotonic observation sequence, a16-entry window and explicit coverage/omissions. It is not another work/task schema, authenticated authority, native task revision or new storage.
+
+Queries never run readOwner, source IO, verification, models, persistence or task effects, and never refresh observedAt or synthesize freshUntil. Session/tree resets fence late completions from the new display scope without cancelling the owner operation or discarding original metadata. Shutdown publishes unavailable, clears memory and stops replies. Consumer/listener failure cannot upgrade acceptance or block native execution. All source/install/consumer adoption remains separately evidenced; the already installed older work runtime gains no endpoint until explicitly upgraded. Hindsight, notification-only entry, cohort cutoff and original source/business acceptance remain unchanged.
+
 ## Entry conditions and rollback
 
 A host opts into the helper explicitly. If references, owner readback or observation fail, return unknown for the observation and leave the original execution/owner Gate unchanged. On actual regression disable the added wiring while retaining original runs, results and in-flight references. Do not clean history, replay old actions, weaken required checks or block independent tasks.

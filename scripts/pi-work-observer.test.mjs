@@ -5,13 +5,13 @@ import { isVistaEvent } from "@pi-vista/core";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { ROOT } from "./release-utils.mjs";
-import { createPiWorkObserver, OWNER_RESULT_EVENT, HANDOFF_EVENT } from "./pi-work-observer.mjs";
+import { createPiWorkObserver, OWNER_RESULT_EVENT, HANDOFF_EVENT, WORK_OBSERVATION_QUERY_EVENT, WORK_OBSERVATION_REPLY_PREFIX, WORK_OBSERVATION_CHANGED_EVENT } from "./pi-work-observer.mjs";
 
 const since = "2026-01-01T00:00:00.000Z", now = Date.now();
 function fixture(extra = {}) {
   const handlers = new Map(), commands = new Map(), events = new EventEmitter(), rows = [], diagnostics = [];
   const pi = { on(name, fn) { handlers.set(name, fn); return () => handlers.delete(name); },
-    events: { on(name, fn) { events.on(name, fn); return () => events.off(name, fn); } },
+    events: { emit(name, payload) { events.emit(name, payload); }, on(name, fn) { events.on(name, fn); return () => events.off(name, fn); } },
     registerCommand(name, command) { commands.set(name, command); }, getCommands: () => [] };
   const observer = createPiWorkObserver({ freshSessionsSince: since, now: () => now, store: { append(event) { rows.push(event); } }, diagnose: () => diagnostics.push("unavailable"), ...extra });
   observer.extension(pi);
@@ -39,6 +39,129 @@ test("SDK child refuses sibling and traversal fixture paths before SDK or writes
     assert.equal(result.status, 1); assert.match(result.stderr, /AssertionError/);
     assert.ok(!result.stderr.includes("ERR_MODULE_NOT_FOUND"));
   }
+});
+
+test("observation snapshot is memory-only, epoch/seq bounded and query does not re-read owner", async () => {
+  let clock = now;
+  const f = fixture({ now: () => clock }); f.handlers.get("session_start")({}, f.ctx());
+  let reply, changes = [];
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, value => changes.push(value));
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "q1", hostSessionId: "session-new" });
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "q2", value => { reply = value; });
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "q2", hostSessionId: "session-new" });
+  assert.equal(reply.snapshot.coverage, "not-observed"); assert.equal(reply.snapshot.seq, 0); assert.equal(reply.snapshot.observations.length, 0);
+  assert.equal(changes.length, 0); // no query side effect
+  let reads = 0, view;
+  send(f, () => { reads++; return accepted(); }, value => { view = value; }); await f.observer.drain();
+  assert.equal(reads, 1); assert.equal(changes.at(-1).snapshot.coverage, "observed");
+  const before = changes.at(-1).snapshot;
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "q3", value => { reply = value; });
+  const writes = f.rows.length; clock += 1000;
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "q3", hostSessionId: "session-new" });
+  assert.deepEqual(reply.snapshot, before); assert.equal(reply.snapshot.observations[0].observation, view);
+  assert.equal(view.binding.sessionId, "child-session"); assert.equal(reply.snapshot.hostSessionId, "session-new");
+  assert.equal(f.rows.length, writes); assert.equal(changes.at(-1).snapshot.seq, before.seq); assert.equal(reads, 1); assert.equal(view.decision, "deliverable");
+  assert.equal(reply.snapshot.observations[0].observedAt, now); assert.equal(Object.hasOwn(reply.snapshot.observations[0].observation, "freshUntil"), false);
+  assert.throws(() => reply.snapshot.observations.push({}), TypeError);
+  assert.throws(() => { reply.snapshot.observations[0].observation.binding.workRef.key = "changed"; }, TypeError);
+  for (let i = 0; i < 20; i++) { const ref = reference("child-session", `run-${i}`); send(f, () => accepted(ref), () => {}, ref); } await f.observer.drain();
+  const snapshot = f.observer.observationSnapshot();
+  assert.equal(snapshot.observations.length, 16); assert.equal(snapshot.omitted, 5);
+  assert.equal(snapshot.seq, 21); assert.deepEqual(snapshot.observations.map(row => row.seq), Array.from({ length: 16 }, (_, i) => i + 6));
+  assert.ok(snapshot.observations.every(row => row.observation.outcome === "accepted"));
+});
+
+test("publication reset fences late observations without cancelling the native owner reader", async () => {
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx()); let finish, callbacks = 0;
+  send(f, () => new Promise(resolve => { finish = resolve; }), () => callbacks++); await Promise.resolve();
+  const old = f.observer.observationSnapshot().observerEpoch;
+  f.handlers.get("session_tree")(); const next = f.observer.observationSnapshot(); assert.notEqual(next.observerEpoch, old);
+  finish(accepted()); await f.observer.drain();
+  assert.equal(callbacks, 1); // native owner callback is not a display subscription
+  assert.equal(f.observer.observationSnapshot().observations.length, 0);
+  assert.equal(f.observer.observationSnapshot().coverage, "not-observed");
+});
+
+test("snapshot shutdown clears results and stale instances stop replying", async () => {
+  const f = fixture(); const changes = []; f.events.on(WORK_OBSERVATION_CHANGED_EVENT, value => changes.push(value));
+  f.handlers.get("session_start")({}, f.ctx()); send(f, () => accepted()); await f.observer.drain();
+  const old = f.observer.observationSnapshot(); f.handlers.get("session_shutdown")();
+  assert.equal(changes.at(-1).snapshot.coverage, "unavailable"); assert.equal(changes.at(-1).snapshot.observations.length, 0);
+  let replies = 0; f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "closed", () => replies++);
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "closed", hostSessionId: "session-new" }); assert.equal(replies, 0);
+  f.handlers.get("session_start")({}, f.ctx()); assert.notEqual(f.observer.observationSnapshot().observerEpoch, old.observerEpoch);
+  assert.equal(f.observer.observationSnapshot().seq, 0);
+});
+
+test("reentrant scope notification does not duplicate successor loaded metadata; shared safe IDs remain supported", () => {
+  const f = fixture();
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, value => {
+    if (value.snapshot.hostSessionId === "original") f.handlers.get("session_start")({}, f.ctx("successor.1"));
+  });
+  f.handlers.get("session_start")({}, f.ctx("original"));
+  assert.equal(f.observer.observationSnapshot().hostSessionId, "successor.1");
+  assert.equal(f.observer.status().loaded, true);
+  assert.equal(f.rows.filter(row => row.action === "pi:work:loaded").length, 1);
+});
+
+test("reentrant display lifecycle cannot invoke a retired owner callback or close the new session", async () => {
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx()); let callbacks = 0;
+  const onResult = value => {
+    if (value.snapshot.coverage === "observed") f.handlers.get("session_start")({}, f.ctx("successor"));
+  };
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, onResult);
+  send(f, () => accepted(), () => callbacks++); await f.observer.drain();
+  assert.equal(callbacks, 0); assert.equal(f.observer.observationSnapshot().hostSessionId, "successor");
+  f.events.off(WORK_OBSERVATION_CHANGED_EVENT, onResult);
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, value => {
+    if (value.snapshot.coverage === "unavailable") f.handlers.get("session_start")({}, f.ctx("reopened"));
+  });
+  f.handlers.get("session_shutdown")(); let reply;
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "reopened", value => { reply = value; });
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "reopened", hostSessionId: "reopened" });
+  assert.equal(reply.snapshot.hostSessionId, "reopened"); assert.equal(reply.snapshot.coverage, "not-observed");
+});
+
+test("invalid queries and display-listener faults cannot execute payloads or affect original acceptance", async () => {
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx()); let getters = 0, replies = 0;
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "bad", () => replies++);
+  const query = { version: 1, requestId: "bad", hostSessionId: "session-new" };
+  for (const value of [new Proxy(query, { get() { getters++; throw Error(); } }), Object.defineProperty({}, "version", { get() { getters++; return 1; } }), { ...query, extra: true }, { ...query, version: 2 }, { ...query, requestId: "x:y" }]) f.events.emit(WORK_OBSERVATION_QUERY_EVENT, value);
+  assert.equal(getters, 0); assert.equal(replies, 0);
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, () => { throw Error("PRIVATE_DISPLAY_ERROR"); });
+  let view; send(f, () => accepted(), value => { view = value; }); await f.observer.drain();
+  assert.equal(view.decision, "deliverable"); assert.equal(f.observer.observationSnapshot().observations.length, 1);
+  assert.ok(f.diagnostics.length <= 1); assert.ok(!JSON.stringify(f.rows).includes("PRIVATE_DISPLAY_ERROR"));
+});
+
+test("handoff snapshot reuses the full existing DTO without claiming current verification", async () => {
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx());
+  f.events.emit(HANDOFF_EVENT, { hostSessionId: "session-new", reference: {} }); await f.observer.drain();
+  const entry = f.observer.observationSnapshot().observations[0]; assert.equal(entry.kind, "handoff");
+  assert.equal(entry.observation.currentVerification, "not_checked"); assert.equal(entry.observation.executable, false);
+  assert.equal(entry.observation.authorization, "none");
+});
+
+test("raw paths and known credentials are not echoed as routing identities", () => {
+  for (const host of ["/private/session.jsonl", `ghp_${"A".repeat(36)}`]) {
+    const f = fixture(); let broadcasts = 0;
+    f.events.on(WORK_OBSERVATION_CHANGED_EVENT, () => broadcasts++);
+    f.handlers.get("session_start")({}, f.ctx(host));
+    assert.equal(f.observer.status().loaded, false); assert.equal(f.observer.observationSnapshot().hostSessionId, null);
+    assert.equal(broadcasts, 0);
+  }
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx());
+  const requestId = `ghp_${"B".repeat(36)}`; let replies = 0;
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + requestId, () => replies++);
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId, hostSessionId: "session-new" });
+  assert.equal(replies, 0);
+});
+
+test("old cohort is not-applicable and foreign observation query stays silent", () => {
+  const f = fixture(); f.handlers.get("session_start")({}, f.ctx("old", "2025-12-31T00:00:00.000Z")); let replies = 0;
+  f.events.on(WORK_OBSERVATION_REPLY_PREFIX + "q", () => replies++); f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "q", hostSessionId: "old" });
+  assert.equal(f.observer.observationSnapshot().coverage, "not-applicable"); assert.equal(replies, 1);
+  f.events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId: "q", hostSessionId: "foreign" }); assert.equal(replies, 1);
 });
 
 test("new cohort loads forward-only; old resumed session stays untouched, no branch read", () => {
@@ -154,6 +277,10 @@ test("valid handoff preserves references and still does not verify current sourc
   f.events.emit(HANDOFF_EVENT, { hostSessionId: "session-new", reference: { previous, successor, handoff }, onObservation: value => { view = value; } });
   await f.observer.drain(); assert.equal(view.decision, "handoff_observed"); assert.deepEqual(view.unresolvedEffectRefs, ["effect-pending"]);
   assert.equal(view.currentVerification, "not_checked"); assert.equal(view.executable, false);
+  const snapshot = f.observer.observationSnapshot(); assert.equal(snapshot.observations[0].observation, view);
+  assert.deepEqual(snapshot.observations[0].observation.acceptedFactRefs, ["report-original"]);
+  assert.equal(snapshot.observations[0].observation.previous.sessionId, "child-session");
+  assert.equal(snapshot.observations[0].observation.successor.sessionId, "new-child");
 });
 
 test("native handoff port preserves unknown current verification", async () => {

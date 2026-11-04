@@ -1,11 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { types } from "node:util";
-import { EventStore } from "@pi-vista/core";
+import { EventStore, hasKnownCredential, isSafeSegment } from "@pi-vista/core";
 import { readPiOwnerResult, observePiWorkHandoff } from "@pi-vista/adapter-pi";
 import { createSubagentOwnerProducer } from "./pi-subagent-owner.mjs";
 
 export const OWNER_RESULT_EVENT = "pi-vista:owner-result";
 export const HANDOFF_EVENT = "pi-vista:work-handoff";
+export const WORK_OBSERVATION_QUERY_EVENT = "pi-vista:work-observation:query:v1";
+export const WORK_OBSERVATION_REPLY_PREFIX = "pi-vista:work-observation:reply:v1:";
+export const WORK_OBSERVATION_CHANGED_EVENT = "pi-vista:work-observation:changed:v1";
 export const SUBAGENT_ASYNC_COMPLETE_EVENT = "subagent:async-complete";
 export const SUBAGENT_PROCESS_TERMINAL_EVENT = "subagent:process-terminal";
 const hash = value => createHash("sha256").update(value).digest("hex");
@@ -18,7 +21,7 @@ function sessionId(ctx) {
   // The native SessionManager is trusted host code, never a payload callback.
   const manager = ctx?.sessionManager;
   const value = manager?.getSessionId();
-  return typeof value === "string" && value.length > 0 && value.length <= 256 ? value : undefined;
+  return typeof value === "string" && isSafeSegment(value) && value.length <= 256 && !hasKnownCredential(value) ? value : undefined;
 }
 function dense(value, max) {
   if (!Array.isArray(value) || types.isProxy(value) || Object.getPrototypeOf(value) !== Array.prototype) return;
@@ -46,6 +49,45 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   let lastTasks = new Map();
   const subscriptions = [];
   const active = new Set();
+  let eventBus, publicationOpen = false, publicationHost = null, observerEpoch = randomUUID(), sequence = 0;
+  let coverage = "unavailable", observations = [], omitted = 0;
+  function observationSnapshot() {
+    return Object.freeze({ version: 1, hostSessionId: publicationHost, observerEpoch, seq: sequence,
+      scope: "session-recent-observations", coverage, observations: Object.freeze([...observations]), omitted,
+      authorization: "none", readOnly: true, executable: false });
+  }
+  function publishSnapshot(name, value) {
+    try { eventBus?.emit(name, value); } catch { report(); }
+  }
+  function changed() {
+    if (publicationOpen && publicationHost) publishSnapshot(WORK_OBSERVATION_CHANGED_EVENT, Object.freeze({ version: 1, snapshot: observationSnapshot() }));
+  }
+  function resetPublication(host, state) {
+    publicationHost = host; observerEpoch = randomUUID(); sequence = 0; coverage = state; observations = []; omitted = 0;
+    changed();
+  }
+  function completedObservation(kind, observation, requestedEpoch) {
+    if (!publicationOpen || !current || requestedEpoch !== observerEpoch) return;
+    try {
+      const observedAt = now();
+      if (!Number.isSafeInteger(observedAt) || observedAt < 0) throw Error();
+      sequence++;
+      if (observations.length === 16) { observations = observations.slice(1); omitted++; }
+      observations.push(Object.freeze({ seq: sequence, observedAt, kind: kind === "owner" ? "result" : "handoff", observation }));
+      coverage = "observed"; changed();
+    } catch { report(); }
+  }
+  function queryObservation(payload) {
+    if (!publicationOpen || !publicationHost || !payload || typeof payload !== "object" || types.isProxy(payload)
+      || Array.isArray(payload) || Object.getPrototypeOf(payload) !== Object.prototype) return;
+    const keys = Reflect.ownKeys(payload);
+    if (keys.length !== 3 || keys.some(key => !["version", "requestId", "hostSessionId"].includes(key))) return;
+    const requestId = data(payload, "requestId");
+    if (data(payload, "version") !== 1 || data(payload, "hostSessionId") !== publicationHost
+      || typeof requestId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/u.test(requestId) || hasKnownCredential(requestId)) return;
+    publishSnapshot(WORK_OBSERVATION_REPLY_PREFIX + requestId,
+      Object.freeze({ version: 1, requestId, snapshot: observationSnapshot() }));
+  }
   function counters() { return { todoRecords: 0, ownerReads: 0, deliverable: 0, terminal: 0, unresolved: 0, handoffs: 0, unavailable: 0 }; }
   function report() { counts.unavailable++; if (diagnosed) return; diagnosed = true; try { diagnose(); } catch { /* observer only */ } }
   function emit(identity, action, result, reason, trace, stage) {
@@ -67,14 +109,21 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   let ownerProducer;
   function start(_event, ctx) {
     generation++; inFlight = 0; current = undefined; lastTasks = new Map(); counts = counters(); epoch = "initial"; diagnosed = false;
-    ownerProducer?.reset(); recentResults = [];
+    ownerProducer?.reset(); recentResults = []; publicationOpen = true;
+    let host = null, state = "unavailable";
     try {
       const id = sessionId(ctx), header = ctx?.sessionManager?.getHeader();
       const created = Date.parse(header?.timestamp);
       // Only metadata is inspected: no branch, prompt, tools or transcript read.
-      if (id && header?.id === id && Number.isFinite(created) && created >= cutoff) current = { session: id, nativeOwnerId: ctx.sessionManager.getSessionFile?.() ?? id, run: randomUUID() };
+      if (id && header?.id === id) host = id;
+      if (host && Number.isFinite(created)) {
+        state = created >= cutoff ? "not-observed" : "not-applicable";
+        if (created >= cutoff) current = { session: id, nativeOwnerId: ctx.sessionManager.getSessionFile?.() ?? id, run: randomUUID() };
+      }
     } catch { report(); }
-    if (current) emit(current, "pi:work:loaded", "ok", "forward_only_observer_loaded");
+    const identity = current;
+    resetPublication(host, state);
+    if (identity && identity === current) emit(identity, "pi:work:loaded", "ok", "forward_only_observer_loaded");
   }
   function todo(event) {
     ownerProducer?.onTool(event);
@@ -100,7 +149,7 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
     lastTasks = next;
   }
   function request(payload, kind) {
-    const identity = current, version = generation;
+    const identity = current, version = generation, requestedEpoch = observerEpoch;
     if (!identity) return false;
     const address = data(payload, "hostSessionId");
     if (typeof address !== "string") { report(); return false; }
@@ -140,7 +189,8 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
         if (stillCurrent) counts.handoffs++;
         emit(identity, "pi:work:handoff", "unknown", reason);
       }
-      if (onObservation && stillCurrent) {
+      if (stillCurrent) completedObservation(kind, observation, requestedEpoch);
+      if (onObservation && version === generation && identity === current) {
         try {
           const response = onObservation(observation);
           if (types.isPromise(response)) Promise.prototype.then.call(response, () => undefined, () => { if (identity === current) report(); });
@@ -161,6 +211,7 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   }
   function extension(pi) {
     try {
+      eventBus = pi.events;
       ownerProducer = createSubagentOwnerProducer({
         hostSessionId: () => current?.session,
         nativeOwnerId: () => current?.nativeOwnerId,
@@ -172,19 +223,28 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
       if (Array.isArray(commands) && commands.some(command => command.name === "vista-work-status")) throw Error();
       subscriptions.push(pi.on("session_start", start));
       subscriptions.push(pi.on("tool_execution_end", event => { try { todo(event); } catch { report(); } }));
-      subscriptions.push(pi.on("session_tree", () => { epoch = randomUUID(); lastTasks = new Map(); }));
+      subscriptions.push(pi.on("session_tree", () => {
+        epoch = randomUUID(); lastTasks = new Map();
+        resetPublication(publicationHost, current ? "not-observed" : coverage);
+      }));
+      subscriptions.push(pi.events.on(WORK_OBSERVATION_QUERY_EVENT, payload => { try { queryObservation(payload); } catch { report(); } }));
       subscriptions.push(pi.events.on(SUBAGENT_ASYNC_COMPLETE_EVENT, event => { try { ownerProducer?.onCompletion(event); } catch { report(); } }));
       subscriptions.push(pi.events.on(SUBAGENT_PROCESS_TERMINAL_EVENT, event => { try { ownerProducer?.onTerminal(event); } catch { report(); } }));
-      subscriptions.push(pi.on("session_shutdown", () => { generation++; current = undefined; inFlight = 0; lastTasks = new Map(); recentResults = []; ownerProducer?.reset(); }));
+      subscriptions.push(pi.on("session_shutdown", () => {
+        generation++; current = undefined; inFlight = 0; lastTasks = new Map(); recentResults = []; ownerProducer?.reset();
+        sequence++; coverage = "unavailable"; observations = []; omitted = 0;
+        const snapshot = observationSnapshot(); publicationOpen = false;
+        if (publicationHost) publishSnapshot(WORK_OBSERVATION_CHANGED_EVENT, Object.freeze({ version: 1, snapshot }));
+      }));
       subscriptions.push(pi.events.on(OWNER_RESULT_EVENT, value => { try { request(value, "owner"); } catch { report(); } }));
       subscriptions.push(pi.events.on(HANDOFF_EVENT, value => { try { request(value, "handoff"); } catch { report(); } }));
       pi.registerCommand("vista-work-status", { description: "Read local work-observation coverage, not task acceptance", handler: async (_args, ctx) => { ctx.ui.notify(JSON.stringify(status()), "info"); } });
     } catch {
       for (const unsubscribe of subscriptions.splice(0)) { try { if (typeof unsubscribe === "function") unsubscribe(); } catch { /* local rollback only */ } }
-      current = undefined; ownerProducer = undefined; report();
+      current = undefined; ownerProducer = undefined; publicationOpen = false; report();
     }
   }
-  return Object.freeze({ extension, status, drain: () => Promise.all([...active]).then(() => undefined) });
+  return Object.freeze({ extension, status, observationSnapshot, drain: () => Promise.all([...active]).then(() => undefined) });
 }
 
 export default function workObserverExtension(pi, options) {

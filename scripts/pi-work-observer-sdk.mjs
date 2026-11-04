@@ -6,7 +6,7 @@ import { dirname, join, isAbsolute, normalize, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { EventStore } from "@pi-vista/core";
-import { OWNER_RESULT_EVENT } from "./pi-work-observer.mjs";
+import { OWNER_RESULT_EVENT, WORK_OBSERVATION_QUERY_EVENT, WORK_OBSERVATION_REPLY_PREFIX, WORK_OBSERVATION_CHANGED_EVENT } from "./pi-work-observer.mjs";
 import { ROOT, commandEnvironment, createRunDirectory, isMain } from "./release-utils.mjs";
 const exec = promisify(execFile), sha = x => createHash("sha256").update(x).digest("hex");
 
@@ -58,8 +58,17 @@ async function child({ sdk, entry, fixture, scenario, report, todo }) {
   let transport = 0; for (const method of ["stream", "streamSimple", "complete", "completeSimple"]) modelRuntime[method] = () => { transport++; throw Error("unexpected model transport"); };
   modelRuntime.registerProvider("work-observer-fixture", { api: "openai-completions", baseUrl: "http://127.0.0.1:1", apiKey: "synthetic", models: [{ id: "fixture", name: "fixture", reasoning: true, input: ["text"], contextWindow: 8192, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] });
   const settingsManager = api.SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false }, cacheWarming: "off", enableAnalytics: false, enableInstallTelemetry: false }, { projectTrusted: false });
-  const views = [], snapshots = [], originals = [];
-  let currentContext;
+  const views = [], snapshots = [], originals = [], observationNotifications = [];
+  events.on(WORK_OBSERVATION_CHANGED_EVENT, value => observationNotifications.push(value));
+  let currentContext, queryCount = 0;
+  function queryObservations() {
+    const requestId = `sdk_${++queryCount}`, hostSessionId = sessionManager.getSessionId(); let response;
+    const unsubscribe = events.on(WORK_OBSERVATION_REPLY_PREFIX + requestId, value => { response = value; });
+    try { events.emit(WORK_OBSERVATION_QUERY_EVENT, { version: 1, requestId, hostSessionId }); }
+    finally { unsubscribe(); }
+    assert.equal(response?.version, 1); assert.equal(response?.requestId, requestId); assert.equal(response.snapshot.hostSessionId, hostSessionId);
+    return response.snapshot;
+  }
   const resources = new api.DefaultResourceLoader({ cwd: ROOT, agentDir: fixture, eventBus: events, settingsManager, additionalExtensionPaths: todo ? [todo] : [],
     noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true, systemPrompt: "Synthetic dispatch, no model transport",
     extensionFactories: [pi => {
@@ -93,6 +102,8 @@ async function child({ sdk, entry, fixture, scenario, report, todo }) {
   try {
     await session.bindExtensions({ mode: "json", onError: value => errors.push(value) });
     const before = { model: session.model, thinking: session.thinkingLevel, tools: session.getActiveToolNames(), prompt: session.systemPrompt };
+    const initialSnapshot = queryObservations();
+    assert.equal(initialSnapshot.coverage, scenario === "old-session" ? "not-applicable" : "not-observed");
     let rounds = 0;
     session.agent.streamFunction = () => {
       const round = rounds++, stream = new AssistantMessageEventStream();
@@ -122,9 +133,22 @@ async function child({ sdk, entry, fixture, scenario, report, todo }) {
     } else if (scenario === "old-session") { assert.deepEqual(await store.listRuns(), []); assert.deepEqual(views, []); assert.deepEqual(originals, []); }
     else { assert.equal(views[0].decision, "deliverable"); assert.deepEqual(await store.listRuns(), []); }
     assert.ok(snapshots.every(Boolean));
+    const completed = queryObservations(), originalReads = originals.length, notifications = observationNotifications.length;
+    assert.ok(notifications > 0); assert.deepEqual(observationNotifications.at(-1).snapshot, completed);
+    assert.equal(completed.coverage, scenario === "old-session" ? "not-applicable" : "observed");
+    if (scenario !== "old-session") {
+      assert.equal(completed.observations.length, 1); assert.deepEqual(completed.observations[0].observation, views[0]);
+      assert.equal(completed.observations[0].kind, "result"); assert.ok(Number.isSafeInteger(completed.observations[0].observedAt));
+      assert.equal(Object.hasOwn(completed.observations[0].observation, "freshUntil"), false);
+    }
+    for (let i = 0; i < 3; i++) assert.deepEqual(queryObservations(), completed);
+    assert.equal(originals.length, originalReads); assert.equal(observationNotifications.length, notifications);
+    const exported = JSON.stringify(completed);
+    for (const value of ["PRIVATE_PROMPT_BODY", "PRIVATE_SUBJECT", "PRIVATE_TODO_BODY", "PRIVATE_MODEL_BODY", reportPath, body.toString()]) assert.ok(!exported.includes(value));
     process.stdout.write(JSON.stringify({ scenario, passed: true, sdk: JSON.parse(await readFile(join(sdk, "package.json"))).version,
       conventionalDiscovery: true, nativeRead: true, todoSource: todo ? "explicit-installed-native-extension" : "synthetic-tool", originalReportSha256: digest, ownerCallbacks: originals.length, ownerDecision: views[0]?.decision ?? "not-observed", persistedEvents: rows.length,
-      nativeModelThinkingToolsPromptPreserved: true, modelTransportCalls: transport, hindsightChanges: 0, authorization: "none" }) + "\n");
+      observationQueries: queryCount, observationCoverage: completed.coverage, queryAdditionalOwnerReads: originals.length - originalReads,
+      queryTimestampAndSequenceUnchanged: true, nativeModelThinkingToolsPromptPreserved: true, modelTransportCalls: transport, hindsightChanges: 0, authorization: "none" }) + "\n");
   } finally { if (!session.isIdle) await session.abort(); session.dispose(); }
 }
 if (isMain(import.meta.url)) {

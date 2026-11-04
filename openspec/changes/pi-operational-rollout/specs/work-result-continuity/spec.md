@@ -111,6 +111,28 @@ The opt-in code-owner host SHALL read an explicitly selected PR/head/base, decla
 - **WHEN** the PR head/base/merge binding changes, a newer matching check is pending/failed, or a returned collection is incomplete
 - **THEN** the observation SHALL remain unknown without modifying or retrying the original task
 
+### Requirement: Display snapshots shall consume only completed observations
+The host SHALL expose a bounded same-process memory snapshot of existing result and handoff DTOs, with exact host identity, observer epoch, sequence monotonic within that epoch, coverage and fixed completion time. Query SHALL NOT run owner IO, verification, models, persistence or effects, refresh timestamps, invent task authority or alter original binding identities.
+
+#### Scenario: A client requests an already consumed child result
+- **WHEN** a current-host client queries the completed-observation window repeatedly
+- **THEN** it SHALL receive the original completed DTO and time without another owner read or sequence change
+- **AND** the child binding session SHALL remain distinct from the routing host when originally different
+
+#### Scenario: A scope resets or an old read completes late
+- **WHEN** session/tree lifecycle replaces the display epoch while an owner read remains active
+- **THEN** the new window SHALL be empty and the late observation SHALL NOT populate it
+- **AND** the native owner operation and original late metadata SHALL remain intact
+
+#### Scenario: Snapshot coverage is absent or bounded
+- **WHEN** no observation has completed, the old cohort is excluded, or more than16 observations have completed
+- **THEN** explicit coverage and omission counts SHALL distinguish those cases without claiming exhaustive task state
+- **AND** shutdown SHALL publish unavailable and stop answering from the retired instance
+
+#### Scenario: A display payload or listener fails
+- **WHEN** a query is foreign/malformed or a listener throws
+- **THEN** it SHALL NOT execute payload getters, expose private originals, change acceptance or block native work
+
 ### Requirement: Continuity helpers shall not alter unrelated execution or memory
 Continuity helpers SHALL remain explicit optional observation. They SHALL NOT change Hindsight or surrounding memory paths, native models/tools/permissions, existing Gate decisions, canonical transcripts or task execution. Missing observers SHALL NOT become new mandatory gates.
 
