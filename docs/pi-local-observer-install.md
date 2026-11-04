@@ -5,7 +5,8 @@ owner_repository: chenhaoxiang/pi-vista
 status: active
 truth_mode: maintained
 created: 2026-10-14
-verified: 2026-10-14
+verified: 2026-11-04
+verification_scope: Existing notification install contract plus selected fresh-session work-host source and local pilot; new default installation remains separate
 ---
 
 # Fixed local notification observer installation
@@ -27,6 +28,46 @@ local `EventStore` metadata. It does not modify native prompt/provider/model/thi
 active tools, guard/gate or tool results. Observation failure stays fail-open. A
 missing Git HEAD or storage fault can lose observations; it is not task failure.
 See [notification/preview contracts](pi-observe-preview.md).
+
+## Selected fresh-session work observer
+
+The later user-selected continuation adds a **separate** `pi-vista-work.ts`
+entry after a self-run low-risk task pilot and applicable code gates. It does not
+replace `pi-vista-local.ts`, retarget its release or duplicate its notification
+commands. The existing notification-only installation and its older evidence stay
+unchanged.
+
+Prepare the exact clean source with the same builder, explicitly selecting
+`entry_name: "pi-work-observer.mjs"`. Generate the fixed loader with that returned
+entry/manifest pin **and** `fresh_sessions_since: <actual installation UTC time>`.
+Only this work-observer entry accepts that extra option. Native header timestamps
+before the fixed cohort are excluded, including old persisted sessions resumed
+in a new process; no active session is force-reloaded. Preserve the generated
+candidate before installation, validate conventional discovery in an isolated
+HOME, then use exclusive creation of `~/.pi/agent/extensions/pi-vista-work.ts`
+with mode0600 and verify exact bytes. An existing unexpected entry is a conflict,
+not permission to overwrite it. Retain the old notification shim and original
+records. A rollback removes only this known additional work shim for future
+loads, not historical data, old runtimes or in-flight native work.
+
+All eligible new sessions observe current native Todo numeric ID/status changes
+without copying text or metadata. Todo completed means **unverified**, not
+successful task delivery. `/vista-work-status` reports forward-only coverage.
+Explicit same-process owner producers may supply current original readers through
+`pi-vista:owner-result`/`pi-vista:work-handoff`; loading the receiver does not claim
+that every business owner produces those events. Missing/failed observation is
+not a task Gate. There is no model tool/prompt change, model call, timer collector,
+transcript scan or Hindsight/peripheral-memory change. See the maintained
+[host contract](../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#selected-fresh-session-host-continuation).
+
+`node scripts/pi-work-observer-sdk.mjs --sdk=<installed SDK root>
+--entry=<candidate or installed shim>` checks three isolated cases: eligible fresh
+session, old-session exclusion and storage failure. Synthetic streams dispatch
+native tools without model transport. Explicit optional `--todo=<installed native
+extension entry>` and `--report=<selected original report file>` test those exact
+originals, not discovery of real tasks or session logs. Tests remain synthetic
+unless the operator selects an actual report. SDK checks are not broad business
+acceptance or proof that all running sessions loaded an entry.
 
 ## Source-bound local runtime
 

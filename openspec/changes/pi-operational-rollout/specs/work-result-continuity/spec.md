@@ -55,6 +55,29 @@ The adapter SHALL bind the existing GovernanceHandoff to the original binding an
 - **THEN** the adapter SHALL NOT invent a shared monotonic revision counter
 - **AND** current head verification SHALL remain not checked until original-owner readback
 
+### Requirement: Selected fresh-session host observation shall remain a forward-only sidecar
+An explicitly selected host entry SHALL observe only sessions created at or after its fixed cohort timestamp. It SHALL inspect native header/current-event metadata without scanning or modifying transcripts. Todo states, including completed, SHALL remain unverified delivery; session-local traces SHALL NOT be represented as globally durable work records.
+
+#### Scenario: New session or old session is loaded
+- **WHEN** the native session header is within the selected new-session cohort
+- **THEN** forward lifecycle and current Todo structured-result observations MAY be recorded in the existing local EventStore
+- **AND** an older session or missing native identity SHALL NOT acquire a fabricated work or delivery state
+
+#### Scenario: A trusted owner supplies an original result reader
+- **WHEN** the same-process host explicitly supplies an owner reference and read-only original-record callback for the current host session
+- **THEN** the host SHALL use the existing bounded result-consumption API without inferring original acceptance from Todo or worker flags
+- **AND** the callback and its metadata SHALL NOT be presented as independent origin authentication
+
+#### Scenario: Observation finishes after the host session changes
+- **WHEN** a prior session's owner read finishes after replacement
+- **THEN** safe observation metadata SHALL retain its original observer identity
+- **AND** it SHALL NOT call the old consumer into the replacement session, settle new work, cancel the original read or discard native artifacts/effects
+
+#### Scenario: Observation fails or reaches a bounded capacity
+- **WHEN** registration, storage, input or the observation capacity fails
+- **THEN** fixed diagnostics and coverage status SHALL report the observation limitation
+- **AND** native tools, task acceptance, model behavior and required checks SHALL continue unchanged
+
 ### Requirement: Continuity helpers shall not alter unrelated execution or memory
 Continuity helpers SHALL remain explicit optional observation. They SHALL NOT change Hindsight or surrounding memory paths, native models/tools/permissions, existing Gate decisions, canonical transcripts or task execution. Missing observers SHALL NOT become new mandatory gates.
 

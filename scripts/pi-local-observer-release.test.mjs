@@ -22,6 +22,21 @@ test("loader is fixed, diagnostic-only and verifies artifact hashes before facto
     await writeFile(join(root, "manifest.json"), "private drift payload");await module.default(pi);assert.equal(pi.called, 1);assert.equal(messages.length, 2);
   } finally { console.error = original;await rm(root, { recursive: true, force: true }); }
 });
+test("work loader pins a fixed new-session cohort without changing the old loader", async () => {
+  await mkdir(join(ROOT, "tmp"), { recursive: true }); const root = await mkdtemp(join(ROOT, "tmp", "work-loader-test-"));
+  try {
+    const entry = join(root, "pi-work-observer.mjs"), content = "export default function(pi, options){pi.options=options;}\n";
+    await writeFile(entry, content);
+    const manifest = JSON.stringify({ entry_sha256: hash(content), files: [{ path: "pi-work-observer.mjs", sha256: hash(content) }] });
+    await writeFile(join(root, "manifest.json"), manifest);
+    const since = "2026-01-01T00:00:00.000Z", file = join(root, "loader.mjs");
+    await writeFile(file, piLocalObserverLoader({ entry, manifest_sha256: hash(manifest), fresh_sessions_since: since }));
+    const pi = {}; await (await import(pathToFileURL(file).href)).default(pi); assert.deepEqual(pi.options, { freshSessionsSince: since });
+    for (const fresh_sessions_since of [undefined, "2026-01-01", "bad"]) assert.throws(() => piLocalObserverLoader({ entry, manifest_sha256: hash(manifest), fresh_sessions_since }));
+    assert.throws(() => piLocalObserverLoader({ entry: join(root, "pi-local-observer.mjs"), manifest_sha256: hash(manifest), fresh_sessions_since: since }));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("loader options/proxies/getters refuse before hooks", () => {
   let calls = 0;const x = new Proxy({}, { ownKeys() { calls++;throw Error(); } });assert.throws(() => piLocalObserverLoader(x));
   const getter = Object.defineProperty({ manifest_sha256: "a".repeat(64) }, "entry", { get() { calls++;throw Error(); } });assert.throws(() => piLocalObserverLoader(getter));assert.equal(calls, 0);

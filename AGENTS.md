@@ -55,7 +55,8 @@ prove isolation or change eligibility. No CLI check/promote/replay command is ad
 
 ## Public document map
 
-- [Work result continuity](openspec/changes/pi-operational-rollout/work-result-continuity-design.md): quality-first explicit owner readback, work/stage/run identity, scoped delivery and controlled handoff; no Hindsight changes, default activation or new execution authority.
+- [Work result continuity](openspec/changes/pi-operational-rollout/work-result-continuity-design.md): quality-first explicit owner readback and controlled handoff, plus separately selected fresh-session host observation/pilot; no Hindsight changes or new execution authority.
+- [scripts/pi-work-observer.mjs](scripts/pi-work-observer.mjs): forward-only fresh-cohort native Todo metadata and explicit trusted-owner event ports; no Todo-to-delivery inference, model tool, history scan or automatic owner producer.
 
 Current Pi-Continuum stage status is maintained in [docs/pi-continuum.md §7](docs/pi-continuum.md#7-已知事实和仍未完成)
 and the [existing rollout tasks](openspec/changes/pi-operational-rollout/tasks.md).

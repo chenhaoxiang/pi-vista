@@ -6,7 +6,7 @@ status: active
 truth_mode: maintained
 created: 2026-10-07
 verified: 2026-11-04
-verification_scope: Continuity source/API and retained local checks only; PR61/62 readback retains its 2026-10-26 date and older evidence its original scope; no new runtime/model acceptance
+verification_scope: Continuity source/shared-delivery and fresh-host local-pilot evidence; no default installation or business/model-benefit acceptance; older evidence retains its original scope
 ---
 
 # Sequential tasks
@@ -21,11 +21,23 @@ verification_scope: Continuity source/API and retained local checks only; PR61/6
 - [x] Exercise the existing Pi context/receipt sink through the two synthetic public-import paths. Separately read back the actual preceding worker's execution terminal/report artifact; only report receipt/readability is confirmed, not shared source or business delivery.
 - [x] Complete the necessary owner API/trust-boundary and local-status documentation (Todo #28) by fresh continuation of the same WorkItem/source stage; keep prior run/results/failures and the protected source candidate unchanged.
 - [x] Complete actual Node20.20.2 full source/typecheck/test and isolated 11-tarball/23-export consumer validation for the combined implementation (Todo #29), including new API calls; retain the separate earlier Phase A counts without relabeling them.
-- [ ] Complete required fresh independent heterogeneous-model exact-candidate review, normal PR/head CI/merge and post-merge verification (Todo #30–32). Source-shared delivery remains unknown/review-required.
-- [ ] Assess Intercom question execution semantics and Desk/Schedule successor/finite-trigger gaps only as later Todo #33–34; reuse existing capabilities, add only a demonstrated necessary gap, and do not force the panorama's entire counterexample table into Phase A/B.
-- [ ] Assess overall quality/continuity benefit and any separately authorized adoption/rollback (Todo #35–36). Installation/default wiring, actual business and overall benefit are unverified, not implied by source or fixture success.
+- [x] PR67 completed fresh independent exact-head review (zero P0/P1/P2), ordinary merge from source `e93d9f6e8184c675ea27dd52d538b7a86c81a11a` to main `0c380e586216d33ffe41b8f635838ceac2e2a95b`; exact source/merge Node20/22/26 CI succeeded. The merge wait timed out after actual merge; read-only reconciliation confirmed already-merged/ci-success, not a reconstructed premerge PASS.
+- [x] Assess Intercom and Desk/Schedule existing capabilities and independent work (Todo #33–34); no selected first-path GUI/timer consumer was required, so conditional extra wiring was not implemented. Full user-question lifecycle and GUI integration are not claimed.
+- [x] Assess bounded quality/continuity evidence and close original Todo #35–36. General ROI, everyday integration and business effects remain unproven; the later default-host decision below is separate from PR67's source delivery.
 
 These rows record implementation preparation; later unchecked shared-delivery/adoption milestones are not a substitute for current PR/CI/owner readback. The normative first-path boundary and retained evidence are in [work-result-continuity-design.md](work-result-continuity-design.md); public API usage is in the [Pi adapter guide](../../../docs/adapters/pi.md#explicit-work-result-continuity-local-source-candidate). Checked implementation/local-test rows are not publication, installation, default-runtime or independent-review claims. The Phase A report preserves its initial 26/30 reader failure/late rejection and later correction; no old failure or dated evidence is rewritten as a new pass. These tasks do not authorize Hindsight changes, default activation, real business/model trials, production or new framework/approval layers.
+
+## 2026-11-04 selected fresh-session host pilot and adoption
+
+- [x] User selects self-run low-risk task pilot before implementation/default installation; keep Hindsight and surrounding memory, model/tools/permissions, active sessions and old notification-only shim unchanged.
+- [x] Implement a separate new-session-cohort host observer over the existing EventStore and public continuity helpers; native Todo completed remains unverified, original owner producers remain explicit, no task writer/runner/periodic collector or new model tool.
+- [x] Current targeted loader/host tests23/23 and actual Node20.20.2 release-script tests364/364 pass. The earlier full source+11-tarball/23-entrypoint consumer gate passed before the final tree-change test increment; package sources did not change, and only affected release-script checks were rerun locally.
+- [x] Isolated conventional SDK1.5.0-fork.1 discovery with native Todo0.1.2-fork.3 and a real readonly engineering-worker report original passes eligible/new, excluded/old and storage-fault scenarios. Report-original SHA256 is `bc20906a28b2a833eb5debee15eec10792a1ede6098f4dbe79a9a9ad139c9586`; the worker actually used codex-local-8319/gpt-6.1-sol with max thinking. Four safe events in the normal case, zero for excluded old/storage-fault cases; owner reads remain available during storage failure. Native model/thinking/tools/prompt stayed unchanged, SDK model transport calls were zero. This is explicit report-original and native dispatch evidence, not business/provider/overall ROI.
+- [ ] Complete fresh independent exact-candidate review, current source/merge CI and ordinary source delivery for this host increment.
+- [ ] Prepare the fixed work-entry runtime, validate its exact candidate loader, then exclusively install the separate new-session default shim with a real fixed cohort timestamp and read back its bytes; do not reload active sessions.
+- [ ] Read back the installed entry's fresh conventional loading and retain local coverage/rollback facts. Do not label every owner integrated or broad natural-task benefit established.
+
+These rows describe preparation-time pilot/source facts. Later source/installation state must be read from its exact original owner and local files; no pending state is silently upgraded by a test count. The [host continuation contract](work-result-continuity-design.md#selected-fresh-session-host-continuation) and [installation guide](../../../docs/pi-local-observer-install.md#selected-fresh-session-work-observer) keep scope and rollback separate.
 
 ## 2026-10-20 quality-first offline recommendation successor
 

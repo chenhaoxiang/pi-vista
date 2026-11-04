@@ -20,17 +20,23 @@ function absolute(value) { if (typeof value !== "string" || !isAbsolute(value) |
  * alone owns its notification hooks. A hash is integrity, not Owner identity.
  */
 export function piLocalObserverLoader(input) {
-  const v = own(input, ["entry", "manifest_sha256"]), entry = absolute(v.entry);
+  const cohort = !types.isProxy(input) && input && Object.hasOwn(input, "fresh_sessions_since");
+  const v = own(input, cohort ? ["entry", "manifest_sha256", "fresh_sessions_since"] : ["entry", "manifest_sha256"]), entry = absolute(v.entry);
   if (typeof v.manifest_sha256 !== "string" || !/^[a-f0-9]{64}$/u.test(v.manifest_sha256)) refuse();
+  if (cohort && (basename(entry) !== "pi-work-observer.mjs" || typeof v.fresh_sessions_since !== "string" || !Number.isFinite(Date.parse(v.fresh_sessions_since)) || new Date(v.fresh_sessions_since).toISOString() !== v.fresh_sessions_since)) refuse();
+  const invocation = cohort ? `module.default(pi, { freshSessionsSince: ${JSON.stringify(v.fresh_sessions_since)} })` : "module.default(pi)";
   const manifest = join(dirname(entry), "manifest.json");
-  return `import { readFile } from "node:fs/promises";\nimport { createHash } from "node:crypto";\nimport { dirname, join } from "node:path";\nexport default async function (pi) {\n  try {\n    const manifestFile = ${JSON.stringify(manifest)};\n    const bytes = await readFile(manifestFile);\n    if (createHash("sha256").update(bytes).digest("hex") !== ${JSON.stringify(v.manifest_sha256)}) throw Error("observer-artifact-drift");\n    const manifest = JSON.parse(bytes);\n    if (!manifest.files.some(row => row.path === ${JSON.stringify(basename(entry))} && row.sha256 === manifest.entry_sha256)) throw Error("observer-entry-unbound");\n    for (const row of manifest.files) {\n      const content = await readFile(join(dirname(manifestFile), row.path));\n      if (createHash("sha256").update(content).digest("hex") !== row.sha256) throw Error("observer-artifact-drift");\n    }\n    const module = await import(${JSON.stringify(pathToFileURL(entry).href)});\n    if (typeof module.default !== "function") throw Error("observer-entry-unavailable");\n    return await module.default(pi);\n  } catch { try { console.error("[pi-vista] local observer entry unavailable"); } catch {} }\n}\n`;
+  return `import { readFile } from "node:fs/promises";\nimport { createHash } from "node:crypto";\nimport { dirname, join } from "node:path";\nexport default async function (pi) {\n  try {\n    const manifestFile = ${JSON.stringify(manifest)};\n    const bytes = await readFile(manifestFile);\n    if (createHash("sha256").update(bytes).digest("hex") !== ${JSON.stringify(v.manifest_sha256)}) throw Error("observer-artifact-drift");\n    const manifest = JSON.parse(bytes);\n    if (!manifest.files.some(row => row.path === ${JSON.stringify(basename(entry))} && row.sha256 === manifest.entry_sha256)) throw Error("observer-entry-unbound");\n    for (const row of manifest.files) {\n      const content = await readFile(join(dirname(manifestFile), row.path));\n      if (createHash("sha256").update(content).digest("hex") !== row.sha256) throw Error("observer-artifact-drift");\n    }\n    const module = await import(${JSON.stringify(pathToFileURL(entry).href)});\n    if (typeof module.default !== "function") throw Error("observer-entry-unavailable");\n    return await ${invocation};\n  } catch { try { console.error("[pi-vista] local observer entry unavailable"); } catch {} }\n}\n`;
 }
 /** Explicit source-bound builder, no publication/default activation. The caller
  * decides the release directory and later installs the loader. No host Pi SDK is
  * copied or npm-installed; exact local @pi-vista tarballs provide runtime deps.
  */
 export async function buildPiLocalObserverRelease(input) {
-  const v = own(input, ["source_sha", "destination"]), destination = absolute(v.destination);
+  const selected = !types.isProxy(input) && input && Object.hasOwn(input, "entry_name");
+  const v = own(input, selected ? ["source_sha", "destination", "entry_name"] : ["source_sha", "destination"]), destination = absolute(v.destination);
+  const entryName = v.entry_name ?? "pi-local-observer.mjs";
+  if (!["pi-local-observer.mjs", "pi-work-observer.mjs"].includes(entryName)) refuse();
   if (typeof v.source_sha !== "string" || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u.test(v.source_sha)) refuse();
   const env = commandEnvironment(), run = (command, args) => exec(command, args, { cwd: ROOT, env, shell: false, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
   const check = async () => {
@@ -63,9 +69,9 @@ export async function buildPiLocalObserverRelease(input) {
   }
   await writeFile(join(destination, "package.json"), JSON.stringify({ private: true, type: "module", name: "pi-vista-local-observer-runtime" }), { mode: 0o600, flag: "wx" });
   await exec(process.execPath, [npm, ...flags, "install", "--omit=dev", "--package-lock=false", ...archives.map(a => a.file)], { cwd: destination, env, shell: false, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
-  const entry = join(destination, "pi-local-observer.mjs"), bytes = await readFile(join(source, "scripts/pi-local-observer.mjs"));
+  const entry = join(destination, entryName), bytes = await readFile(join(source, "scripts", entryName));
   await writeFile(entry, bytes, { mode: 0o600, flag: "wx" });
-  const files = [{ path: "pi-local-observer.mjs", sha256: sha(bytes) },
+  const files = [{ path: entryName, sha256: sha(bytes) },
     { path: "package.json", sha256: sha(await readFile(join(destination, "package.json"))) }];
   for (const pkg of packages) {
     const installed = join(destination, "node_modules", pkg.manifest.name);

@@ -6,7 +6,7 @@ status: active
 truth_mode: maintained
 created: 2026-11-04
 verified: 2026-11-04
-verification_scope: Current continuity API and local source/package evidence; no independent-review, shared-delivery, installation or benefit acceptance
+verification_scope: Continuity APIs and fresh-session host local-pilot contract; host-increment review, installation and business benefit remain separate
 ---
 
 # Work result continuity: first explicit owner path
@@ -76,6 +76,18 @@ The parent's limited native owner readback of the actual preceding worker confir
 The combined candidate subsequently passed the actual Node20.20.2 source gate: all 11 workspace builds/typechecks/tests, public integration, release-script regressions and pack inventories. A real isolated consumer installed 11 exact local tarballs and checked 23 public entrypoints, including typed/runtime calls to the new result and handoff APIs. The local evidence is retained under this worktree's `tmp/release-contract/`; it is engineering evidence, not hosted CI or deployment.
 
 Formal independent exact-head review, normal PR/CI/merge and post-merge state are separate delivery facts and must be read from their original sources. Installation/default runtime wiring and actual business/provider/quality-benefit acceptance are not implied. Candidate source/API presence and retained synthetic counts must not be described as published, installed or default-running. No Hindsight or surrounding memory path changed.
+
+## Selected fresh-session host continuation
+
+After PR67, the user selected self-run low-risk pilot validation followed by default loading for **new** Pi sessions, without reloading active sessions or changing Hindsight. `scripts/pi-work-observer.mjs` is the bounded host increment, separate from the already installed notification-only shim. It uses the existing EventStore and public continuity APIs, not another task database or execution owner.
+
+The fixed loader receives `fresh_sessions_since` in exact UTC milliseconds. The host reads only native session header metadata and ID. Pre-cohort/resumed-old sessions are excluded; native event processing never reads a branch, prompt, tool body, transcript, user question or Hindsight path. Current Todo structured snapshots provide numeric ID/status changes only. Subjects, descriptions, owners and metadata are not copied. Session-local hashed traces are observational aliases (clear/reload may create a new scope), not a replacement stable WorkItem. `completed` is always `native_todo_completed_unverified`/unknown, never a code/business acceptance declaration.
+
+Trusted same-process owners can emit `pi-vista:owner-result` with `{hostSessionId,reference,readOwner,onObservation?}`. The explicit original-record callback uses `readPiOwnerResult`; matching a host session only routes the request, not authentication. A reader may inspect a child's binding distinct from the current host. `pi-vista:work-handoff` accepts `{hostSessionId,reference,onObservation?}` and delegates to the existing observation API. No native owner producer is silently installed: a missing producer yields no acceptance claim. `/vista-work-status` exposes coverage counts, unresolved results, unavailable observations and this limitation without adding a model tool or prompt instruction.
+
+Notification handlers never await the read/storage path. Owner reads use the maintained 250ms observation deadline, with at most32 pending requests per current session; asynchronous EventStore appends have at most64 pending writes. Saturation loses an observation with bounded diagnostics, never native work. Diagnostics are fixed and emitted at most once per session. Underlying trusted synchronous callbacks cannot be preempted, just as in the public API. A late read writes safe metadata under the old observer identity but cannot callback into a replacement session. Raw artifacts/effects stay with the native owner; observing a handoff does not implement native takeover/fencing or successor verification.
+
+Installation is a separate fixed runtime/shim using the existing offline builder with `entry_name: pi-work-observer.mjs`. It does not overwrite or update the notification-only shim, its pinned old runtime or existing observations. A current exact default-entry/SDK discovery check and the selected real report/Todo trial must pass before this additional loader is installed. Rollback removes/restores only this exact added entry for future loads; active sessions and original metadata remain untouched. Source, isolated SDK dispatch, actual report-original readback, local installation and broad natural-task benefit remain separate evidence levels. The SDK harness uses synthetic provider streams and zero model transport, not real provider acceptance or general task ROI.
 
 ## Entry conditions and rollback
 
