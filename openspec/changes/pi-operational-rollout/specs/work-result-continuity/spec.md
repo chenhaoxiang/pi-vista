@@ -78,6 +78,23 @@ An explicitly selected host entry SHALL observe only sessions created at or afte
 - **THEN** fixed diagnostics and coverage status SHALL report the observation limitation
 - **AND** native tools, task acceptance, model behavior and required checks SHALL continue unchanged
 
+### Requirement: A native Subagents result adapter shall use an explicit mission and original artifacts
+The host SHALL associate current native Subagents events with the existing mission/run/session and explicitly referenced single artifact. It SHALL read bounded regular original files without following symlinks or scanning history, emit only safe non-authorizing metadata, and keep artifact availability separate from task acceptance, code checks or business completion.
+
+#### Scenario: A native mission completes with one original output
+- **WHEN** the current Subagents owner event matches the mission/run/session and its mission/status/process/output originals are readable and unchanged
+- **THEN** the observer MAY report an accepted artifact-availability observation for that run-scoped work reference
+- **AND** it SHALL retain `authorization:none`, `readOnly:true` and `taskAcceptance:not-checked`
+
+#### Scenario: Native completion is missing or contradicted
+- **WHEN** mission identity, owner session, process terminal proof, output membership, file stability or native status is missing/contradictory
+- **THEN** the observation SHALL remain unknown/reportable-terminal and SHALL NOT treat a success flag or Todo completion as delivery
+
+#### Scenario: A duplicate or late native event arrives
+- **WHEN** the same run notification repeats, arrives before launch association, or arrives after the host session was reset
+- **THEN** it SHALL be deduplicated, retained until bounded association where safe, or ignored for the replacement session
+- **AND** it SHALL NOT replay execution or call a stale consumer; an identical completion notification SHALL NOT trigger another original read
+
 ### Requirement: Continuity helpers shall not alter unrelated execution or memory
 Continuity helpers SHALL remain explicit optional observation. They SHALL NOT change Hindsight or surrounding memory paths, native models/tools/permissions, existing Gate decisions, canonical transcripts or task execution. Missing observers SHALL NOT become new mandatory gates.
 

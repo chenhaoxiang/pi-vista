@@ -73,6 +73,13 @@ export async function buildPiLocalObserverRelease(input) {
   await writeFile(entry, bytes, { mode: 0o600, flag: "wx" });
   const files = [{ path: entryName, sha256: sha(bytes) },
     { path: "package.json", sha256: sha(await readFile(join(destination, "package.json"))) }];
+  if (entryName === "pi-work-observer.mjs") {
+    for (const helper of ["pi-subagent-owner.mjs"]) {
+      const content = await readFile(join(source, "scripts", helper));
+      await writeFile(join(destination, helper), content, { mode: 0o600, flag: "wx" });
+      files.push({ path: helper, sha256: sha(content) });
+    }
+  }
   for (const pkg of packages) {
     const installed = join(destination, "node_modules", pkg.manifest.name);
     files.push({ path: `node_modules/${pkg.manifest.name}/package.json`, sha256: sha(await readFile(join(installed, "package.json"))) });

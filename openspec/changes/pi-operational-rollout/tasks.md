@@ -39,6 +39,15 @@ These rows record implementation preparation; later unchecked shared-delivery/ad
 
 These rows describe preparation-time pilot/source facts. Later source/installation state must be read from its exact original owner and local files; no pending state is silently upgraded by a test count. The [host continuation contract](work-result-continuity-design.md#selected-fresh-session-host-continuation) and [installation guide](../../../docs/pi-local-observer-install.md#selected-fresh-session-work-observer) keep scope and rollback separate.
 
+## Long-term v0.4 native owner production (work package48)
+
+- [x] Reuse original Subagents mission/run references, native completion/wait results and exact regular artifact/status/metadata files in the existing fresh-session work host, without a new executor/database, native ownership change or history scan.
+- [x] Keep artifact availability separate from task acceptance; bind native header ID versus the host's private session-file owner reference and permit mission projections to lag actual native runtime state without rewriting them.
+- [x] Cover foreign identity, unknown/failed/late/duplicate completion, early notification, missing/empty/substituted artifact, native wait return, file symlink/size refusal and original-file preservation with synthetic regression tests.
+- [x] Execute a bounded real native parent/child on synthetic input through unchanged Subagents0.84.0-fork.3. The final parent consumed one exact native wait and the producer observed1 associated mission,1 signal,3 original reads and1 artifact-availability result; the earlier2 unknown observations and taskAcceptance:not-checked remain. Initial parent-empty/early-exit attempts and the discovered owner/wait contract mismatches are retained, not relabeled success. A child saying the task is complete is not the original evidence.
+- [ ] Finish exact-head independent source review, ordinary PR/CI/Gate/merge and fixed-runtime upgrade readback before claiming default producer delivery.
+- [ ] Package49 original Git/CI/Gate stage acceptance,50 full fresh recovery,51 questions and52 Desk integration remain separate; output availability does not complete them. Package55 natural measurements are retained as single-sample diagnostics, not causal ROI.
+
 ## 2026-10-20 quality-first offline recommendation successor
 
 - [x] Reuse the existing ROI analyzer/validator and closed DTO; permit observed parse/human-intervention improvement under the unchanged non-degradation floor even if tokens or priced SDK cost rise. Keep unknown/denominators/drift, original no-gain actual window and non-authorizing output. No model/bank/profile/permission/default-injection change.
