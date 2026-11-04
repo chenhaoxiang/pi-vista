@@ -134,6 +134,7 @@ async function child({ sdk, entry, fixture, scenario, report, todo }) {
     else { assert.equal(views[0].decision, "deliverable"); assert.deepEqual(await store.listRuns(), []); }
     assert.ok(snapshots.every(Boolean));
     const completed = queryObservations(), originalReads = originals.length, notifications = observationNotifications.length;
+    assert.ok(notifications > 0); assert.deepEqual(observationNotifications.at(-1).snapshot, completed);
     assert.equal(completed.coverage, scenario === "old-session" ? "not-applicable" : "observed");
     if (scenario !== "old-session") {
       assert.equal(completed.observations.length, 1); assert.deepEqual(completed.observations[0].observation, views[0]);

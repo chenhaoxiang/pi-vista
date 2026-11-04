@@ -112,7 +112,7 @@ The opt-in code-owner host SHALL read an explicitly selected PR/head/base, decla
 - **THEN** the observation SHALL remain unknown without modifying or retrying the original task
 
 ### Requirement: Display snapshots shall consume only completed observations
-The host SHALL expose a bounded same-process memory snapshot of existing result and handoff DTOs, with exact host identity, observer epoch, monotonic sequence, coverage and fixed completion time. Query SHALL NOT run owner IO, verification, models, persistence or effects, refresh timestamps, invent task authority or alter original binding identities.
+The host SHALL expose a bounded same-process memory snapshot of existing result and handoff DTOs, with exact host identity, observer epoch, sequence monotonic within that epoch, coverage and fixed completion time. Query SHALL NOT run owner IO, verification, models, persistence or effects, refresh timestamps, invent task authority or alter original binding identities.
 
 #### Scenario: A client requests an already consumed child result
 - **WHEN** a current-host client queries the completed-observation window repeatedly

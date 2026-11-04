@@ -351,7 +351,9 @@ type Snapshot = {
 };
 ```
 
-- `hostSessionId` routes the actual native header identity. It is **not** required
+- `hostSessionId` routes the actual native header identity, validated with core
+  `isSafeSegment` (ASCII alphanumeric, dot, underscore or hyphen; not `.`/`..`),
+  at most256 characters and no known credential signature. It is **not** required
   to equal a result binding or either handoff session: those are kept unchanged.
   A host without a verified safe identity does not answer or notify clients.
 - Each session start/reload or tree-scope reset starts a new opaque epoch, seq0
@@ -370,6 +372,7 @@ type Snapshot = {
   `not-applicable` means an old excluded cohort, and `observed` includes unknown
   and failed outcomes. It does not claim exhaustive work coverage. Shutdown
   clears the window, emits an incremented-seq `unavailable`, then stops replies.
+  A live host with valid identity but unusable header time also reports unavailable.
 - Original stage IDs/bindings and non-authorizing DTO fields remain intact.
   `subagent-output-available` is not business acceptance; source-only delivery
   is not installation/deployment. Native broad wait/unknown is not an action
@@ -380,6 +383,8 @@ model call, EventStore read/write, transcript scan, timer, cancellation or task
 execution. Notifications occur on completed consumption and scope lifecycle,
 not polling. Listener errors remain fail-open; trusted same-process listeners
 are not sandboxed, and a blocking synchronous listener cannot be preempted.
+The host event bus owns listener isolation; on a bus that stops at a throwing
+listener, later listeners may miss that notification and can query the snapshot.
 The existing owner callback/effect path and late original metadata are retained.
 
 ## Integration boundary

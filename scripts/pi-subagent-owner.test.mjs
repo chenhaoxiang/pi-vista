@@ -43,11 +43,11 @@ test("native mission/run/output originals produce scoped availability, not task 
 }));
 
 test("installed host wiring routes native events through actual observer consumption and safe rows", () => fixture(async f => {
-  const handlers = new Map(), events = new EventEmitter(), rows = [];
+  const handlers = new Map(), events = new EventEmitter(), rows = []; let diagnostics = 0;
   const pi = { on(name, fn) { handlers.set(name, fn); return () => handlers.delete(name); },
-    events: { on(name, fn) { events.on(name, fn); return () => events.off(name, fn); } },
+    events: { emit(name, payload) { events.emit(name, payload); }, on(name, fn) { events.on(name, fn); return () => events.off(name, fn); } },
     registerCommand() {}, getCommands: () => [] };
-  const observer = createPiWorkObserver({ freshSessionsSince: "2026-01-01T00:00:00.000Z", store: { append: event => { rows.push(event); } }, diagnose: () => assert.fail("unexpected diagnostic") });
+  const observer = createPiWorkObserver({ freshSessionsSince: "2026-01-01T00:00:00.000Z", store: { append: event => { rows.push(event); } }, diagnose: () => { diagnostics++; } });
   observer.extension(pi); handlers.get("session_start")({}, { sessionManager: {
     getSessionId: () => "parent-session", getSessionFile: () => f.mission.ownerSessionId,
     getHeader: () => ({ id: "parent-session", timestamp: "2026-01-01T00:00:00.000Z" }),
@@ -58,6 +58,7 @@ test("installed host wiring routes native events through actual observer consump
   const last = rows.at(-1); assert.equal(last.result, "ok"); assert.equal(last.artifact_refs[0].ref, "subagent-output-available");
   const json = JSON.stringify(rows); assert.ok(!json.includes(f.root)); assert.ok(!json.includes("PRIVATE_ORIGINAL_REPORT"));
   events.emit("subagent:async-complete", f.complete); await observer.drain(); assert.equal(observer.status().deliverable, 1);
+  assert.equal(diagnostics, 0); assert.equal(observer.status().unavailable, 0);
 }, true));
 
 test("native persisted session owner maps from exact host file reference without leaking paths", () => fixture(async f => {

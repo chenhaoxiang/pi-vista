@@ -93,6 +93,17 @@ test("snapshot shutdown clears results and stale instances stop replying", async
   assert.equal(f.observer.observationSnapshot().seq, 0);
 });
 
+test("reentrant scope notification does not duplicate successor loaded metadata; shared safe IDs remain supported", () => {
+  const f = fixture();
+  f.events.on(WORK_OBSERVATION_CHANGED_EVENT, value => {
+    if (value.snapshot.hostSessionId === "original") f.handlers.get("session_start")({}, f.ctx("successor.1"));
+  });
+  f.handlers.get("session_start")({}, f.ctx("original"));
+  assert.equal(f.observer.observationSnapshot().hostSessionId, "successor.1");
+  assert.equal(f.observer.status().loaded, true);
+  assert.equal(f.rows.filter(row => row.action === "pi:work:loaded").length, 1);
+});
+
 test("reentrant display lifecycle cannot invoke a retired owner callback or close the new session", async () => {
   const f = fixture(); f.handlers.get("session_start")({}, f.ctx()); let callbacks = 0;
   const onResult = value => {

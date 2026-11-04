@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { types } from "node:util";
-import { EventStore, hasKnownCredential } from "@pi-vista/core";
+import { EventStore, hasKnownCredential, isSafeSegment } from "@pi-vista/core";
 import { readPiOwnerResult, observePiWorkHandoff } from "@pi-vista/adapter-pi";
 import { createSubagentOwnerProducer } from "./pi-subagent-owner.mjs";
 
@@ -21,7 +21,7 @@ function sessionId(ctx) {
   // The native SessionManager is trusted host code, never a payload callback.
   const manager = ctx?.sessionManager;
   const value = manager?.getSessionId();
-  return typeof value === "string" && /^[A-Za-z0-9_-]{1,256}$/u.test(value) && !hasKnownCredential(value) ? value : undefined;
+  return typeof value === "string" && isSafeSegment(value) && value.length <= 256 && !hasKnownCredential(value) ? value : undefined;
 }
 function dense(value, max) {
   if (!Array.isArray(value) || types.isProxy(value) || Object.getPrototypeOf(value) !== Array.prototype) return;
@@ -121,8 +121,9 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
         if (created >= cutoff) current = { session: id, nativeOwnerId: ctx.sessionManager.getSessionFile?.() ?? id, run: randomUUID() };
       }
     } catch { report(); }
+    const identity = current;
     resetPublication(host, state);
-    if (current) emit(current, "pi:work:loaded", "ok", "forward_only_observer_loaded");
+    if (identity && identity === current) emit(identity, "pi:work:loaded", "ok", "forward_only_observer_loaded");
   }
   function todo(event) {
     ownerProducer?.onTool(event);
