@@ -72,7 +72,13 @@ it does not start waits or poll. `subagent-output-available` means the original
 artifact is readable, not that the task/business passed. Current safe recent
 results and `ownerProducer.taskAcceptance:not-checked` expose that distinction.
 Subagents' private session-file owner reference is compared against native
-originals but is never exported as protocol metadata. See the
+originals but is never exported as protocol metadata. An explicitly requested
+ordinary single run can reuse a mission created by another parent: `tool_result`
+supplies bounded request identity, the unchanged end notification confirms the
+final launch, and current-run sidecar/status/ledger/artifact originals must agree.
+The mission creation owner and all old run bindings remain unchanged. Missing
+explicit evidence stays unknown; the same-owner path needs no extra file read.
+This source candidate does not upgrade any installed runtime automatically. See the
 [native producer contract](../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#native-subagents-owner-producer-long-term-work-package48). Missing/failed observation is
 not a task Gate. There is no model tool/prompt change, model call, timer collector,
 transcript scan or Hindsight/peripheral-memory change. See the maintained
@@ -86,6 +92,22 @@ extension entry>` and `--report=<selected original report file>` test those exac
 originals, not discovery of real tasks or session logs. Tests remain synthetic
 unless the operator selects an actual report. SDK checks are not broad business
 acceptance or proof that all running sessions loaded an entry.
+
+The explicit synthetic native-owner check is separate:
+
+```sh
+node scripts/pi-subagent-owner-sdk.mjs --sdk=<SDK1.5.0-fork.1 root> \
+  --native=<fixed pi-subagents source archive with locked test dependencies>
+```
+
+It creates an isolated fixture under this checkout's `tmp/native-result-seam/`,
+uses the native scripted ChildSessionFactory rather than a provider, and keeps
+commands, failures and generated originals there. The real SDK supplies
+`tool_result.input/details` and an args-free `tool_execution_end`; the harness
+does not add missing event fields. It checks middleware order/errors/mutation,
+duplicate signals, native parent/sidecar/output binding, and actual tree/reload
+fencing. These are synthetic source/SDK facts, not task acceptance, installation
+or permission to resume older work.
 
 ## Source-bound local runtime
 

@@ -222,8 +222,12 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
       try { commands = pi.getCommands?.(); } catch { /* SDK runtime may not be bound at factory load. */ }
       if (Array.isArray(commands) && commands.some(command => command.name === "vista-work-status")) throw Error();
       subscriptions.push(pi.on("session_start", start));
+      subscriptions.push(pi.on("tool_result", (event, ctx) => {
+        try { if (current && sessionId(ctx) === current.session) ownerProducer?.onToolResult(event); } catch { report(); }
+      }));
       subscriptions.push(pi.on("tool_execution_end", event => { try { todo(event); } catch { report(); } }));
       subscriptions.push(pi.on("session_tree", () => {
+        ownerProducer?.onTree();
         epoch = randomUUID(); lastTasks = new Map();
         resetPublication(publicationHost, current ? "not-observed" : coverage);
       }));
