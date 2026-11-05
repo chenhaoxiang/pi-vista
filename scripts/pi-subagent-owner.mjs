@@ -21,8 +21,16 @@ function array(value, cap = 64) {
   for (let i = 0; i < size; i++) { const d = Object.getOwnPropertyDescriptor(value, String(i)); if (!d || !Object.hasOwn(d, "value")) return; result.push(d.value); }
   return result;
 }
+function ownDataObject(value, cap = 64) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || types.isProxy(value) || Object.getPrototypeOf(value) !== Object.prototype) fail();
+  const keys = Reflect.ownKeys(value);
+  if (keys.length > cap || keys.some(key => typeof key !== "string" || !Object.hasOwn(Object.getOwnPropertyDescriptor(value, key), "value"))) fail();
+  return value;
+}
 function id(value) { if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,128}$/u.test(value)) fail(); return value; }
 function path(value) { if (typeof value !== "string" || value.length > 4096 || !isAbsolute(value) || normalize(value) !== value || /[\x00-\x1f\x7f]/u.test(value)) fail(); return value; }
+const SINGLE_INPUT_KEYS = new Set(["agent", "task", "async", "model", "cwd", "worktree", "output", "options", "missionId"]);
+const NON_SINGLE_OPTIONS = ["action", "resume", "workflow", "script", "workflowScript", "workflowScriptPath", "tasks", "chain", "parallel", "mission", "reuseFrom", "mode"];
 
 /** Read one owner-selected regular original, not a directory or session transcript.
  * Paths stay inside the host; only digests/opaque references leave this reader.
@@ -44,6 +52,17 @@ export async function readSubagentFile(file, maxBytes = 2 * 1024 * 1024) {
     return bytes.subarray(0, offset);
   } finally { await handle.close(); }
 }
+function explicitMissionIdFromInput(value, missionId) {
+  try {
+    // Inspect shape and identity only. In particular, never read task/model/cwd
+    // values or retain the mutable input object shared by SDK middleware.
+    const input = ownDataObject(value), options = field(input, "options") === undefined ? {} : ownDataObject(field(input, "options"));
+    if (Reflect.ownKeys(input).some(key => !SINGLE_INPUT_KEYS.has(key)) || NON_SINGLE_OPTIONS.some(key => Object.hasOwn(options, key))) return;
+    const agent = field(input, "agent"), flat = field(input, "missionId"), nested = field(options, "missionId");
+    if (typeof agent !== "string" || !agent.trim() || (flat !== undefined && flat !== missionId) || (nested !== undefined && nested !== missionId)) return;
+    if ((flat ?? nested) === missionId) return missionId;
+  } catch { /* missing/hostile shape is not explicit launch evidence */ }
+}
 function admission(details, hostSessionId, nativeOwnerId) {
   const runId = id(field(details, "runId") ?? field(details, "asyncId"));
   const missionId = id(field(details, "missionId"));
@@ -54,6 +73,16 @@ function admission(details, hostSessionId, nativeOwnerId) {
     stageId: "subagent-output-available", runId, sessionId: id(hostSessionId), revision: 0 });
   if (typeof nativeOwnerId !== "string" || !nativeOwnerId || nativeOwnerId.length > 4096) fail();
   return Object.freeze({ binding, missionPath, asyncDir, nativeOwnerId });
+}
+function sameAdmission(a, b) {
+  return a.missionPath === b.missionPath && a.asyncDir === b.asyncDir && a.binding.workRef.key === b.binding.workRef.key
+    && a.nativeOwnerId === b.nativeOwnerId && a.binding.sessionId === b.binding.sessionId;
+}
+function validateMissionReuseSidecar(bytes, missionPath, missionId) {
+  const sidecar = JSON.parse(bytes.toString("utf8"));
+  if (field(sidecar, "schemaVersion") !== 1 || field(sidecar, "autoCreated") !== false || field(sidecar, "missionId") !== missionId) fail();
+  const missionDir = path(field(sidecar, "missionDir"));
+  if (join(missionDir, `${missionId}.json`) !== missionPath) fail();
 }
 function outputFrom(event) {
   const results = array(field(event, "results"));
@@ -67,13 +96,24 @@ function outputFrom(event) {
  * stand in for task acceptance, code CI, parent review or business settlement.
  */
 export async function readSubagentOutputOriginal(record, outputPath, readFile = readSubagentFile) {
+  if (record.awaitingEnd || record.blockedOriginal) fail();
   const { binding, missionPath, asyncDir, nativeOwnerId } = record;
   const [missionBytes, statusBytes] = await Promise.all([readFile(missionPath), readFile(join(asyncDir, "status.json"))]);
   const mission = JSON.parse(missionBytes.toString("utf8")), status = JSON.parse(statusBytes.toString("utf8"));
-  if (mission.schemaVersion !== 1 || mission.id !== binding.workRef.key || mission.ownerSessionId !== nativeOwnerId
+  if (mission.schemaVersion !== 1 || mission.id !== binding.workRef.key
     || status.lifecycleArtifactVersion !== 3 || status.runId !== binding.runId || status.sessionId !== nativeOwnerId || status.mode !== "single") fail();
+  let sidecarBytes;
+  if (mission.ownerSessionId !== nativeOwnerId) {
+    // Mission ownership is creation provenance. Explicit reuse must also have
+    // this run's native sidecar; autoCreated:false alone includes new missions.
+    if (record.explicitMissionId !== binding.workRef.key || typeof mission.ownerSessionId !== "string" || !mission.ownerSessionId
+      || typeof record.toolCallId !== "string" || status.toolCallId !== record.toolCallId || status.revivedFrom !== undefined || status.isNested === true || status.parentWorkflowRunId !== undefined) fail();
+    sidecarBytes = await readFile(join(asyncDir, "mission.json"));
+    validateMissionReuseSidecar(sidecarBytes, missionPath, binding.workRef.key);
+  }
   const runs = array(mission.runs, 4096), matching = runs?.filter(run => field(run, "runId") === binding.runId);
-  if (!matching || matching.length !== 1 || field(matching[0], "asyncDir") !== asyncDir) fail();
+  if (!matching || matching.length !== 1 || field(matching[0], "asyncDir") !== asyncDir
+    || (sidecarBytes && field(matching[0], "mode") !== "single")) fail();
   const timestamp = Date.now(), observedAt = new Date(timestamp).toISOString(), freshUntil = new Date(timestamp + 30_000).toISOString();
   const sourceRef = `subagent-run-${binding.runId}`;
   const snapshot = { binding, sourceKind: "artifact", sourceRef, disposition: "unknown", observedAt, freshUntil,
@@ -93,7 +133,7 @@ export async function readSubagentOutputOriginal(record, outputPath, readFile = 
     || ![metadata.savedOutputPath, metadata.artifactPaths?.outputPath].includes(outputPath)) fail();
   const output = await readFile(outputPath, 8 * 1024 * 1024);
   if (!output.length) return snapshot;
-  const digest = hash(JSON.stringify([hash(missionBytes), hash(statusBytes), hash(metadataBytes), hash(output)]));
+  const digest = hash(JSON.stringify([hash(missionBytes), hash(statusBytes), hash(metadataBytes), hash(output), ...(sidecarBytes ? [hash(sidecarBytes)] : [])]));
   return { ...snapshot, disposition: "accepted", evidence: [{ binding, record: {
     evidence_id: "native-original", run_id: binding.runId, kind: "readback", state: "validated", source_ref: sourceRef,
     content_digest: digest, claims: ["native-artifact-available"], observed_at: observedAt, fresh_until: freshUntil,
@@ -124,6 +164,28 @@ export function createSubagentOwnerProducer({ hostSessionId, nativeOwnerId = hos
       } }); } catch { accepted = false; }
     if (accepted === false) { record.busy = false; unavailable(); }
   }
+  function onToolResult(event) {
+    if (!hostSessionId() || field(event, "type") !== "tool_result" || field(event, "toolName") !== "subagent"
+      || field(event, "isError") !== false || field(event, "parentToolCallId") !== undefined) return;
+    const details = field(event, "details"), toolCallId = field(event, "toolCallId");
+    if (typeof toolCallId !== "string" || !toolCallId || toolCallId.length > 512 || field(details, "missionWarning") !== undefined) return;
+    const explicitMissionId = explicitMissionIdFromInput(field(event, "input"), field(details, "missionId"));
+    if (explicitMissionId === undefined) return;
+    try {
+      ownDataObject(event); ownDataObject(details);
+      const next = admission(details, hostSessionId(), nativeOwnerId()), key = next.binding.runId, existing = records.get(key);
+      if (existing) {
+        if (!sameAdmission(existing, next) || existing.toolCallId !== toolCallId || existing.explicitMissionId !== explicitMissionId) unavailable();
+        return; // never upgrade an end-only record or reread on a duplicate result
+      }
+      if (records.size >= 256) { unavailable(); return; }
+      // No IO or result patch here. Later middleware can replace details/isError;
+      // the existing end handler must confirm this exact call before any read.
+      records.set(key, { ...next, toolCallId, explicitMissionId, awaitingEnd: true,
+        busy: false, dirty: false, signals: new Set(), outputPath: undefined });
+      counts.associated++;
+    } catch { counts.unsupported++; }
+  }
   function onTool(event) {
     if (!hostSessionId()) return;
     const details = field(field(event, "result"), "details");
@@ -139,25 +201,39 @@ export function createSubagentOwnerProducer({ hostSessionId, nativeOwnerId = hos
       return;
     }
     if (field(event, "toolName") !== "subagent") return;
+    const key = field(details, "runId") ?? field(details, "asyncId"), existing = records.get(key);
+    if (existing?.toolCallId !== undefined) {
+      if (field(event, "toolCallId") !== existing.toolCallId) { unavailable(); return; }
+      if (!existing.awaitingEnd) return; // result/end pair and duplicate end read only once
+      existing.awaitingEnd = false;
+      try {
+        ownDataObject(event); ownDataObject(field(event, "result")); ownDataObject(details);
+        if (!sameAdmission(existing, admission(details, hostSessionId(), nativeOwnerId())) || field(event, "isError") !== false
+          || field(field(event, "result"), "isError") === true || field(event, "parentToolCallId") !== undefined
+          || field(details, "missionWarning") !== undefined) fail();
+      } catch { existing.blockedOriginal = true; unavailable(); }
+      const completion = early.get(key); early.delete(key);
+      if (completion) onCompletion(completion); else inspect(existing);
+      return;
+    }
     if (field(details, "asyncDir") === undefined || field(details, "missionId") === undefined) return;
     try {
       const next = admission(details, hostSessionId(), nativeOwnerId());
-      const key = next.binding.runId, existing = records.get(key);
       if (existing) {
-        if (existing.missionPath !== next.missionPath || existing.asyncDir !== next.asyncDir || existing.binding.workRef.key !== next.binding.workRef.key) { unavailable(); return; }
+        if (!sameAdmission(existing, next)) { unavailable(); return; }
         inspect(existing); return;
       }
       if (records.size >= 256) { unavailable(); return; }
       const record = { ...next, busy: false, dirty: false, signals: new Set(), outputPath: undefined };
-      records.set(key, record); counts.associated++;
-      const completion = early.get(key); early.delete(key);
+      records.set(next.binding.runId, record); counts.associated++;
+      const completion = early.get(next.binding.runId); early.delete(next.binding.runId);
       if (completion) onCompletion(completion); else inspect(record);
     } catch { counts.unsupported++; }
   }
   function onCompletion(event) {
     try {
       const runId = id(field(event, "runId") ?? field(event, "id")), record = records.get(runId);
-      if (!record) {
+      if (!record || record.awaitingEnd) {
         const sessionId = field(event, "sessionId");
         if (!hostSessionId() || sessionId !== nativeOwnerId()) return;
         if (early.size >= 64) { unavailable(); return; }
@@ -180,8 +256,9 @@ export function createSubagentOwnerProducer({ hostSessionId, nativeOwnerId = hos
       inspect(record);
     } catch { unavailable(); }
   }
-  function onTerminal(event) { const record = records.get(field(event, "runId")); if (record && hostSessionId() === record.binding.sessionId) inspect(record); }
+  function onTerminal(event) { const record = records.get(field(event, "runId")); if (record && !record.awaitingEnd && hostSessionId() === record.binding.sessionId) inspect(record); }
+  function onTree() { for (const record of records.values()) if (record.awaitingEnd) record.explicitMissionId = undefined; }
   function reset() { generation++; records.clear(); early.clear(); for (const key of Object.keys(counts)) counts[key] = 0; }
-  return Object.freeze({ onTool, onCompletion, onTerminal, reset,
+  return Object.freeze({ onTool, onToolResult, onCompletion, onTerminal, onTree, reset,
     status: () => Object.freeze({ ...counts, scope: "native-single-async-output-availability", taskAcceptance: "not-checked" }) });
 }

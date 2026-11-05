@@ -48,6 +48,14 @@ These rows describe preparation-time pilot/source facts. Later source/installati
 - [ ] Finish exact-head independent source review, ordinary PR/CI/Gate/merge and fixed-runtime upgrade readback before claiming default producer delivery.
 - [ ] Package49 original Git/CI/Gate stage acceptance,50 full fresh recovery,51 questions and52 Desk integration remain separate; output availability does not complete them. Package55 natural measurements are retained as single-sample diagnostics, not causal ROI.
 
+### Explicit mission new-run observation candidate (2026-11-05)
+
+- [x] Confirm fixed native source `d1a9148996a81790bf89ac76aa68410291e01bb9` already supports ordinary single explicit missionId reuse without changing mission creation owner; preserve the original end-without-args blocker and withdrawn experiment rather than upgrading its conditional tests.
+- [x] Use real SDK1.5 `tool_result` input/details identity and the existing finalized end notification, with no start cache, mutable body retention or result patch. Require current sidecar/unique ledger/status owner+call/metadata originals only for the new cross-creation-owner branch; retain same-owner, Todo, bg_wait and public DTO boundaries.
+- [x] Retain native-generated real-SDK baseline red and corrected twelve-scenario synthetic acceptance, including middleware before/after errors, mutation, exact original owner bindings, blocked non-execution, duplicate/read counts and actual tree/reload fencing. Targeted Node20 source tests104/104 pass; no model transport or installed-runtime claim.
+- [x] Local Node20 source gate passes1679 cases (including470 release-script and35 integration),11 package builds/typechecks/pack inventories; offline packed consumer checks11 exact tarballs/23 exports after a retained metadata-cache ENOTCACHED and task-cache-only fill. Related OpenSpec strict passes; whole-change strict retains three warnings-as-failures in unchanged Hindsight/portable/learning changes, not repaired in this scope. Lint command and script syntax checks pass; these do not replace independent review/CI.
+- [ ] Independent exact-candidate review, hosted delivery and any fixed-runtime upgrade remain parent-owned and unclaimed by these local tests.
+
 ## Long-term v0.4 source-owner acceptance (work package49)
 
 - [x] Add an explicitly invoked code-stage original reader using the existing owner binding/result consumer: exact PR/head/base, owner-declared check/App set, review hash, merge workflow, ancestry and original Gate report.

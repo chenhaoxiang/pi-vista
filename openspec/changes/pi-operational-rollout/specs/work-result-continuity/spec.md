@@ -95,6 +95,16 @@ The host SHALL associate current native Subagents events with the existing missi
 - **THEN** it SHALL be deduplicated, retained until bounded association where safe, or ignored for the replacement session
 - **AND** it SHALL NOT replay execution or call a stale consumer; an identical completion notification SHALL NOT trigger another original read
 
+#### Scenario: A current single run explicitly reuses a mission created by another parent
+- **WHEN** a current native `tool_result` provides descriptor-only ordinary-single shape and exact explicit missionId, followed by the same non-error finalized launch identity
+- **THEN** the observer MAY retain the mission creation owner and bind the new run to its actual current session only after the current-run native sidecar, unique single ledger link, status owner/run/tool-call and artifact metadata parent/run/output all agree
+- **AND** explicit creation or `autoCreated:false` alone SHALL NOT supply reuse evidence; task acceptance, old runs, permissions, lease and capability SHALL remain unchanged
+
+#### Scenario: Result middleware or lifecycle changes the pending association
+- **WHEN** the final launch contradicts the snapshotted result, the result is error/malformed/control/workflow/implicit, or the pending scope resets
+- **THEN** it SHALL NOT grant cross-creation-owner observation or read/replay historical runs
+- **AND** result handlers SHALL return undefined, leave input/results unchanged, retain no task/body values and perform no original IO; a duplicate result/end SHALL NOT trigger an additional original read
+
 ### Requirement: Explicit code-owner readback shall use original source and merge evidence
 The opt-in code-owner host SHALL read an explicitly selected PR/head/base, declared check names with pinned App IDs, merge workflows and original premerge Gate report. It SHALL not execute Gate, merge, CI, retries or deployments. Missing, foreign, failed, incomplete or post-merge-only Gate evidence SHALL remain unknown; an accepted result SHALL only describe source-shared delivery and never grant permission.
 
