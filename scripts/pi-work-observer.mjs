@@ -1,8 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { types } from "node:util";
+import { isAbsolute, normalize } from "node:path";
 import { EventStore, hasKnownCredential, isSafeSegment } from "@pi-vista/core";
 import { readPiOwnerResult, observePiWorkHandoff } from "@pi-vista/adapter-pi";
-import { createSubagentOwnerProducer } from "./pi-subagent-owner.mjs";
+import { createSubagentOwnerProducer, readSubagentFile } from "./pi-subagent-owner.mjs";
+import { createCodeProgressWindow, codeProgressRow } from "./pi-code-progress.mjs";
+import { readCodeStage } from "./pi-code-stage-reader.mjs";
 
 export const OWNER_RESULT_EVENT = "pi-vista:owner-result";
 export const HANDOFF_EVENT = "pi-vista:work-handoff";
@@ -40,7 +43,7 @@ function dense(value, max) {
  * Owner bus callbacks are trusted same-process host code, not model payloads or
  * source authentication. They must read original acceptance before reporting it.
  */
-export function createPiWorkObserver({ store = new EventStore(), now = Date.now, freshSessionsSince,
+export function createPiWorkObserver({ store = new EventStore(), now = Date.now, freshSessionsSince, codeOwner = {},
   diagnose = () => console.error("[pi-vista] work observation unavailable") } = {}) {
   if (typeof freshSessionsSince !== "string" || !Number.isFinite(Date.parse(freshSessionsSince)) || new Date(freshSessionsSince).toISOString() !== freshSessionsSince) throw Error("work-observer-cohort-invalid");
   const cutoff = Date.parse(freshSessionsSince);
@@ -51,10 +54,12 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   const active = new Set();
   let eventBus, publicationOpen = false, publicationHost = null, observerEpoch = randomUUID(), sequence = 0;
   let coverage = "unavailable", observations = [], omitted = 0;
+  const codeProgress = createCodeProgressWindow("unavailable");
+  let codePending;
   function observationSnapshot() {
     return Object.freeze({ version: 1, hostSessionId: publicationHost, observerEpoch, seq: sequence,
       scope: "session-recent-observations", coverage, observations: Object.freeze([...observations]), omitted,
-      authorization: "none", readOnly: true, executable: false });
+      codeProgress: codeProgress.snapshot(), authorization: "none", readOnly: true, executable: false });
   }
   function publishSnapshot(name, value) {
     try { eventBus?.emit(name, value); } catch { report(); }
@@ -64,6 +69,7 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
   }
   function resetPublication(host, state) {
     publicationHost = host; observerEpoch = randomUUID(); sequence = 0; coverage = state; observations = []; omitted = 0;
+    codeProgress.reset(state); codePending = undefined;
     changed();
   }
   function completedObservation(kind, observation, requestedEpoch) {
@@ -148,6 +154,70 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
     }
     lastTasks = next;
   }
+  function recordOwnerObservation(identity, observation, stillCurrent) {
+    if (stillCurrent) {
+      counts.ownerReads++;
+      if (observation.decision === "deliverable") counts.deliverable++;
+      else if (observation.decision === "reportable_terminal") counts.terminal++;
+      else counts.unresolved++;
+    }
+    const binding = observation.binding;
+    emit(identity, "pi:work:owner-result", observation.outcome === "accepted" ? "ok" : observation.outcome === "failed" ? "failed" : "unknown",
+      observation.reasonCode, binding ? JSON.stringify(binding.workRef) : undefined, binding?.stageId);
+    if (stillCurrent) recentResults = [...recentResults.slice(-15), Object.freeze({
+      workRef: binding?.workRef ?? null, stageId: binding?.stageId ?? null, runId: binding?.runId ?? null,
+      decision: observation.decision, reasonCode: observation.reasonCode, authorization: "none",
+    })];
+  }
+  async function observeCode(_id, args, signal, _onUpdate, ctx) {
+    const reply = details => ({ content: [{ type: "text", text: JSON.stringify(details) }], details });
+    const unavailable = reasonCode => reply({ available: false, published: false, reasonCode, authorization: "none", readOnly: true, executable: false });
+    const identity = current, version = generation, requestedEpoch = observerEpoch;
+    if (!identity || sessionId(ctx) !== identity.session || !publicationOpen) return unavailable("observer_scope_unavailable");
+    if (codePending) return unavailable("code_observation_busy");
+    if (!args || typeof args !== "object" || types.isProxy(args) || Array.isArray(args) || Object.getPrototypeOf(args) !== Object.prototype
+      || Reflect.ownKeys(args).length !== 1 || !Object.hasOwn(args, "contractFile")) return unavailable("contract_invalid");
+    const file = data(args, "contractFile");
+    if (typeof file !== "string" || file.length > 4096 || !isAbsolute(file) || normalize(file) !== file || /[\x00-\x1f\x7f]/u.test(file)) return unavailable("contract_invalid");
+    const token = {}; codePending = token;
+    const controller = new AbortController(), abort = () => controller.abort();
+    const timer = setTimeout(abort, 60_000);
+    signal?.addEventListener("abort", abort, { once: true }); if (signal?.aborted) abort();
+    async function bounded(operation) {
+      let stop;
+      const cancelled = new Promise((_resolve, reject) => { stop = () => reject(Error("code-read-ended")); controller.signal.addEventListener("abort", stop, { once: true }); if (controller.signal.aborted) stop(); });
+      try { return await Promise.race([operation, cancelled]); }
+      finally { controller.signal.removeEventListener("abort", stop); }
+    }
+    try {
+      controller.signal.throwIfAborted();
+      const bytes = await bounded((codeOwner.readContract ?? readSubagentFile)(file, 64 * 1024));
+      const prepared = await bounded((codeOwner.readStage ?? readCodeStage)(JSON.parse(bytes.toString("utf8")), { now, signal: controller.signal }));
+      controller.signal.throwIfAborted();
+      let result;
+      // This is the genuine readback produced from this invocation's originals,
+      // never reconstructed from a result flag. The callback performs no IO.
+      if (prepared.readback) result = await readPiOwnerResult({ binding: prepared.readback.binding, resultRef: `github-pr-${prepared.progress.pullRequest}` },
+        { readOwner: () => prepared.readback, timeoutMs: 250, now: now() });
+      const progress = prepared.readback && result?.decision !== "deliverable"
+        ? codeProgressRow({ binding: prepared.progress.binding, repository: prepared.progress.repository, pullRequest: prepared.progress.pullRequest }, "source_original_unavailable", prepared.progress.observedAt)
+        : prepared.progress;
+      const stillCurrent = version === generation && identity === current && requestedEpoch === observerEpoch && publicationOpen;
+      if (result) recordOwnerObservation(identity, result, stillCurrent);
+      if (stillCurrent && result) completedObservation("owner", result, requestedEpoch);
+      // Result publication can synchronously trigger a scope reset in a consumer.
+      const publish = version === generation && identity === current && requestedEpoch === observerEpoch && publicationOpen;
+      const published = publish && progress ? codeProgress.append(progress) : false;
+      if (published) changed();
+      else if (publish) { codeProgress.unavailable(); changed(); }
+      return reply({ available: Boolean(progress), published, progress: progress ?? null, ...(result ? { result } : {}),
+        ...(!progress ? { reasonCode: "source_original_unavailable" } : {}), authorization: "none", readOnly: true, executable: false });
+    } catch {
+      if (version === generation && identity === current && requestedEpoch === observerEpoch && publicationOpen) { codeProgress.unavailable(); changed(); report(); }
+      return unavailable("source_original_unavailable");
+    }
+    finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); if (codePending === token) codePending = undefined; }
+  }
   function request(payload, kind) {
     const identity = current, version = generation, requestedEpoch = observerEpoch;
     if (!identity) return false;
@@ -172,19 +242,7 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
       const stillCurrent = version === generation && identity === current;
       const reason = observation.reasonCode;
       if (kind === "owner") {
-        if (stillCurrent) {
-          counts.ownerReads++;
-          if (observation.decision === "deliverable") counts.deliverable++;
-          else if (observation.decision === "reportable_terminal") counts.terminal++;
-          else counts.unresolved++;
-        }
-        const binding = observation.binding;
-        const trace = binding ? JSON.stringify(binding.workRef) : undefined;
-        emit(identity, "pi:work:owner-result", observation.outcome === "accepted" ? "ok" : observation.outcome === "failed" ? "failed" : "unknown", reason, trace, binding?.stageId);
-        if (stillCurrent) recentResults = [...recentResults.slice(-15), Object.freeze({
-          workRef: binding?.workRef ?? null, stageId: binding?.stageId ?? null, runId: binding?.runId ?? null,
-          decision: observation.decision, reasonCode: reason, authorization: "none",
-        })];
+        recordOwnerObservation(identity, observation, stillCurrent);
       } else {
         if (stillCurrent) counts.handoffs++;
         emit(identity, "pi:work:handoff", "unknown", reason);
@@ -237,12 +295,18 @@ export function createPiWorkObserver({ store = new EventStore(), now = Date.now,
       subscriptions.push(pi.on("session_shutdown", () => {
         generation++; current = undefined; inFlight = 0; lastTasks = new Map(); recentResults = []; ownerProducer?.reset();
         sequence++; coverage = "unavailable"; observations = []; omitted = 0;
+        codeProgress.close(); codePending = undefined;
         const snapshot = observationSnapshot(); publicationOpen = false;
         if (publicationHost) publishSnapshot(WORK_OBSERVATION_CHANGED_EVENT, Object.freeze({ version: 1, snapshot }));
       }));
       subscriptions.push(pi.events.on(OWNER_RESULT_EVENT, value => { try { request(value, "owner"); } catch { report(); } }));
       subscriptions.push(pi.events.on(HANDOFF_EVENT, value => { try { request(value, "handoff"); } catch { report(); } }));
       pi.registerCommand("vista-work-status", { description: "Read local work-observation coverage, not task acceptance", handler: async (_args, ctx) => { ctx.ui.notify(JSON.stringify(status()), "info"); } });
+      pi.registerTool?.({ name: "vista_code_observe", label: "Observe selected code work", exposure: "codemode",
+        description: "Explicit read-only observation of one existing private code-owner contract. Bounded public GitHub GETs and its original Gate file; no Gate/merge/CI/deploy execution, polling or approval. Returns only bounded safe progress/result metadata. Call only for an authorized selected engineering task; work.refresh never calls this tool.",
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+        parameters: { type: "object", properties: { contractFile: { type: "string", minLength: 1, maxLength: 4096, description: "Absolute host-local original code-owner contract path; not exported to clients." } }, required: ["contractFile"], additionalProperties: false },
+        execute: observeCode });
     } catch {
       for (const unsubscribe of subscriptions.splice(0)) { try { if (typeof unsubscribe === "function") unsubscribe(); } catch { /* local rollback only */ } }
       current = undefined; ownerProducer = undefined; publicationOpen = false; report();

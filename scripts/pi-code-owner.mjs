@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { EventStore } from "@pi-vista/core";
-import { isAbsolute, normalize } from "node:path";
+import { isAbsolute, normalize, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify, types } from "node:util";
 import { snapshotPiWorkBinding, consumePiOwnerResult } from "@pi-vista/adapter-pi";
 import { readSubagentFile } from "./pi-subagent-owner.mjs";
-import { isMain } from "./release-utils.mjs";
+const isMain = url => process.argv[1] !== undefined && fileURLToPath(url) === resolve(process.argv[1]);
 
 const exec = promisify(execFile), digest = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const sha = value => typeof value === "string" && /^[a-f0-9]{40}$/u.test(value);
@@ -64,17 +65,18 @@ export function parseOriginalGate(bytes) {
 
 // Fixed GET routes and fixed projections. gh uses its normal existing credential
 // mechanism in-process; no tokens, bodies, private command text or errors escape.
-async function githubOriginal(kind, c, merge) {
+export async function githubOriginal(kind, c, merge, { signal } = {}) {
   const prefix = `repos/${c.repository}`;
   const routes = {
-    pr: [`${prefix}/pulls/${c.pullRequest}`, '{number,merged,merged_at,merge_commit_sha,head:{sha:.head.sha},base:{ref:.base.ref,repo:{full_name:.base.repo.full_name}}}'],
+    repository: [prefix, '{full_name,private,visibility}'],
+    pr: [`${prefix}/pulls/${c.pullRequest}`, '{number,state,draft,merged,merged_at,merge_commit_sha,head:{sha:.head.sha},base:{ref:.base.ref,repo:{full_name:.base.repo.full_name}}}'],
     checks: [`${prefix}/commits/${c.binding.headSha}/check-runs?per_page=100`, `${JSON.stringify(c.headChecks)} as $required | {total_count,check_runs:[.check_runs[] | . as $check | {id,name,head_sha,status,conclusion,started_at,completed_at,app:{id:.app.id},output:{summary:([$required[] | select(.name == $check.name and .appId == $check.app.id and .reviewHash != null) | .reviewHash as $hash | select(($check.output.summary // "") | contains($hash)) | $hash] | join(" "))}}]}`],
     workflows: [`${prefix}/actions/runs?head_sha=${merge}&event=push&branch=${encodeURIComponent(c.baseRef)}&per_page=100`, '{total_count,workflow_runs:[.workflow_runs[]|{id,name,head_sha,status,conclusion,event,head_branch,run_attempt,created_at,repository:{full_name:.repository.full_name}}]}'],
     ancestry: [`${prefix}/compare/${merge}...${encodeURIComponent(c.baseRef)}`, '{status,base_commit:{sha:.base_commit.sha}}'],
   };
   const route = routes[kind];
   try {
-    const result = await exec("gh", ["api", "--hostname", "github.com", "--method", "GET", route[0], "--jq", route[1]], { timeout: 15_000, maxBuffer: 2 * 1024 * 1024, env: { ...process.env, GH_PROMPT_DISABLED: "1", GH_PAGER: "cat" } });
+    const result = await exec("gh", ["api", "--hostname", "github.com", "--method", "GET", route[0], "--jq", route[1]], { timeout: 15_000, maxBuffer: 2 * 1024 * 1024, ...(signal ? { signal } : {}), env: { ...process.env, GH_PROMPT_DISABLED: "1", GH_PAGER: "cat" } });
     return JSON.parse(result.stdout);
   } catch { fail("github_original_unavailable"); }
 }
@@ -120,10 +122,10 @@ function gatePremerge(gate, c, pr, now) {
  * caller/owner policy, not discovered from whichever checks happen to be green.
  * readGitHub/readGate are trusted IO seams for tests/hosts, never payload code.
  */
-export async function observeCodeOwner(value, { readGitHub = githubOriginal, readGate = readSubagentFile, now = Date.now } = {}) {
+export async function prepareCodeOwnerReadback(value, { readGitHub = githubOriginal, readGate = readSubagentFile, now = Date.now } = {}) {
   let contract, observation;
   try { contract = snapshotCodeOwnerContract(value); }
-  catch { return { schema: 1, decision: "reconcile_required", reasonCode: "contract_invalid", binding: null, authorization: "none", readOnly: true }; }
+  catch { return { observation: { schema: 1, decision: "reconcile_required", reasonCode: "contract_invalid", binding: null, authorization: "none", readOnly: true } }; }
   try {
     const c = contract, pr = await readGitHub("pr", c), merge = pr.merge_commit_sha;
     if (pr.number !== c.pullRequest || pr.head?.sha !== c.binding.headSha || pr.base?.repo?.full_name !== c.repository || pr.base?.ref !== c.baseRef) fail("pr_binding_mismatch");
@@ -150,10 +152,16 @@ export async function observeCodeOwner(value, { readGitHub = githubOriginal, rea
       requiredEffects: [{ binding: c.binding, effectRef: `merge-${merge}`, outcome: "settled", disposition: "accepted" }],
     };
     observation = consumePiOwnerResult(c.binding, readback, time);
-    return Object.freeze({ schema: 1, ...observation, originals: required.map(r => r.ref), mergeSha: merge, scope: "source-shared-delivery-only", taskPermission: "unchanged" });
+    return Object.freeze({ readback, observation: Object.freeze({ schema: 1, ...observation, originals: required.map(r => r.ref), mergeSha: merge, scope: "source-shared-delivery-only", taskPermission: "unchanged" }) });
   } catch (error) {
-    return Object.freeze({ schema: 1, binding: contract.binding, decision: "reconcile_required", outcome: "unknown", reasonCode: error instanceof CodeOwnerObservationError ? error.reason : "owner_original_unavailable", authorization: "none", readOnly: true });
+    return Object.freeze({ observation: Object.freeze({ schema: 1, binding: contract.binding, decision: "reconcile_required", outcome: "unknown", reasonCode: error instanceof CodeOwnerObservationError ? error.reason : "owner_original_unavailable", authorization: "none", readOnly: true }) });
   }
+}
+
+/** Original terminal/CLI contract; preparation retains the genuine readback for
+ * the explicit host tool without reconstructing evidence from a result flag. */
+export async function observeCodeOwner(value, options) {
+  return (await prepareCodeOwnerReadback(value, options)).observation;
 }
 
 export async function recordCodeOwnerObservation(view, store) {

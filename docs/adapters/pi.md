@@ -387,6 +387,41 @@ The host event bus owns listener isolation; on a bus that stops at a throwing
 listener, later listeners may miss that notification and can query the snapshot.
 The existing owner callback/effect path and late original metadata are retained.
 
+## Optional explicit code-progress sidecar
+
+The work observer optionally includes `snapshot.codeProgress` (version1, source
+`explicit-code-owner`) in the existing reply/changed envelope. It has its own
+seq/coverage/omitted and at most16 whole rows / 5400 UTF-8 bytes. Original v1
+result/handoff fields and their sequence/timestamps do not change when only
+progress changes. Old clients may ignore the optional top-level sidecar; new
+clients compare the two lanes independently and keep invalid/missing progress
+local to that lane. `work.refresh` still makes one existing in-memory query, with
+zero source reads or renewed owner verification.
+
+The exact closed fields, twelve phase/waitReason/nextAction combinations, scope
+fencing and last-known/unavailable behavior are maintained in the
+[batch81 producer/Desk contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-code-stage-progress-batch81-frozen-producerdesk-contract).
+Progress is never accepted or permission; source-only terminal delivery still
+requires the unchanged CodeOwner/Gate result, not a progress label.
+
+A normal Pi owner can explicitly call the codemode-exposed host tool:
+
+```js
+await tools.vista_code_observe({ contractFile: "/private/task/code-owner-contract.json" });
+```
+
+The input is one existing private `snapshotCodeOwnerContract` file, not phase or
+accepted declarations. The host does at most8 fixed public GitHub GETs, each
+bounded to15s with an overall60s observation deadline, and reads the selected
+original Gate only when needed. No startup, query, retry or background polling
+starts those reads. The actual resulting `PiOwnerReadback` is kept inside this
+call and supplied to the existing250ms consumer as an IO-free trusted callback;
+accepted result flags are never converted back into evidence. Tool output and
+client metadata contain no private paths, raw source bodies, commands or secrets.
+The optional tool is not a Desk button and performs no Gate/merge/CI/deployment.
+Source, fixed runtime installation, actual loaded tool and real GUI acceptance
+are separate; no existing session is automatically reloaded.
+
 ## Integration boundary
 
 The adapter imports only public `@pi-vista/core` APIs and has no dependency on
