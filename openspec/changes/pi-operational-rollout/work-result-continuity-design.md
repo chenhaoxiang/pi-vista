@@ -129,6 +129,105 @@ The host adds only an in-memory, same-process request/reply and completion/reset
 
 Queries never run readOwner, source IO, verification, models, persistence or task effects, and never refresh observedAt or synthesize freshUntil. Session/tree resets fence late completions from the new display scope without cancelling the owner operation or discarding original metadata. Shutdown publishes unavailable, clears memory and stops replies. Consumer/listener failure cannot upgrade acceptance or block native execution. All source/install/consumer adoption remains separately evidenced; the already installed older work runtime gains no endpoint until explicitly upgraded. Hindsight, notification-only entry, cohort cutoff and original source/business acceptance remain unchanged.
 
+## Explicit code-stage progress (batch81 frozen producer/Desk contract)
+
+The selected real object is this ordinary Vista engineering PR, using its actual
+Meta Gate/required-check contract. The existing result DTO is terminal and a
+handoff needs a different run and session; neither represents daily progress.
+An independent optional **`snapshot.codeProgress`** sidecar therefore extends the
+existing work-observation v1 reply/changed envelope. It does not add a query,
+change the old observations array/kinds, or advance the old seq/coverage/omitted
+when only progress changes. Old clients that project the existing top-level
+fields keep their original result/handoff view. A new consumer validates and
+compares each lane separately; missing/invalid progress is local unknown, never
+a reason to discard an otherwise valid old result. Retained progress must be
+marked last-known/stale rather than current when its source is unavailable.
+
+```ts
+type CodeProgress = {
+  version: 1; source: "explicit-code-owner";
+  seq: number; coverage: "not-observed" | "observed" | "not-applicable" | "unavailable";
+  observations: readonly CodeProgressRow[]; omitted: number;
+};
+type CodeProgressRow = {
+  seq: number; binding: PiWorkBinding; // exact headSha required
+  repository: string; pullRequest: number; observedAt: number;
+  phase: string; waitReason: string; nextAction: string; // only table combinations below
+  authorization: "none"; readOnly: true; executable: false;
+};
+```
+
+The sidecar shares the envelope's exact hostSessionId/observerEpoch. Its own seq
+increments for completed progress observations and explicit unavailable/closure
+notifications; each row retains its original seq and read-completion UTC
+millisecond timestamp. When the selected contract/public source cannot be
+confirmed, publish no invented row or repository identity: advance only this
+lane to unavailable, retaining bounded old rows as explicitly last-known. A
+failed read never refreshes those old row timestamps. Query cannot change
+any timestamp/sequence, renew evidence, or read files/network/owner state.
+Session/tree resets create a new outer epoch and empty seq0 progress; late reads
+cannot publish into the new epoch. Shutdown clears it and reports unavailable.
+The complete sidecar JSON UTF-8 encoding is at most **5400 bytes**, with at most16
+whole rows. Evict oldest complete rows and increment omitted; never truncate a
+binding. This is a bounded display window, not a task/PR-state database.
+
+Only these phase / waitReason / nextAction triples are legal:
+
+| phase | waitReason | nextAction |
+| --- | --- | --- |
+| pull-request | pr_not_ready | follow_owner_work |
+| head-checks | required_checks_pending | wait_required_checks |
+| head-checks | required_checks_failed | inspect_required_checks |
+| head-checks | required_checks_missing | inspect_required_evidence |
+| owner-gate | owner_delivery_pending | follow_owner_delivery |
+| postmerge-checks | postmerge_workflows_pending | wait_postmerge_checks |
+| postmerge-checks | postmerge_workflows_failed | inspect_postmerge_checks |
+| postmerge-checks | postmerge_workflows_missing | inspect_required_evidence |
+| owner-gate | owner_gate_unavailable | inspect_owner_evidence |
+| source-delivery | none | inspect_result |
+| unknown | source_binding_mismatch | inspect_binding |
+| unknown | source_original_unavailable | inspect_originals |
+
+No progress row has accepted, ready, permission, task title, check prose or an
+executable next-action command. `source-delivery/none/inspect_result` is emitted
+only when the strict original CodeOwner reader also establishes its terminal
+result; it does not replace that result or claim installation/production.
+Different heads, newer unknowns and historical accepted results remain distinct
+bindings/observations, not one overall green task. Public PR navigation is built
+only from the verified safe repository and pullRequest, never a parsed work key.
+Native task titles/other delivery stages are explicitly not provided here.
+
+One explicit read-only host tool, **`vista_code_observe({contractFile})`**, lets the
+normal Pi owner select the existing private code-owner contract. It accepts no
+phase, accepted flag, arbitrary command/URL, requirement override or model report.
+Import/startup/query never runs it automatically. Invocation reads one bounded
+same-user regular contract, verifies the selected public GitHub repository/PR/
+exact head, and uses the complete original required checks/App IDs/review hash,
+merge workflows and Gate path. The source reader uses fixed bounded GETs only,
+no retries or polling: at most two PR/check rounds, necessary merged workflow/
+ancestry reads, and at most8 GitHub calls. Changed/incomplete/malformed sources
+stay unknown; unrelated checks do not change the declared requirement set.
+Private/unconfirmed repository visibility is not exported as public work.
+
+The slow original read happens **before** entering the existing 250ms consumer
+port. A minimal shared internal reader preserves the actual PiOwnerReadback
+constructed from this invocation's GitHub/Gate originals, then a trusted callback
+returns that prepared snapshot. Never reconstruct evidence from an accepted DTO,
+model statement, Todo, review text, arbitrary Bash output or copied flags.
+The original CLI/observeCodeOwner contract and strict Gate validation remain;
+premerge historical admission cannot be synthesized by postmerge re-evaluation.
+An independent fork without the applicable Gate is not given a fake Gate file.
+
+Only safe progress and consumed result metadata are returned/published. Contract
+and Gate paths, original bodies, credentials and commands remain host-local.
+The new tool runs no Gate/merge/CI rerun/deploy and changes no native permission,
+model or existing tool. It is an explicit trusted-host observation boundary,
+not a new signature/authorization system. Observer failure remains fail-open.
+Fixed-source runtime building includes only the required helper modules; source,
+review/CI/Gate, installation, actual loaded tooling and real Desk GUI acceptance
+remain separate evidence. No old session is force-reloaded and no original
+engineering task is replayed for display.
+
 ## Entry conditions and rollback
 
 A host opts into the helper explicitly. If references, owner readback or observation fail, return unknown for the observation and leave the original execution/owner Gate unchanged. On actual regression disable the added wiring while retaining original runs, results and in-flight references. Do not clean history, replay old actions, weaken required checks or block independent tasks.
