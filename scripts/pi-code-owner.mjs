@@ -35,12 +35,21 @@ function list(value, max = 16) {
 }
 function label(value) { if (typeof value !== "string" || !value.trim() || value.length > 128 || /[\x00-\x1f\x7f]/u.test(value)) fail("contract_invalid"); return value; }
 export function snapshotCodeOwnerContract(value) {
-  const v = own(value, ["binding", "repository", "pullRequest", "baseRef", "headChecks", "mergeWorkflows", "gateReportFile"]);
+  const v = own(value, ["binding", "repository", "pullRequest", "baseRef", "headChecks", "mergeWorkflows", "gateReportFile", "repositoryReview"]);
   const binding = snapshotPiWorkBinding(v.binding);
   if (binding.stageId !== "source-shared-delivery" || !sha(binding.headSha)) fail("contract_invalid");
   if (typeof v.repository !== "string" || !/^[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+$/u.test(v.repository) || v.repository.length > 200 || v.repository.endsWith("/.") || v.repository.endsWith("/..")) fail("contract_invalid");
   if (!integer(v.pullRequest) || typeof v.baseRef !== "string" || !/^[A-Za-z0-9_][A-Za-z0-9_./-]{0,127}$/u.test(v.baseRef) || v.baseRef.includes("..")) fail("contract_invalid");
-  if (typeof v.gateReportFile !== "string" || !isAbsolute(v.gateReportFile) || normalize(v.gateReportFile) !== v.gateReportFile || /[\x00-\x1f\x7f]/u.test(v.gateReportFile)) fail("contract_invalid");
+  let repositoryReview;
+  if (v.repositoryReview !== undefined) {
+    // First explicit independent-owner adoption, not a generic Gate bypass.
+    // The trusted owner selects its already-accepted review original and pins
+    // its full body. The reader checks identity/integrity, not prose or verdict.
+    if (v.repository !== "chenhaoxiang/pi-desk" || v.gateReportFile !== undefined) fail("contract_invalid");
+    const r = own(v.repositoryReview, ["commentId", "author", "bodySha256"]);
+    if (!integer(r.commentId) || typeof r.author !== "string" || !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/u.test(r.author) || !/^[a-f0-9]{64}$/u.test(r.bodySha256 ?? "")) fail("contract_invalid");
+    repositoryReview = Object.freeze(r);
+  } else if (typeof v.gateReportFile !== "string" || !isAbsolute(v.gateReportFile) || normalize(v.gateReportFile) !== v.gateReportFile || /[\x00-\x1f\x7f]/u.test(v.gateReportFile)) fail("contract_invalid");
   const headChecks = list(v.headChecks).map(raw => {
     const item = own(raw, ["name", "appId", "reviewHash"]), name = label(item.name);
     if (!integer(item.appId) || (item.reviewHash !== undefined && !/^[a-f0-9]{64}$/u.test(item.reviewHash))) fail("contract_invalid");
@@ -49,7 +58,7 @@ export function snapshotCodeOwnerContract(value) {
   const mergeWorkflows = list(v.mergeWorkflows).map(label);
   if (headChecks.length + mergeWorkflows.length > 30 || new Set(headChecks.map(x => `${x.appId}:${x.name}`)).size !== headChecks.length || new Set(mergeWorkflows).size !== mergeWorkflows.length) fail("contract_invalid");
   return Object.freeze({ binding, repository: v.repository, pullRequest: v.pullRequest, baseRef: v.baseRef,
-    headChecks: Object.freeze(headChecks), mergeWorkflows: Object.freeze(mergeWorkflows), gateReportFile: v.gateReportFile });
+    headChecks: Object.freeze(headChecks), mergeWorkflows: Object.freeze(mergeWorkflows), ...(repositoryReview ? { repositoryReview } : { gateReportFile: v.gateReportFile }) });
 }
 
 /** Trusted original JSON, optionally preceded by the existing Gate's human logs.
@@ -69,6 +78,7 @@ export async function githubOriginal(kind, c, merge, { signal } = {}) {
   const prefix = `repos/${c.repository}`;
   const routes = {
     repository: [prefix, '{full_name,private,visibility}'],
+    review: [`${prefix}/issues/comments/${c.repositoryReview?.commentId}`, '{id,user:{login:.user.login},issue_url,created_at,updated_at,body}'],
     pr: [`${prefix}/pulls/${c.pullRequest}`, '{number,state,draft,merged,merged_at,merge_commit_sha,head:{sha:.head.sha},base:{ref:.base.ref,repo:{full_name:.base.repo.full_name}}}'],
     checks: [`${prefix}/commits/${c.binding.headSha}/check-runs?per_page=100`, `${JSON.stringify(c.headChecks)} as $required | {total_count,check_runs:[.check_runs[] | . as $check | {id,name,head_sha,status,conclusion,started_at,completed_at,app:{id:.app.id},output:{summary:([$required[] | select(.name == $check.name and .appId == $check.app.id and .reviewHash != null) | .reviewHash as $hash | select(($check.output.summary // "") | contains($hash)) | $hash] | join(" "))}}]}`],
     workflows: [`${prefix}/actions/runs?head_sha=${merge}&event=push&branch=${encodeURIComponent(c.baseRef)}&per_page=100`, '{total_count,workflow_runs:[.workflow_runs[]|{id,name,head_sha,status,conclusion,event,head_branch,run_attempt,created_at,repository:{full_name:.repository.full_name}}]}'],
@@ -118,6 +128,19 @@ function gatePremerge(gate, c, pr, now) {
   }
 }
 
+function repositoryReviewOriginal(original, c, pr, now) {
+  const r = c.repositoryReview, merged = Date.parse(pr.merged_at);
+  if (!original || original.id !== r.commentId || original.user?.login !== r.author
+    || original.issue_url !== `https://api.github.com/repos/${c.repository}/issues/${c.pullRequest}`) fail("review_original_mismatch");
+  const body = original.body;
+  if (typeof body !== "string" || Buffer.byteLength(body, "utf8") > 256 * 1024 || !body.includes(c.binding.headSha)
+    || createHash("sha256").update(body, "utf8").digest("hex") !== r.bodySha256) fail("review_original_mismatch");
+  const created = Date.parse(original.created_at), updated = Date.parse(original.updated_at);
+  if (![created, updated, merged, now].every(Number.isFinite) || created > updated || updated > merged || merged > now) fail("review_not_premerge");
+  // Never export the review body/paths or infer a verdict from its text.
+  return { id: original.id, author: r.author, bodySha256: r.bodySha256, createdAt: original.created_at, updatedAt: original.updated_at };
+}
+
 /** One explicitly selected owner stage. The complete original requirements are
  * caller/owner policy, not discovered from whichever checks happen to be green.
  * readGitHub/readGate are trusted IO seams for tests/hosts, never payload code.
@@ -130,8 +153,9 @@ export async function prepareCodeOwnerReadback(value, { readGitHub = githubOrigi
     const c = contract, pr = await readGitHub("pr", c), merge = pr.merge_commit_sha;
     if (pr.number !== c.pullRequest || pr.head?.sha !== c.binding.headSha || pr.base?.repo?.full_name !== c.repository || pr.base?.ref !== c.baseRef) fail("pr_binding_mismatch");
     if (pr.merged !== true || !sha(merge)) fail("pr_not_merged");
-    const [checks, workflows, ancestry, gateBytes] = await Promise.all([
-      readGitHub("checks", c, merge), readGitHub("workflows", c, merge), readGitHub("ancestry", c, merge), readGate(c.gateReportFile),
+    const [checks, workflows, ancestry, acceptanceOriginal] = await Promise.all([
+      readGitHub("checks", c, merge), readGitHub("workflows", c, merge), readGitHub("ancestry", c, merge),
+      c.repositoryReview ? readGitHub("review", c, merge) : readGate(c.gateReportFile),
     ]);
     if (ancestry.base_commit?.sha !== merge || !["identical", "ahead"].includes(ancestry.status)) fail("merge_not_in_base");
     const required = [...selectChecks(checks, c), ...selectWorkflows(workflows, c, merge)];
@@ -142,8 +166,17 @@ export async function prepareCodeOwnerReadback(value, { readGitHub = githubOrigi
     const [lastChecks, lastWorkflows] = await Promise.all([readGitHub("checks", c, merge), readGitHub("workflows", c, merge)]);
     const finalRequired = [...selectChecks(lastChecks, c), ...selectWorkflows(lastWorkflows, c, merge)];
     if (originalFingerprint !== digest(finalRequired)) fail("required_evidence_changed_during_readback");
-    const time = now(), gate = parseOriginalGate(gateBytes); gatePremerge(gate, c, pr, time);
-    required.push({ kind: "readback", ref: "gate-original", original: gate }, { kind: "merge", ref: `merge-${merge}`, original: pr });
+    const time = now();
+    if (c.repositoryReview) {
+      const original = repositoryReviewOriginal(acceptanceOriginal, c, pr, time);
+      const currentReview = repositoryReviewOriginal(await readGitHub("review", c, merge), c, pr, time);
+      if (digest(original) !== digest(currentReview)) fail("review_changed_during_readback");
+      required.push({ kind: "readback", ref: `review-comment-${original.id}`, original });
+    } else {
+      const gate = parseOriginalGate(acceptanceOriginal); gatePremerge(gate, c, pr, time);
+      required.push({ kind: "readback", ref: "gate-original", original: gate });
+    }
+    required.push({ kind: "merge", ref: `merge-${merge}`, original: pr });
     const observedAt = new Date(time).toISOString(), freshUntil = new Date(time + 30_000).toISOString();
     const readback = { binding: c.binding, sourceKind: "code", sourceRef: `github-pr-${c.pullRequest}`, disposition: "accepted", observedAt, freshUntil,
       requiredEvidence: required.map((r, i) => ({ evidenceId: `original-${i}`, kind: r.kind, sourceRef: r.ref, claims: ["source-stage-original"] })),

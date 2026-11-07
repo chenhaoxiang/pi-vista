@@ -316,6 +316,25 @@ confirms the exact event through EventStore readback before claiming recorded.
 Storage failure leaves the source observation unchanged and recorded false. See
 [the maintained source-owner contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-source-owner-acceptance-long-term-work-package49).
 
+### Explicit independent-repository adoption: Pi Desk
+
+The same host reader also accepts `repositoryReview` **only for `chenhaoxiang/pi-desk`**, whose existing owner contract uses independent review, exact CI, ordinary PR merge and postmerge CI rather than Meta Gate. This is a bounded owner adoption, not a generic policy switch or a fallback when a Gate is missing. Other repositories cannot select it. Existing contracts without this field still require the original `gateReportFile`; both fields together are invalid.
+
+```ts
+// Trusted host contract fragment, after the owner has actually accepted review.
+repository: "chenhaoxiang/pi-desk",
+repositoryReview: {
+  commentId: 123,
+  author: "selected-original-author",
+  bodySha256: "<SHA-256 of the complete accepted original GitHub comment body>"
+}
+// Omit gateReportFile. Complete original headChecks/mergeWorkflows remain required.
+```
+
+The owning host must first inspect the genuine review/report, resolve its findings, and pin its exact original. The reader does **not** interpret verdict prose, authenticate a reviewer model, discover repository policy or infer approval from a comment/hash. These trusted-owner responsibilities are the same completeness/provenance boundary as the original Gate contract; substituting an unaccepted comment violates it. Hashes bind content, not authority.
+
+It checks the returned comment ID, exact author, selected PR/repository URL, full UTF-8 body digest (at most256KiB), exact head reference, and original creation/update times no later than merge. A postmerge or subsequently edited review cannot fabricate premerge review. The complete review is read twice and must stay unchanged. Bodies/private paths never enter progress/result metadata. Exact-head checks and their App IDs, merge workflows, base containment and PR/evidence rereads remain mandatory. No new Gate, approval, replay, write or source execution is performed. The independent merged path uses at most10 fixed GETs instead of8 (two original-comment reads); memory refresh still performs zero source IO. Missing independent review yields the existing unknown-source progress, not a fictitious missing Meta Gate. Existing sidecar/result DTOs and Desk clients need no new field. Old host readers reject this opt-in contract; install a supporting fixed runtime before using it.
+
 ## Same-process completed-observation export (v1 host candidate)
 
 The separate `scripts/pi-work-observer.mjs` host exposes already-completed
@@ -402,7 +421,7 @@ The exact closed fields, twelve phase/waitReason/nextAction combinations, scope
 fencing and last-known/unavailable behavior are maintained in the
 [batch81 producer/Desk contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-code-stage-progress-batch81-frozen-producerdesk-contract).
 Progress is never accepted or permission; source-only terminal delivery still
-requires the unchanged CodeOwner/Gate result, not a progress label.
+requires the applicable original CodeOwner result, not a progress label (the strict Gate path or the explicit Desk adoption above).
 
 A normal Pi owner can explicitly call the codemode-exposed host tool:
 
@@ -411,7 +430,7 @@ await tools.vista_code_observe({ contractFile: "/private/task/code-owner-contrac
 ```
 
 The input is one existing private `snapshotCodeOwnerContract` file, not phase or
-accepted declarations. The host does at most8 fixed public GitHub GETs, each
+accepted declarations. The Gate path does at most8 fixed public GitHub GETs; the explicit Desk review-original adoption does at most10, each
 bounded to15s with an overall60s observation deadline, and reads the selected
 original Gate only when needed. No startup, query, retry or background polling
 starts those reads. The actual resulting `PiOwnerReadback` is kept inside this
