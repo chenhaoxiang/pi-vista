@@ -43,7 +43,8 @@ function prIdentity(pr) {
 
 /** One explicit public-source bracket. Raw originals and the genuine readback
  * stay in this trusted host invocation; no DTO flags are converted to evidence.
- * At most8 GETs, no retry/poll, and only the selected original Gate file. */
+ * At most8 GETs for Gate owners or10 for the explicit Desk review-original
+ * adoption; no retry/poll and no Gate is fabricated for an independent owner. */
 export async function readCodeStage(value, { readGitHub = githubOriginal, readGate = readSubagentFile, now = Date.now, signal } = {}) {
   let c, publicSource = false;
   try {
@@ -67,12 +68,12 @@ export async function readCodeStage(value, { readGitHub = githubOriginal, readGa
     if (pr.merged && !/^[a-f0-9]{40}$/u.test(merge ?? "")) reject("source_binding_mismatch");
     const initialChecks = await get("checks", merge);
     const selectedChecks = checks(initialChecks, c), checksFingerprint = fingerprint(selectedChecks);
-    let initialWorkflows, selectedWorkflows, workflowsFingerprint, ancestry;
+    let initialWorkflows, selectedWorkflows, workflowsFingerprint, ancestry, initialReview;
     if (pr.merged) {
       // Wait for both owned reads even on failure; no detached retry is started.
-      const read = await Promise.allSettled([get("workflows", merge), get("ancestry", merge)]);
+      const read = await Promise.allSettled([get("workflows", merge), get("ancestry", merge), ...(c.repositoryReview ? [get("review", merge)] : [])]);
       if (read.some(row => row.status === "rejected")) reject("source_original_unavailable");
-      initialWorkflows = read[0].value; ancestry = read[1].value;
+      initialWorkflows = read[0].value; ancestry = read[1].value; initialReview = read[2]?.value;
       selectedWorkflows = workflows(initialWorkflows, c, merge); workflowsFingerprint = fingerprint(selectedWorkflows);
       if (ancestry?.base_commit?.sha !== merge || !["identical", "ahead"].includes(ancestry.status)) reject("source_binding_mismatch");
     }
@@ -99,7 +100,8 @@ export async function readCodeStage(value, { readGitHub = githubOriginal, readGa
     // The unchanged original verifier consumes these exact bracketed originals.
     // Its normal two-round read order is replayed from this invocation's values,
     // not from flags, review text, model output or a separately written receipt.
-    const originals = { pr: [pr, finalPr], checks: [initialChecks, finalChecks], workflows: [initialWorkflows, finalWorkflows], ancestry: [ancestry] };
+    const finalReview = c.repositoryReview ? await get("review", merge) : undefined;
+    const originals = { pr: [pr, finalPr], checks: [initialChecks, finalChecks], workflows: [initialWorkflows, finalWorkflows], ancestry: [ancestry], review: [initialReview, finalReview] };
     const indexes = {};
     const prepared = await prepareCodeOwnerReadback(c, {
       now,
@@ -112,7 +114,7 @@ export async function readCodeStage(value, { readGitHub = githubOriginal, readGa
     });
     signal?.throwIfAborted();
     if (prepared.readback && prepared.observation.decision === "deliverable") return { progress: row("none"), readback: prepared.readback };
-    return { progress: row("owner_gate_unavailable") };
+    return { progress: row(c.repositoryReview ? "source_original_unavailable" : "owner_gate_unavailable") };
   } catch (error) {
     // Unconfirmed/private repository names, paths and raw errors never escape.
     if (!c || !publicSource) return { progress: null, reasonCode: "source_original_unavailable" };

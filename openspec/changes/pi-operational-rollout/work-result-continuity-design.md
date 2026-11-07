@@ -123,6 +123,14 @@ The reader creates scoped evidence/effect metadata and delegates acceptance to `
 
 Local verification retains one actual PR68 original-read positive and a PR69 postmerge-evaluation negative, with no new merge/CI/model effect. The PR69 Gate command was accidentally invoked again after already-confirmed delivery and overwrote the same log; the later file is kept as postmerge-only, not upgraded to the original evaluation. The original native merge is still confirmed. Tests use synthetic GitHub/Gate records only; real readback files remain local tmp. Cross-owner requirement policies and daily default source-producer wiring remain further adoption work, not claimed by this explicit reader.
 
+## Independent code-owner adoption: Pi Desk (batch83)
+
+The existing explicit host contract may select `repositoryReview:{commentId,author,bodySha256}` instead of `gateReportFile` only for the already-independent `chenhaoxiang/pi-desk` owner. This is not a universal policy registry, missing-Gate fallback or permission/merge gate. The original Meta-Gate path is unchanged, and a new-mode contract for another repository or one containing both acceptance sources is rejected before IO.
+
+The host supplies the complete original CI/App and postmerge workflow requirements and pins a review comment it has genuinely inspected and accepted after resolving findings. A body hash is content identity, not review authority or a classifier: the reader never parses review prose into a verdict, derives reviewer identity/model provenance, or supplies the owner’s missing acceptance decision. Exact returned comment ID/author/PR URL/head reference/body digest and premerge creation/update dates are checked; the comment is re-read and must remain identical. Review bodies and host-private paths do not enter outgoing DTOs. The normal bracket still checks exact PR/head/base/merge, applicable checks/workflows and containment. This merged path adds two fixed review GETs, bounded to10 total and256KiB review body, without changing the60s host observation deadline or allowing background polling. Missing/edited/postmerge/wrong originals stay unknown; the reader neither creates a fake Gate nor replays a completed PR.
+
+No wire/UI expansion is needed: the existing source-only progress/terminal lanes remain separate, original time and binding/reporting identities are preserved, and `work.refresh` is still one immutable memory query with zero owner reads. Compatibility tests cover the unchanged strict Gate path and independent positive/negative originals; operational current-source readback is separately retained under local tmp. Installation/default selection/loaded/GUI and business delivery remain distinct.
+
 ## Completed-observation client export (long-term work package52 / slice60)
 
 The host adds only an in-memory, same-process request/reply and completion/reset notification over the already-produced PiResultConsumption and PiWorkHandoffObservation. The [v1 transport contract](../../../docs/adapters/pi.md#same-process-completed-observation-export-v1-host-candidate) is the event/payload SSOT. It preserves reporting host versus result binding identities, fixed completed-observation timestamps, per-instance/scope epochs and monotonic observation sequence, a16-entry window and explicit coverage/omissions. It is not another work/task schema, authenticated authority, native task revision or new storage.
@@ -205,7 +213,7 @@ same-user regular contract, verifies the selected public GitHub repository/PR/
 exact head, and uses the complete original required checks/App IDs/review hash,
 merge workflows and Gate path. The source reader uses fixed bounded GETs only,
 no retries or polling: at most two PR/check rounds, necessary merged workflow/
-ancestry reads, and at most8 GitHub calls. Changed/incomplete/malformed sources
+ancestry reads, and at most8 GitHub calls for the original Gate path. The batch83 explicit Desk adoption above adds two pinned review-original reads (at most10), preserving the overall60s deadline. Changed/incomplete/malformed sources
 stay unknown; unrelated checks do not change the declared requirement set.
 Private/unconfirmed repository visibility is not exported as public work.
 
