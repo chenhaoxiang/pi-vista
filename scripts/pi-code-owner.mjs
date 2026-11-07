@@ -47,7 +47,7 @@ export function snapshotCodeOwnerContract(value) {
     // its full body. The reader checks identity/integrity, not prose or verdict.
     if (v.repository !== "chenhaoxiang/pi-desk" || v.gateReportFile !== undefined) fail("contract_invalid");
     const r = own(v.repositoryReview, ["commentId", "author", "bodySha256"]);
-    if (!integer(r.commentId) || typeof r.author !== "string" || !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/u.test(r.author) || !/^[a-f0-9]{64}$/u.test(r.bodySha256 ?? "")) fail("contract_invalid");
+    if (!integer(r.commentId) || typeof r.author !== "string" || !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/u.test(r.author) || typeof r.bodySha256 !== "string" || !/^[a-f0-9]{64}$/u.test(r.bodySha256)) fail("contract_invalid");
     repositoryReview = Object.freeze(r);
   } else if (typeof v.gateReportFile !== "string" || !isAbsolute(v.gateReportFile) || normalize(v.gateReportFile) !== v.gateReportFile || /[\x00-\x1f\x7f]/u.test(v.gateReportFile)) fail("contract_invalid");
   const headChecks = list(v.headChecks).map(raw => {

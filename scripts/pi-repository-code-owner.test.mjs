@@ -48,6 +48,16 @@ test("review source references are closed own-data and do not invoke getters or 
   }
   assert.equal(reads, 0);
 });
+test("non-string review digests are rejected without coercion or source IO", async () => {
+  const f = fixture(); let coercions = 0, calls = 0;
+  for (const bodySha256 of [[f.c.repositoryReview.bodySha256], { [Symbol.toPrimitive]() { coercions++; return f.c.repositoryReview.bodySha256; } }]) {
+    const c = { ...f.c, repositoryReview: { ...f.c.repositoryReview, bodySha256 } };
+    assert.throws(() => snapshotCodeOwnerContract(c));
+    const result = await prepareCodeOwnerReadback(c, { readGitHub: async () => { calls++; throw Error(); } });
+    assert.equal(result.observation.reasonCode, "contract_invalid");
+  }
+  assert.equal(coercions, 0); assert.equal(calls, 0);
+});
 test("wrong comment, author, PR, head or pinned body cannot become source acceptance", async () => {
   for (const mutate of [r => { r.id++; }, r => { r.user.login = "other"; }, r => { r.issue_url = "https://api.github.com/repos/chenhaoxiang/pi-desk/issues/17"; }, r => { r.body += "edited"; }, r => { delete r.body; }, r => { r.body = "x".repeat(262145); }]) {
     const f = fixture(); mutate(f.originals.review); const r = await f.run();
