@@ -42,10 +42,10 @@ export function snapshotCodeOwnerContract(value) {
   if (!integer(v.pullRequest) || typeof v.baseRef !== "string" || !/^[A-Za-z0-9_][A-Za-z0-9_./-]{0,127}$/u.test(v.baseRef) || v.baseRef.includes("..")) fail("contract_invalid");
   let repositoryReview;
   if (v.repositoryReview !== undefined) {
-    // First explicit independent-owner adoption, not a generic Gate bypass.
+    // Explicit Desk and Pi LobeHub owner adoptions, not a generic Gate bypass.
     // The trusted owner selects its already-accepted review original and pins
     // its full body. The reader checks identity/integrity, not prose or verdict.
-    if (v.repository !== "chenhaoxiang/pi-desk" || v.gateReportFile !== undefined) fail("contract_invalid");
+    if (!["chenhaoxiang/pi-desk", "chenhaoxiang/pi-lobehub"].includes(v.repository) || v.gateReportFile !== undefined) fail("contract_invalid");
     const r = own(v.repositoryReview, ["commentId", "author", "bodySha256"]);
     if (!integer(r.commentId) || typeof r.author !== "string" || !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/u.test(r.author) || typeof r.bodySha256 !== "string" || !/^[a-f0-9]{64}$/u.test(r.bodySha256)) fail("contract_invalid");
     repositoryReview = Object.freeze(r);

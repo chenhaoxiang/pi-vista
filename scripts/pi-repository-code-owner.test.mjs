@@ -5,13 +5,13 @@ import { snapshotCodeOwnerContract, prepareCodeOwnerReadback } from "./pi-code-o
 import { readCodeStage } from "./pi-code-stage-reader.mjs";
 const head = "a".repeat(40), merge = "b".repeat(40), time = Date.parse("2026-01-02T00:00:00.000Z");
 const hash = body => createHash("sha256").update(body).digest("hex");
-function fixture() {
+function fixture(repository = "chenhaoxiang/pi-desk") {
   const body = `Independent review original for head ${head}; no blockers. Body is pinned, never classified by this reader.`;
-  const c = { binding: { workRef: { owner: "chenhaoxiang/pi-desk", kind: "task", key: "existing-work" }, stageId: "source-shared-delivery", runId: "source-stage", sessionId: "owner-session", revision: 0, headSha: head }, repository: "chenhaoxiang/pi-desk", pullRequest: 16, baseRef: "main", headChecks: [{ name: "native", appId: 15368 }, { name: "bridge", appId: 15368 }, { name: "GitGuardian Security Checks", appId: 46505 }], mergeWorkflows: ["CI"], repositoryReview: { commentId: 42, author: "maintainer", bodySha256: hash(body) } };
+  const c = { binding: { workRef: { owner: repository, kind: "task", key: "existing-work" }, stageId: "source-shared-delivery", runId: "source-stage", sessionId: "owner-session", revision: 0, headSha: head }, repository, pullRequest: 16, baseRef: "main", headChecks: [{ name: "native", appId: 15368 }, { name: "bridge", appId: 15368 }, { name: "GitGuardian Security Checks", appId: 46505 }], mergeWorkflows: ["CI"], repositoryReview: { commentId: 42, author: "maintainer", bodySha256: hash(body) } };
   const pr = { number: 16, state: "closed", draft: false, merged: true, merged_at: "2026-01-01T12:00:00.000Z", merge_commit_sha: merge, head: { sha: head }, base: { ref: "main", repo: { full_name: c.repository } } };
   const checks = { total_count: 3, check_runs: c.headChecks.map((r, i) => ({ id: i + 1, name: r.name, app: { id: r.appId }, head_sha: head, status: "completed", conclusion: "success", output: { summary: "" } })) };
   const workflows = { total_count: 1, workflow_runs: [{ id: 10, name: "CI", head_sha: merge, status: "completed", conclusion: "success", event: "push", head_branch: "main", repository: { full_name: c.repository } }] };
-  const review = { id: 42, user: { login: "maintainer" }, issue_url: "https://api.github.com/repos/chenhaoxiang/pi-desk/issues/16", created_at: "2026-01-01T11:00:00Z", updated_at: "2026-01-01T11:00:00Z", body };
+  const review = { id: 42, user: { login: "maintainer" }, issue_url: `https://api.github.com/repos/${repository}/issues/16`, created_at: "2026-01-01T11:00:00Z", updated_at: "2026-01-01T11:00:00Z", body };
   const originals = { pr, checks, workflows, review, ancestry: { status: "ahead", base_commit: { sha: merge } }, repository: { full_name: c.repository, private: false, visibility: "public" } };
   const calls = [], readGitHub = async kind => { calls.push(kind); return structuredClone(originals[kind]); };
   const options = { readGitHub, readGate: async () => { assert.fail("Independent repo must never read or fabricate a Gate"); }, now: () => time };
@@ -30,6 +30,28 @@ test("explicit tool-stage path reuses existing progress/result DTOs and never ma
   const f = fixture(), r = await f.stage();
   assert.equal(r.progress.phase, "source-delivery"); assert.equal(r.progress.waitReason, "none"); assert.ok(r.readback);
   assert.equal(f.calls.length, 10); assert.equal(r.progress.authorization, "none");
+});
+test("explicit Pi LobeHub adoption uses its existing owner review and exact checks without a fake Gate", async () => {
+  const f = fixture("chenhaoxiang/pi-lobehub");
+  const result = await f.stage();
+  assert.ok(result.readback);
+  assert.equal(result.progress.waitReason, "none");
+  assert.equal(result.progress.binding.workRef.owner, "chenhaoxiang/pi-lobehub");
+  assert.equal(result.progress.authorization, "none");
+  assert.equal(result.progress.executable, false);
+  assert.equal(f.calls.length, 10);
+});
+test("Pi LobeHub still refuses an unaccepted/substituted original or a different required check App", async () => {
+  for (const mutate of [f => { f.originals.review.body += "changed"; }, f => { f.originals.review.updated_at = "2026-01-01T13:00:00Z"; }, f => { f.originals.checks.check_runs[0].app.id = 999; }]) {
+    const f = fixture("chenhaoxiang/pi-lobehub"); mutate(f);
+    const result = await f.stage();
+    assert.equal(result.readback, undefined);
+    assert.notEqual(result.progress.waitReason, "none");
+  }
+});
+test("repository-review adoption remains exact rather than a name-prefix or general independent-owner escape", () => {
+  const f = fixture();
+  for (const repository of ["chenhaoxiang/pi-lobehub-other", "other/pi-lobehub", "chenhaoxiang/pi-vista"]) assert.throws(() => snapshotCodeOwnerContract({ ...f.c, repository }));
 });
 test("the independent path cannot replace a Meta Gate, be mixed with one, or be selected implicitly", async () => {
   const f = fixture();
