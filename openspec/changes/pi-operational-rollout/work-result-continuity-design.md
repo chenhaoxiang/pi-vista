@@ -137,6 +137,12 @@ The host adds only an in-memory, same-process request/reply and completion/reset
 
 Queries never run readOwner, source IO, verification, models, persistence or task effects, and never refresh observedAt or synthesize freshUntil. Session/tree resets fence late completions from the new display scope without cancelling the owner operation or discarding original metadata. Shutdown publishes unavailable, clears memory and stops replies. Consumer/listener failure cannot upgrade acceptance or block native execution. All source/install/consumer adoption remains separately evidenced; the already installed older work runtime gains no endpoint until explicitly upgraded. Hindsight, notification-only entry, cohort cutoff and original source/business acceptance remain unchanged.
 
+## Pi LobeHub independent-owner adoption (2026-11-11)
+
+The existing repository-review reader now additionally accepts the exact `chenhaoxiang/pi-lobehub` repository. Its owner has explicitly selected Web and authorised scoped work/engineering consumption through the same reader; its independent PR/check/review contract does not use Meta Gate. No prefix matching, caller-defined repository policy, missing-Gate fallback or relaxation for Meta-Gate repositories is added.
+
+All batch83 original-review constraints remain: trusted owner selection and resolved findings, exact pinned review body/author/PR/head and premerge timestamps, two original reads, exact CI/App requirements, postmerge workflows, base containment and at most10 fixed public GETs. The progress/readback shapes remain unchanged, source-only and non-authorising. This is source support for the existing reader, not Web Task binding, daily observer installation/reload, a new model tool or P5 business acceptance. The previous Desk-only batch83 scope remains its historical adoption record; this paragraph states the additional current adoption.
+
 ## Explicit code-stage progress (batch81 frozen producer/Desk contract)
 
 The selected real object is this ordinary Vista engineering PR, using its actual

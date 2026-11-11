@@ -43,7 +43,7 @@ function prIdentity(pr) {
 
 /** One explicit public-source bracket. Raw originals and the genuine readback
  * stay in this trusted host invocation; no DTO flags are converted to evidence.
- * At most8 GETs for Gate owners or10 for the explicit Desk review-original
+ * At most8 GETs for Gate owners or10 for the explicit independent review-original
  * adoption; no retry/poll and no Gate is fabricated for an independent owner. */
 export async function readCodeStage(value, { readGitHub = githubOriginal, readGate = readSubagentFile, now = Date.now, signal } = {}) {
   let c, publicSource = false;
