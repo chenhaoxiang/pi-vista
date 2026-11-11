@@ -421,7 +421,7 @@ The exact closed fields, twelve phase/waitReason/nextAction combinations, scope
 fencing and last-known/unavailable behavior are maintained in the
 [batch81 producer/Desk contract](../../openspec/changes/pi-operational-rollout/work-result-continuity-design.md#explicit-code-stage-progress-batch81-frozen-producerdesk-contract).
 Progress is never accepted or permission; source-only terminal delivery still
-requires the applicable original CodeOwner result, not a progress label (the strict Gate path or the explicit Desk adoption above).
+requires the applicable original CodeOwner result, not a progress label (the strict Gate path or the explicit independent-owner adoptions above).
 
 A normal Pi owner can explicitly call the codemode-exposed host tool:
 
@@ -430,7 +430,7 @@ await tools.vista_code_observe({ contractFile: "/private/task/code-owner-contrac
 ```
 
 The input is one existing private `snapshotCodeOwnerContract` file, not phase or
-accepted declarations. The Gate path does at most8 fixed public GitHub GETs; the explicit Desk review-original adoption does at most10, each
+accepted declarations. The Gate path does at most8 fixed public GitHub GETs; the explicit independent review-original adoptions do at most10, each
 bounded to15s with an overall60s observation deadline, and reads the selected
 original Gate only when needed. No startup, query, retry or background polling
 starts those reads. The actual resulting `PiOwnerReadback` is kept inside this
