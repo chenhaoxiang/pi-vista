@@ -297,13 +297,14 @@ function assertBindings(input) {
   if (evidence !== undefined) {
     const evidenceIds = new Set();
     for (const item of evidence) {
-      if (item.run_id !== run.run_id || evidenceIds.has(item.evidence_id) || !run.evidence_ids.includes(item.evidence_id)) refuse();
+      if (item.run_id !== run.run_id || evidenceIds.has(item.evidence_id) || !run.evidence_ids.includes(item.evidence_id) ||
+          (item.effect_id !== undefined && !run.effect_ids.includes(item.effect_id))) refuse();
       evidenceIds.add(item.evidence_id);
     }
   }
   if (input.receipt?.identity.effect_id !== undefined && !run.effect_ids.includes(input.receipt.identity.effect_id)) refuse();
   if (input.handoff !== undefined) {
-    if (input.handoff.run_id !== run.run_id) refuse();
+    if (input.handoff.run_id !== run.run_id || input.handoff.run_revision !== run.run_revision) refuse();
   }
 }
 
@@ -342,7 +343,7 @@ function project(value) {
     !["delivered", "failed"].includes(run.delivery_outcome) ||
     !["admitted", "blocked", "expired", "revoked"].includes(run.permission_outcome);
   const reconcileRequired = unresolvedStatus || run.status === "unknown" ||
-    run.next_action.action === "reconcile" || handoff?.next_action === "reconcile" || (handoff?.unresolved_effects.length ?? 0) > 0 ||
+    run.next_action.action === "reconcile" || handoff?.next_action === "reconcile" || (handoff?.unresolved_effects.length ?? 0) > 0 || (handoff?.blockers.length ?? 0) > 0 ||
     effectUnknown || evidenceIncomplete || effects?.some(effect => effect.reconciliation_required || effect.state === "unknown" || effect.state === "reconciling" || effect.conflict) === true ||
     verification.status !== "validated";
   const incomplete = source.status === "unknown" || head.status === "unknown" || verification.status !== "validated" || effectUnknown || evidenceIncomplete || unresolvedStatus;

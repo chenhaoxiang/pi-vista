@@ -6,7 +6,7 @@ import {
   projectNativeEnhancedEvaluation,
   validateNativeEnhancedEvaluationArtifact,
   isNativeEnhancedEvaluationArtifact,
-} from "./native-enhanced-evaluation.mjs";
+} from "../scripts/native-enhanced-evaluation.mjs";
 
 const source = "a".repeat(40);
 const head = "b".repeat(40);
@@ -161,6 +161,16 @@ test("Governance text fields preserve safe natural language while ID references 
   assert.equal(artifact.outcome.status, "unknown");
 });
 
+test("blocker-only handoffs require reconciliation instead of passing", () => {
+  const artifact = projectNativeEnhancedEvaluation({
+    ...positive(),
+    handoff: handoff({ blockers: ["owner review required"] }),
+  });
+  assert.equal(artifact.reconcile_required, true);
+  assert.equal(artifact.outcome.status, "unknown");
+  assert.equal(artifact.unknown, true);
+});
+
 test("null measurements fall back to receipt resources, matching values agree, and non-null conflicts refuse", () => {
   const fallback = projectNativeEnhancedEvaluation({
     ...positive({ input_tokens: null }),
@@ -243,6 +253,8 @@ test("illegal statuses, arms, unregistered identities and contradictory unknown 
   assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), run: run({ status: "approved" }) }), /native-enhanced-evaluation-refused/);
   assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), effects: [effect({ run_id: "other-run" })] }), /native-enhanced-evaluation-refused/);
   assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), evidence: [evidence({ source_sha: "c".repeat(40) })] }), /native-enhanced-evaluation-refused/);
+  assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), evidence: [evidence({ effect_id: "foreign-effect" })] }), /native-enhanced-evaluation-refused/);
+  assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), handoff: handoff({ run_revision: 0 }) }), /native-enhanced-evaluation-refused/);
   assert.throws(() => projectNativeEnhancedEvaluation({ ...positive(), receipt: receipt({ status: { run: "running", execution_outcome: "running", business_outcome: "progress", delivery_outcome: "preparing", permission_outcome: "admitted" } }) }), /native-enhanced-evaluation-refused/);
   assert.throws(() => validateNativeEnhancedEvaluationArtifact({
     ...projectNativeEnhancedEvaluation(positive()),
