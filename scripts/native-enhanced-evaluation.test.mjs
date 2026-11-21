@@ -147,6 +147,39 @@ test("Native and Enhanced produce the same versioned JSON-safe projection shape"
   assert.equal(failed.unknown, false);
 });
 
+test("Governance text fields preserve safe natural language while ID references stay closed", () => {
+  const artifact = projectNativeEnhancedEvaluation({
+    ...positive(),
+    evidence: [evidence({ claims: ["validated readback with 中文事实"], counterevidence_refs: ["counter-1"] })],
+    handoff: handoff({
+      accepted_facts: ["当前结果已验证"],
+      unresolved_effects: ["等待业务确认"],
+      blockers: ["负责人需要复核"],
+    }),
+  });
+  assert.equal(artifact.reconcile_required, true);
+  assert.equal(artifact.outcome.status, "unknown");
+});
+
+test("null measurements fall back to receipt resources, matching values agree, and non-null conflicts refuse", () => {
+  const fallback = projectNativeEnhancedEvaluation({
+    ...positive({ input_tokens: null }),
+    receipt: receipt({ resource: { input_tokens: 120 } }),
+  });
+  assert.equal(fallback.metrics.input_tokens, 120);
+
+  const matching = projectNativeEnhancedEvaluation({
+    ...positive({ input_tokens: 120 }),
+    receipt: receipt({ resource: { input_tokens: 120 } }),
+  });
+  assert.equal(matching.metrics.input_tokens, 120);
+
+  assert.throws(() => projectNativeEnhancedEvaluation({
+    ...positive({ input_tokens: 121 }),
+    receipt: receipt({ resource: { input_tokens: 120 } }),
+  }), /native-enhanced-evaluation-refused/);
+});
+
 test("missing source/head and measurements remain unknown or null without guessed cost", () => {
   const artifact = projectNativeEnhancedEvaluation({
     schema: INPUT_SCHEMA,
@@ -222,6 +255,10 @@ test("illegal statuses, arms, unregistered identities and contradictory unknown 
     source: { status: "unknown", sha: null },
   }), /native-enhanced-evaluation-refused/);
   const valid = projectNativeEnhancedEvaluation(positive());
+  assert.throws(() => validateNativeEnhancedEvaluationArtifact({
+    ...valid,
+    task_id: "T99",
+  }), /native-enhanced-evaluation-refused/);
   assert.throws(() => validateNativeEnhancedEvaluationArtifact({
     ...valid,
     outcome: { ...valid.outcome, status: "fail" },

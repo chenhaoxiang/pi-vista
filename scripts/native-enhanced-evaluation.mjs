@@ -24,6 +24,11 @@ export const SAFETY = Object.freeze({
 const REFUSAL = "native-enhanced-evaluation-refused";
 const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 const LABEL = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f\u0080-\u009f]/u;
+const RAW_PATH_PATTERN = /(?:^|[\\/])(?:Users|home|private|var|tmp|etc|opt|workspace|src)(?:[\\/]|$)|^[A-Za-z]:[\\/]/u;
+const SHELL_PATTERN = /(?:&&|\|\||[;`$<>]|\r?\n)/u;
+const CREDENTIAL_URL_PATTERN = /:\/\/[^/\s:]+:[^@/\s]+@/u;
+const RAW_METADATA_PATTERN = /(?:^|[^a-z0-9])(?:args?|argv|command|completion|content|cwd|directory|file(?:name|path)?|input|model|output|path|prompt|raw|request|response|secret|shell|stderr|stdin|stdout|token|credential|password)(?:$|[^a-z0-9])/iu;
 const RUN_KEYS = ["run_id", "goal_id", "run_revision", "status", "execution_outcome", "business_outcome", "delivery_outcome", "permission_outcome", "owner", "policy_version", "session_id", "session_epoch", "runtime_id", "effect_ids", "evidence_ids", "next_action", "source_sha", "head_sha", "config_digest"];
 const RUN_REQUIRED = ["run_id", "run_revision", "status", "execution_outcome", "business_outcome", "delivery_outcome", "permission_outcome", "effect_ids", "evidence_ids", "next_action"];
 const EFFECT_KEYS = ["effect_id", "run_id", "effect_key", "kind", "target_kind", "target_ref", "scope_digest", "state", "attempt_count", "dispatch_receipt_id", "last_observed_receipt_id", "unknown_reason", "reconciliation_required", "last_reconciled_at", "duplicate_of", "conflict"];
@@ -111,20 +116,31 @@ function number(value) {
   return value;
 }
 
-function snapshotStringList(value, max = 128) {
+function metadataText(value, maxLength = 256) {
+  if (typeof value !== "string" || value.length === 0 || value.length > maxLength || hasKnownCredential(value) ||
+      CONTROL_CHARACTER_PATTERN.test(value) || RAW_PATH_PATTERN.test(value) || SHELL_PATTERN.test(value) ||
+      CREDENTIAL_URL_PATTERN.test(value) || RAW_METADATA_PATTERN.test(value)) refuse();
+  return value;
+}
+
+function snapshotIdList(value, max = 128) {
   return list(value, 0, max, item => label(item));
 }
 
-function snapshotUniqueStringList(value, max = 128) {
-  const result = snapshotStringList(value, max);
+function snapshotMetadataTextList(value, max = 64) {
+  return list(value, 0, max, item => metadataText(item));
+}
+
+function snapshotUniqueIdList(value, max = 128) {
+  const result = snapshotIdList(value, max);
   if (new Set(result).size !== result.length) refuse();
   return result;
 }
 
 function snapshotRun(value) {
   const run = own(value, RUN_KEYS, RUN_REQUIRED);
-  run.effect_ids = snapshotUniqueStringList(run.effect_ids);
-  run.evidence_ids = snapshotUniqueStringList(run.evidence_ids);
+  run.effect_ids = snapshotUniqueIdList(run.effect_ids);
+  run.evidence_ids = snapshotUniqueIdList(run.evidence_ids);
   run.next_action = snapshotNext(run.next_action);
   if (run.source_sha !== undefined) run.source_sha = sourceSha(run.source_sha);
   if (run.head_sha !== undefined) run.head_sha = sourceSha(run.head_sha);
@@ -141,8 +157,8 @@ function snapshotEffect(value) {
 
 function snapshotEvidence(value) {
   const evidence = own(value, EVIDENCE_KEYS, EVIDENCE_REQUIRED);
-  evidence.claims = snapshotStringList(evidence.claims);
-  evidence.counterevidence_refs = snapshotStringList(evidence.counterevidence_refs);
+  evidence.claims = snapshotMetadataTextList(evidence.claims);
+  evidence.counterevidence_refs = snapshotIdList(evidence.counterevidence_refs);
   if (evidence.source_sha !== undefined) evidence.source_sha = sourceSha(evidence.source_sha);
   if (!isGovernanceEvidenceRecord(evidence)) refuse();
   return evidence;
@@ -191,9 +207,9 @@ function snapshotEvidenceRef(value) {
 
 function snapshotHandoff(value) {
   const handoff = own(value, HANDOFF_KEYS, HANDOFF_REQUIRED, true);
-  handoff.accepted_facts = snapshotStringList(handoff.accepted_facts);
-  handoff.unresolved_effects = snapshotStringList(handoff.unresolved_effects);
-  handoff.blockers = snapshotStringList(handoff.blockers);
+  handoff.accepted_facts = snapshotMetadataTextList(handoff.accepted_facts);
+  handoff.unresolved_effects = snapshotMetadataTextList(handoff.unresolved_effects);
+  handoff.blockers = snapshotMetadataTextList(handoff.blockers);
   handoff.successor_constraints = own(handoff.successor_constraints, ["must_read_current_head", "must_not_replay_unknown_effect", "must_not_change_model_silently"], ["must_read_current_head", "must_not_replay_unknown_effect", "must_not_change_model_silently"], true);
   if (!isGovernanceHandoff(handoff)) refuse();
   return handoff;
@@ -236,7 +252,7 @@ function outputMeasurements(measurements, resource, duplicateEffectCount) {
   const read = (key, resourceKey = key) => {
     const measured = explicit[key];
     const resourceValue = resource?.[resourceKey];
-    if (measured !== undefined && resourceValue !== undefined && measured !== resourceValue) refuse();
+    if (measured !== undefined && measured !== null && resourceValue !== undefined && resourceValue !== null && measured !== resourceValue) refuse();
     return measured ?? resourceValue ?? null;
   };
   const estimatedCost = read("estimated_cost");
@@ -288,7 +304,6 @@ function assertBindings(input) {
   if (input.receipt?.identity.effect_id !== undefined && !run.effect_ids.includes(input.receipt.identity.effect_id)) refuse();
   if (input.handoff !== undefined) {
     if (input.handoff.run_id !== run.run_id) refuse();
-    if (input.handoff.unresolved_effects.some(effectId => !run.effect_ids.includes(effectId))) refuse();
   }
 }
 
@@ -401,7 +416,7 @@ export function validateNativeEnhancedEvaluationArtifact(value) {
   try {
     const artifact = snapshotArtifact(value);
     if (artifact.schema !== ARTIFACT_SCHEMA || !ARMS.includes(artifact.arm)) refuse();
-    label(artifact.task_id); label(artifact.run_id);
+    label(artifact.task_id); if (!TASK_IDS.has(artifact.task_id)) refuse(); label(artifact.run_id);
     const source = validateBinding(artifact.source), head = validateBinding(artifact.head);
     const outcome = validateOutcome(artifact.outcome), verificationStateValue = validateVerification(artifact.verification_state), metrics = validateMetrics(artifact.metrics);
     if (typeof artifact.unknown !== "boolean" || typeof artifact.reconcile_required !== "boolean" ||
