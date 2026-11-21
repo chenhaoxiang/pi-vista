@@ -128,7 +128,7 @@ test("Native and Enhanced produce the same versioned JSON-safe projection shape"
   ].sort());
   assert.equal(native.source.status, "observed");
   assert.equal(native.head.status, "observed");
-  assert.deepEqual(native.outcome, { status: "pass", run: "settled", execution: "settled", business: "completed", delivery: "delivered", permission: "admitted" });
+  assert.deepEqual(native.outcome, { status: "pass", run: "settled", execution: "settled", business: "completed", delivery: "delivered", permission: "admitted", effect: "settled" });
   assert.equal(native.verification, "metadata-only");
   assert.deepEqual(native.verification_state, { status: "validated", evidence_count: 1, validated_count: 1 });
   assert.equal(native.metrics.estimated_cost, 0.01);
@@ -159,6 +159,7 @@ test("missing source/head and measurements remain unknown or null without guesse
   assert.equal(artifact.unknown, true);
   assert.equal(artifact.reconcile_required, true);
   assert.equal(artifact.outcome.status, "unknown");
+  assert.equal(artifact.outcome.effect, null);
   assert.equal(artifact.verification, "metadata-only");
   assert.deepEqual(artifact.verification_state, { status: "unknown", evidence_count: 0, validated_count: 0 });
   assert.deepEqual(artifact.metrics, {
@@ -179,6 +180,28 @@ test("duplicate effects and reconciliation stay observable without becoming succ
   assert.equal(artifact.outcome.status, "unknown");
   assert.equal(artifact.outcome.business, "completed");
   assert.equal(artifact.unknown, true);
+});
+
+test("only settled effects pass; in-flight effects reconcile and terminal effect failures fail", () => {
+  for (const state of ["planned", "admitted", "dispatched", "in_flight", "observed", "cancel_requested"]) {
+    const artifact = projectNativeEnhancedEvaluation({ ...positive(), effects: [effect({ state })] });
+    assert.equal(artifact.outcome.effect, "unknown", state);
+    assert.equal(artifact.outcome.status, "unknown", state);
+    assert.equal(artifact.unknown, true, state);
+    assert.equal(artifact.reconcile_required, true, state);
+    assert.equal(artifact.authorization, "none", state);
+    assert.equal(artifact.executable, false, state);
+  }
+  for (const state of ["failed", "cancelled"]) {
+    const artifact = projectNativeEnhancedEvaluation({ ...positive(), effects: [effect({ state })] });
+    assert.equal(artifact.outcome.effect, state, state);
+    assert.equal(artifact.outcome.status, "fail", state);
+    assert.equal(artifact.unknown, false, state);
+    assert.equal(artifact.reconcile_required, false, state);
+    assert.equal(artifact.authorization, "none", state);
+    assert.equal(artifact.executable, false, state);
+    assert.equal(isNativeEnhancedEvaluationArtifact(artifact), true, state);
+  }
 });
 
 test("illegal statuses, arms, unregistered identities and contradictory unknown flags are rejected", () => {

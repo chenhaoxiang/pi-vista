@@ -47,7 +47,10 @@ const REDACTION_KEYS = ["profile", "raw_content_included", "credentials_included
 const MEASUREMENT_KEYS = ["latency_ms", "human_interventions", "rework_count", "context_tokens", "input_tokens", "output_tokens", "total_tokens", "estimated_cost"];
 const ARTIFACT_KEYS = ["schema", "task_id", "run_id", "arm", "source", "head", "outcome", "verification", "verification_state", "metrics", "unknown", "reconcile_required", "observation", "authorization", "executable", "read_only"];
 const BINDING_KEYS = ["status", "sha"];
-const OUTCOME_KEYS = ["status", "run", "execution", "business", "delivery", "permission"];
+// Optional in the v1 artifact so effect failures remain detached-validator-visible without changing governance protocol records.
+const OUTCOME_KEYS = ["status", "run", "execution", "business", "delivery", "permission", "effect"];
+const OUTCOME_REQUIRED = ["status", "run", "execution", "business", "delivery", "permission"];
+const EFFECT_OUTCOMES = new Set(["settled", "failed", "cancelled", "unknown", "reconciling"]);
 const VERIFICATION_KEYS = ["status", "evidence_count", "validated_count"];
 const METRIC_OUTPUT_KEYS = ["latency_ms", "human_interventions", "rework_count", "duplicate_effect_count", "context_tokens", "input_tokens", "output_tokens", "total_tokens", "estimated_cost", "cost_status"];
 const OUTCOME_STATUSES = new Set(["pass", "fail", "unknown"]);
@@ -298,9 +301,25 @@ function project(value) {
   const verification = verificationState(evidence);
   const duplicateEffectCount = effects === undefined ? null : effects.filter(effect => effect.duplicate_of !== undefined && effect.duplicate_of !== null).length;
   const outcome = { run: run.status, execution: run.execution_outcome, business: run.business_outcome, delivery: run.delivery_outcome, permission: run.permission_outcome };
+  const effectOutcome = effects === undefined
+    ? (run.effect_ids.length > 0 ? "unknown" : null)
+    : effects.length === 0 && run.effect_ids.length === 0
+      ? null
+      : effects.length < run.effect_ids.length
+        ? "unknown"
+        : effects.some(effect => effect.state === "failed")
+          ? "failed"
+          : effects.some(effect => effect.state === "cancelled")
+            ? "cancelled"
+            : effects.every(effect => effect.state === "settled")
+              ? "settled"
+              : effects.some(effect => effect.state === "reconciling")
+                ? "reconciling"
+                : "unknown";
   const effectUnknown = effects === undefined
     ? run.effect_ids.length > 0
-    : effects.length < run.effect_ids.length || effects.some(effect => effect.state === "unknown");
+    : effects.length < run.effect_ids.length || effects.some(effect => !["settled", "failed", "cancelled"].includes(effect.state));
+  const effectFailure = effects?.some(effect => effect.state === "failed" || effect.state === "cancelled") === true;
   const evidenceIncomplete = evidence === undefined ? run.evidence_ids.length > 0 : evidence.length < run.evidence_ids.length;
   const unresolvedStatus = !["settled", "closed", "failed", "cancelled"].includes(run.status) ||
     !["settled", "failed"].includes(run.execution_outcome) ||
@@ -312,7 +331,7 @@ function project(value) {
     effectUnknown || evidenceIncomplete || effects?.some(effect => effect.reconciliation_required || effect.state === "unknown" || effect.state === "reconciling" || effect.conflict) === true ||
     verification.status !== "validated";
   const incomplete = source.status === "unknown" || head.status === "unknown" || verification.status !== "validated" || effectUnknown || evidenceIncomplete || unresolvedStatus;
-  const failure = run.status === "failed" || run.status === "cancelled" || run.execution_outcome === "failed" || run.business_outcome === "failed" ||
+  const failure = effectFailure || run.status === "failed" || run.status === "cancelled" || run.execution_outcome === "failed" || run.business_outcome === "failed" ||
     run.business_outcome === "blocked" || run.business_outcome === "cancelled" || run.delivery_outcome === "failed" ||
     ["blocked", "expired", "revoked"].includes(run.permission_outcome);
   const outcomeStatus = incomplete || reconcileRequired ? "unknown" : failure ? "fail" : "pass";
@@ -324,7 +343,7 @@ function project(value) {
     arm: input.arm,
     source,
     head,
-    outcome: { status: outcomeStatus, ...outcome },
+    outcome: { status: outcomeStatus, ...outcome, effect: effectOutcome },
     verification: SAFETY.verification,
     verification_state: verification,
     metrics: outputMeasurements(measurements, receipt?.resource, duplicateEffectCount),
@@ -343,7 +362,7 @@ function snapshotArtifact(value) {
   const artifact = own(value, ARTIFACT_KEYS, ARTIFACT_KEYS);
   artifact.source = own(artifact.source, BINDING_KEYS, BINDING_KEYS);
   artifact.head = own(artifact.head, BINDING_KEYS, BINDING_KEYS);
-  artifact.outcome = own(artifact.outcome, OUTCOME_KEYS, OUTCOME_KEYS);
+  artifact.outcome = own(artifact.outcome, OUTCOME_KEYS, OUTCOME_REQUIRED);
   artifact.verification_state = own(artifact.verification_state, VERIFICATION_KEYS, VERIFICATION_KEYS);
   artifact.metrics = own(artifact.metrics, METRIC_OUTPUT_KEYS, METRIC_OUTPUT_KEYS);
   return artifact;
@@ -358,7 +377,8 @@ function validateBinding(value) {
 
 function validateOutcome(value) {
   if (!OUTCOME_STATUSES.has(value.status) || !RUN_STATUSES.has(value.run) || !EXECUTION_OUTCOMES.has(value.execution) || !BUSINESS_OUTCOMES.has(value.business) ||
-      !DELIVERY_OUTCOMES.has(value.delivery) || !PERMISSION_OUTCOMES.has(value.permission)) refuse();
+      !DELIVERY_OUTCOMES.has(value.delivery) || !PERMISSION_OUTCOMES.has(value.permission) ||
+      (value.effect !== undefined && value.effect !== null && !EFFECT_OUTCOMES.has(value.effect))) refuse();
   return Object.freeze({ ...value });
 }
 
@@ -388,8 +408,9 @@ export function validateNativeEnhancedEvaluationArtifact(value) {
         artifact.observation !== SAFETY.observation || artifact.verification !== SAFETY.verification ||
         artifact.authorization !== SAFETY.authorization || artifact.executable !== SAFETY.executable || artifact.read_only !== SAFETY.read_only) refuse();
     const incomplete = source.status === "unknown" || head.status === "unknown" || verificationStateValue.status !== "validated" ||
-      Object.values(outcome).some(item => item === "unknown" || item === "not_known" || item === "not_started" || item === "not_checked");
-    const failure = outcome.run === "failed" || outcome.run === "cancelled" || outcome.execution === "failed" || outcome.business === "failed" ||
+      Object.entries(outcome).some(([key, item]) => key !== "effect" && (item === "unknown" || item === "not_known" || item === "not_started" || item === "not_checked")) ||
+      outcome.effect === "unknown" || outcome.effect === "reconciling";
+    const failure = outcome.effect === "failed" || outcome.effect === "cancelled" || outcome.run === "failed" || outcome.run === "cancelled" || outcome.execution === "failed" || outcome.business === "failed" ||
       outcome.business === "blocked" || outcome.business === "cancelled" || outcome.delivery === "failed" ||
       ["blocked", "expired", "revoked"].includes(outcome.permission);
     const expectedStatus = incomplete || artifact.reconcile_required ? "unknown" : failure ? "fail" : "pass";
