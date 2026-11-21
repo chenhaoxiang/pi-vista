@@ -84,6 +84,13 @@ S0/S1 这里是切片代号，**不是 Meta 自治注册表的仓安全评级**�
 
 ### P1：逐步测效益
 
+Wave 1 的首个最小切片是 `scripts/native-enhanced-evaluation.mjs`：它把已有
+Governance Run/Effect/Evidence/Handoff 与 receipt 校验后的安全元数据投影为版本化
+Native/Enhanced 离线 artifact。它不新增 protocol 状态源、CheckRegistry handler、
+Attention Queue item、执行器或权限；缺失 source/head、验证、结果和成本保留为
+`unknown`/`null`，输出固定 `authorization:none`、`executable:false`、只读标记。
+该脚本及其 synthetic tests 只验证合同与投影，不调用 provider、session 或 Hindsight。
+
 3. Reference solver/mock provider先证明grader、失败、零请求、成本unknown与诊断行为。
 4. 先明确范围的k=1；valid后才讨论新k=3预算，报告pass@1/pass@3/pass^3，不能把一次试验当稳定性。
 5. Context ROI：chars/tokens、compile time、输入增量、latency/tool delta、semantic gain、token cost。guidance无收益不注入，不强制memory。
